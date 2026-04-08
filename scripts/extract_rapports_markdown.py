@@ -1371,12 +1371,15 @@ def group_by_pdf(
     ``statut_telechargement`` n'est pas ``ok`` / ``skip`` sont
     ignorées : pas de PDF sur disque, rien à extraire.
     """
+    # ``require_columns`` a validé que les 2 clés sont dans les
+    # fieldnames du CSV au chargement ; on peut donc accéder
+    # directement sans fallback (la valeur peut être "" si la cellule
+    # est vide, mais jamais KeyError).
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
-        statut = row.get("statut_telechargement", "")
-        if statut not in {"ok", "skip"}:
+        if row["statut_telechargement"] not in {"ok", "skip"}:
             continue
-        filename = row.get("nom_fichier_local", "").strip()
+        filename = row["nom_fichier_local"].strip()
         if not filename:
             continue
         groups[filename].append(row)
@@ -1512,12 +1515,21 @@ def run_extraction(
             write_markdown(result.markdown, md_path)
             written_filenames.add(filename)
 
-        if result.method in SUCCESS_METHODS and result.front_matter is not None:
+        # Le manifeste stocke AUSSI les FAILED, avec leur raison
+        # d'échec. Conséquence : au prochain run, ``is_up_to_date``
+        # matche pour ce PDF à ce sha256 et à cette extraction_version
+        # et on saute l'OCR (coûteux) pour les PDFs vides / corrompus
+        # qu'on sait ne pas pouvoir récupérer. Un ``--force`` ou un
+        # bump d'``extraction_version`` déclenche bien une nouvelle
+        # tentative quand on a amélioré l'extracteur.
+        if result.front_matter is not None:
             entry = build_manifest_entry(
                 result.front_matter, result.markdown, md_path
             )
             append_manifest(MANIFEST_PATH, entry)
             manifest[filename] = entry
+
+        if result.method in SUCCESS_METHODS:
             summary_ok += 1
             print(
                 f"[{index:4d}/{len(ordered_filenames)}] {result.method.value:<22} {filename}"
@@ -1616,8 +1628,14 @@ def _update_rapports_csv(
     else:
         new_fieldnames = [*existing_fieldnames, "url_markdown"]
 
+    # ``nom_fichier_local`` est garanti par ``require_columns`` au
+    # chargement. ``url_markdown`` en revanche peut être absente si
+    # c'est le premier run sur ce CSV — on utilise ``setdefault`` pour
+    # préserver la valeur existante des runs précédents quand le
+    # markdown est toujours là, et écrire "" seulement quand la clé
+    # manque.
     for row in rows:
-        filename = row.get("nom_fichier_local", "").strip()
+        filename = row["nom_fichier_local"].strip()
         if filename and filename in markdown_filenames:
             row["url_markdown"] = build_pages_url_markdown(filename)
         else:
@@ -1630,7 +1648,10 @@ def _update_rapports_csv(
         writer.writeheader()
         writer.writerows(rows)
 
-    total_with_url = sum(1 for row in rows if row.get("url_markdown"))
+    # Après la boucle ci-dessus chaque ligne a forcément la clé
+    # (setdefault s'en est occupée quand elle manquait), on peut
+    # donc accéder directement.
+    total_with_url = sum(1 for row in rows if row["url_markdown"])
     print(
         f"[csv] rapports-inspection.csv mis à jour "
         f"({len(rows)} lignes, {total_with_url} url_markdown au total)"

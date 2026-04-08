@@ -21,6 +21,14 @@ from pathlib import Path
 
 from scripts.tests._loader import load_extractor
 
+try:
+    import pymupdf  # noqa: F401
+    import pymupdf4llm  # noqa: F401
+except ModuleNotFoundError:  # pragma: no cover
+    PYMUPDF_AVAILABLE = False
+else:
+    PYMUPDF_AVAILABLE = True
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PDF_DIR = REPO_ROOT / "rapports-inspection"
@@ -36,7 +44,11 @@ FIXTURE_DREAL_MEDIUM = (
     "5A-IMMOBILIERE-SCI_100007752_2022-10-28_77814766000030.pdf"
 )
 
-CORPUS_AVAILABLE = PDF_DIR.exists() and (PDF_DIR / FIXTURE_DREAL_SMALL).exists()
+CORPUS_AVAILABLE = (
+    PYMUPDF_AVAILABLE
+    and PDF_DIR.exists()
+    and (PDF_DIR / FIXTURE_DREAL_SMALL).exists()
+)
 
 
 def _csv_row_for(pdf_filename: str, id_icpe: str, siret: str) -> dict[str, str]:
@@ -61,7 +73,7 @@ def _csv_row_for(pdf_filename: str, id_icpe: str, siret: str) -> dict[str, str]:
     }
 
 
-@unittest.skipUnless(CORPUS_AVAILABLE, "corpus rapports-inspection absent")
+@unittest.skipUnless(CORPUS_AVAILABLE, "corpus ou pymupdf absents")
 class ExtractDrealSmallTests(unittest.TestCase):
     """Extraction complète d'un PDF DREAL court."""
 
@@ -125,7 +137,7 @@ class ExtractDrealSmallTests(unittest.TestCase):
         self.assertEqual(self.result.markdown, replay.markdown)
 
 
-@unittest.skipUnless(CORPUS_AVAILABLE, "corpus rapports-inspection absent")
+@unittest.skipUnless(CORPUS_AVAILABLE, "corpus ou pymupdf absents")
 class ExtractDrealMediumTests(unittest.TestCase):
     """Extraction complète d'un PDF DREAL plus gros (26k chars).
 
@@ -169,7 +181,7 @@ class ExtractDrealMediumTests(unittest.TestCase):
         )
 
 
-@unittest.skipUnless(CORPUS_AVAILABLE, "corpus rapports-inspection absent")
+@unittest.skipUnless(CORPUS_AVAILABLE, "corpus ou pymupdf absents")
 class NoOcrModeTests(unittest.TestCase):
     """Le flag ``allow_ocr=False`` marque les scans comme FAILED sans OCR."""
 

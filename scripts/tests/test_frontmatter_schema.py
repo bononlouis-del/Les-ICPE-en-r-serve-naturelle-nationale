@@ -28,9 +28,21 @@ import unittest
 
 from scripts.tests._loader import load_extractor
 
+try:
+    import jsonschema  # noqa: F401
+except ModuleNotFoundError:  # pragma: no cover
+    JSONSCHEMA_AVAILABLE = False
+else:
+    JSONSCHEMA_AVAILABLE = True
+
 
 class SchemaFileTests(unittest.TestCase):
-    """Le fichier schema est valide et a la shape attendue."""
+    """Le fichier schema est valide et a la shape attendue.
+
+    Ce bloc n'a PAS besoin de ``jsonschema`` : on lit juste le fichier
+    JSON et on vérifie sa structure. Ça garantit que le schéma existe
+    et est cohérent même sur un environnement stdlib-only.
+    """
 
     def setUp(self) -> None:
         self.m = load_extractor()
@@ -97,6 +109,7 @@ def _valid_front_matter(m) -> dict[str, object]:
     }
 
 
+@unittest.skipUnless(JSONSCHEMA_AVAILABLE, "jsonschema non installé")
 class FrontMatterValidationTests(unittest.TestCase):
     """Notre wrapper ``validate_front_matter_against_schema`` lève correctement."""
 
@@ -158,7 +171,11 @@ class FrontMatterValidationTests(unittest.TestCase):
 
 
 class ParseFrontMatterBlockTests(unittest.TestCase):
-    """Round-trip : render → parse → valide."""
+    """Round-trip : render → parse → valide.
+
+    Seul ``test_roundtrip_passes_schema_validation`` dépend de
+    ``jsonschema`` ; les 3 autres tests sont de la stdlib pure.
+    """
 
     def setUp(self) -> None:
         self.m = load_extractor()
@@ -173,6 +190,7 @@ class ParseFrontMatterBlockTests(unittest.TestCase):
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed, original)
 
+    @unittest.skipUnless(JSONSCHEMA_AVAILABLE, "jsonschema non installé")
     def test_roundtrip_passes_schema_validation(self) -> None:
         original = _valid_front_matter(self.m)
         yaml = self.m.render_front_matter_yaml(original)
