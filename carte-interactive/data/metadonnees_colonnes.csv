@@ -5,6 +5,9 @@ libelle,nom_original,Raison sociale de l'installation telle que saisie dans Géo
 (calculé),etablissement,"Sous-nom identifiant l'établissement spécifique quand le libellé est ambigu ou composite. Vide quand le libellé est déjà unique. Calculé à partir du libellé, de la commune et de l'adresse de l'export bulk Géorisques."
 (calculé),nom_complet,"Nom complet désambiguïsé pour affichage et analyse. Garanti unique dans le jeu de données. Concaténation de structure et établissement avec un suffixe (#1, #2, …) en tout dernier recours."
 insee,code_insee_commune,"Code INSEE de la commune d'implantation (5 chiffres, ex : 33063 = Bordeaux)."
+(calculé),nom_commune,"Nom de la commune d'implantation, résolu depuis le code INSEE via geo.api.gouv.fr (source : IGN Admin Express). Vide si le code INSEE est manquant ou ne correspond à aucune commune référencée en Gironde."
+(calculé),epci_siren,Numéro SIREN de l'EPCI (Établissement Public de Coopération Intercommunale) auquel la commune appartient. Résolu depuis le code INSEE via geo.api.gouv.fr. Vide si la commune n'est rattachée à aucun EPCI référencé.
+(calculé),epci_nom,"Nom de l'EPCI (Établissement Public de Coopération Intercommunale) auquel la commune appartient (ex : 'Bordeaux Métropole', 'CA du Libournais'). Résolu via geo.api.gouv.fr depuis le code INSEE."
 Geo Point,coordonnees_lat_lon,"Latitude et longitude de l'installation (WGS84), au format 'lat, lon'."
 Geo Shape,geometrie_geojson,"Géométrie de l'installation au format GeoJSON (type Point), utilisable directement pour la cartographie."
 gid,id_ligne_export,Identifiant séquentiel de la ligne dans l'export data.gouv.fr (1 à 2888). Non stable entre deux exports — utiliser id_icpe pour les jointures.

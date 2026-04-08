@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 
 <!-- Our styles — ?v bumped on each deploy to bust Pages CDN cache -->
-<link rel="stylesheet" href="carte-interactive/style.css?v=4">
+<link rel="stylesheet" href="carte-interactive/style.css?v=6">
 </head>
 <body>
 
@@ -35,6 +35,11 @@
 
 <main class="workspace">
   <div id="map" role="application" aria-label="Carte interactive des ICPE en Gironde"></div>
+
+  <!-- Playback HUD: big month label that appears only during auto-play -->
+  <div id="playback-hud" class="playback-hud" aria-hidden="true">
+    <span id="playback-hud-text">—</span>
+  </div>
 
   <button type="button" id="legend-toggle" class="legend-toggle" aria-controls="legend" aria-expanded="true" title="Afficher la légende">
     Lég.
@@ -55,8 +60,12 @@
 
     <div class="filters__section">
       <label class="filters__section-label" for="search-input">Recherche</label>
-      <input id="search-input" type="search" placeholder="nom, commune, SIRET…" autocomplete="off">
-      <p class="filters__hint">Mots multiples (ET), accents ignorés. Ex. « <em>heidelberg blanquefort</em> ».</p>
+      <div class="search-combobox" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-owns="suggestions">
+        <div id="search-pills" class="search-pills" role="list" aria-label="Filtres sélectionnés"></div>
+        <input id="search-input" type="search" placeholder="commune, EPCI, entreprise, site…" autocomplete="off" aria-autocomplete="list" aria-controls="suggestions">
+        <div id="suggestions" class="suggestions is-hidden" role="listbox" aria-label="Suggestions"></div>
+      </div>
+      <p class="filters__hint">Choisissez une suggestion dans la liste, ou tapez librement pour filtrer par SIRET / nom partiel.</p>
     </div>
 
     <div class="filters__section">
@@ -68,53 +77,56 @@
         <button type="button" role="radio" class="segmented__option" data-color-dim="ied">IED</button>
         <button type="button" role="radio" class="segmented__option" data-color-dim="secteur">Secteur</button>
       </div>
+      <div class="filters__footer">
+        <div class="counter" aria-live="polite" aria-atomic="true"><span id="counter-shown">0</span> <span class="counter__of">sur</span> <span id="counter-total">0</span> <span class="counter__label">sites</span></div>
+        <button type="button" id="reset-button" class="reset">Réinitialiser</button>
+      </div>
     </div>
 
-    <div class="filters__section">
-      <div class="filters__section-label">Régime</div>
+    <details class="filters__details" open>
+      <summary>Régime</summary>
       <label class="check"><input type="checkbox" data-filter="regime" value="AUTORISATION" checked><span class="swatch" style="background:var(--rust)"></span>Autorisation</label>
       <label class="check"><input type="checkbox" data-filter="regime" value="ENREGISTREMENT" checked><span class="swatch" style="background:var(--ochre)"></span>Enregistrement</label>
       <label class="check"><input type="checkbox" data-filter="regime" value="NON_ICPE" checked><span class="swatch" style="background:var(--lead)"></span>Non-ICPE</label>
       <label class="check"><input type="checkbox" data-filter="regime" value="AUTRE" checked><span class="swatch" style="background:var(--fog)"></span>Autre</label>
-    </div>
+    </details>
 
-    <div class="filters__section">
-      <div class="filters__section-label">Seveso</div>
+    <details class="filters__details">
+      <summary>Seveso</summary>
       <label class="check"><input type="checkbox" data-filter="seveso" value="SEUIL_HAUT" checked><span class="swatch" style="background:var(--rust-deep)"></span>Seuil haut</label>
       <label class="check"><input type="checkbox" data-filter="seveso" value="SEUIL_BAS" checked><span class="swatch" style="background:var(--rust-mid)"></span>Seuil bas</label>
       <label class="check"><input type="checkbox" data-filter="seveso" value="NON_SEVESO" checked><span class="swatch" style="background:var(--lead)"></span>Non Seveso</label>
       <label class="check"><input type="checkbox" data-filter="seveso" value="" checked><span class="swatch" style="background:var(--fog)"></span>Non classé</label>
-    </div>
+    </details>
 
-    <div class="filters__section">
-      <div class="filters__section-label" id="label-priority">Priorité nationale</div>
-      <div class="segmented segmented--small" role="radiogroup" aria-labelledby="label-priority">
+    <details class="filters__details">
+      <summary>Priorité nationale</summary>
+      <div class="segmented segmented--small" role="radiogroup" aria-label="Priorité nationale">
         <button type="button" role="radio" class="segmented__option is-active" data-filter="priority" data-value="all">Tous</button>
         <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="yes">Oui</button>
         <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="no">Non</button>
       </div>
-    </div>
+    </details>
 
-    <div class="filters__section">
-      <div class="filters__section-label" id="label-ied">IED</div>
-      <div class="segmented segmented--small" role="radiogroup" aria-labelledby="label-ied">
+    <details class="filters__details">
+      <summary>IED</summary>
+      <div class="segmented segmented--small" role="radiogroup" aria-label="Directive IED">
         <button type="button" role="radio" class="segmented__option is-active" data-filter="ied" data-value="all">Tous</button>
         <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="yes">Oui</button>
         <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="no">Non</button>
       </div>
-    </div>
+    </details>
 
-    <div class="filters__section">
-      <div class="filters__section-label">Secteur</div>
+    <details class="filters__details">
+      <summary>Secteur</summary>
       <label class="check"><input type="checkbox" data-filter="secteur" value="industrie"><span class="swatch" style="background:var(--ink)"></span>Industrie</label>
       <label class="check"><input type="checkbox" data-filter="secteur" value="carriere"><span class="swatch" style="background:var(--ochre)"></span>Carrière</label>
-    </div>
+    </details>
 
-
-    <div class="filters__footer">
-      <div class="counter" aria-live="polite" aria-atomic="true"><span id="counter-shown">0</span> <span class="counter__of">sur</span> <span id="counter-total">0</span> <span class="counter__label">sites</span></div>
-      <button type="button" id="reset-button" class="reset">Réinitialiser</button>
-    </div>
+    <details class="filters__details">
+      <summary>EPCI</summary>
+      <div id="epci-list" class="epci-list"></div>
+    </details>
   </aside>
 </main>
 
@@ -149,6 +161,6 @@
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
 <!-- Our app — ?v bumped on each deploy to bust Pages CDN cache -->
-<script src="carte-interactive/app.js?v=4"></script>
+<script src="carte-interactive/app.js?v=6"></script>
 </body>
 </html>

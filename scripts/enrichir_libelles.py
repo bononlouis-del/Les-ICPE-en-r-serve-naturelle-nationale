@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 """
-enrichir_libelles.py — Désambiguïsation des libellés ICPE.
+enrichir_libelles.py — Désambiguïsation des libellés ICPE + enrichissement
+géographique (commune / EPCI).
 
-Ajoute trois colonnes (``structure``, ``etablissement``, ``libelle_complet``)
-à deux fichiers :
+Ajoute trois colonnes calculées (``structure``, ``etablissement``,
+``libelle_complet``) via l'algorithme de désambiguïsation, et trois
+colonnes référentielles (``nom_commune``, ``epci_siren``, ``epci_nom``)
+depuis geo.api.gouv.fr en les joignant sur le code INSEE de la commune.
 
-- ``données-georisques/InstallationClassee.csv``
-  → ``données-georisques/InstallationClassee_enrichi.csv``
+Fichiers produits :
+
+- ``données-georisques/InstallationClassee_enrichi.csv``
   (conserve les noms de colonnes Géorisques d'origine)
 
-- ``carte-interactive/liste-icpe-gironde.csv``
-  → ``carte-interactive/data/liste-icpe-gironde_enrichi.csv``
+- ``carte-interactive/data/liste-icpe-gironde_enrichi.csv``
   (colonnes renommées avec des alias lisibles)
-  → ``carte-interactive/data/metadonnees_colonnes.csv``
+- ``carte-interactive/data/metadonnees_colonnes.csv``
   (dictionnaire nom_original / alias / définition)
 
 Les fichiers originaux ne sont jamais modifiés.
+
+Réseau : lors du premier run (ou quand le cache
+``carte-interactive/data/gironde-commune-epci.json`` est absent), le script
+interroge ``geo.api.gouv.fr`` pour récupérer la correspondance code INSEE
+→ nom de commune / EPCI. Le résultat est mis en cache sur disque et
+réutilisé pour les runs suivants. Pour forcer un refresh, supprimer le
+fichier de cache puis relancer.
 
 Algorithme en deux passes (appliqué sur le bulk, qui seul contient
 les adresses ; puis joint au manuel par ``codeAiot`` ↔ ``ident``) :
@@ -46,8 +56,10 @@ Usage :
 from __future__ import annotations
 
 import csv
+import json
 import re
 import sys
+import urllib.request
 from collections import defaultdict
 from pathlib import Path
 
@@ -60,6 +72,15 @@ MANUAL_IN = PROJECT_ROOT / "carte-interactive" / "liste-icpe-gironde.csv"
 MANUAL_OUT_DIR = PROJECT_ROOT / "carte-interactive" / "data"
 MANUAL_OUT = MANUAL_OUT_DIR / "liste-icpe-gironde_enrichi.csv"
 METADATA_OUT = MANUAL_OUT_DIR / "metadonnees_colonnes.csv"
+
+# Cache de la correspondance code INSEE → {nom, epci_siren, epci_nom}.
+# Présent = le script n'appelle pas l'API. Supprimer pour forcer un refresh.
+COMMUNE_EPCI_CACHE = MANUAL_OUT_DIR / "gironde-commune-epci.json"
+
+# Endpoints geo.api.gouv.fr (Etalab, public, sans auth).
+# Utilisés uniquement quand le cache local est absent.
+COMMUNES_API = "https://geo.api.gouv.fr/departements/33/communes?fields=nom,code,codeEpci"
+EPCIS_API = "https://geo.api.gouv.fr/epcis?fields=nom,code"
 
 SEPARATOR_PATTERN = re.compile(r"^(.+?)\s+[-–]\s+(.+)$")
 MAIRIE_PATTERN = re.compile(r"^mairie\s+[-–]\s+", re.IGNORECASE)
@@ -122,6 +143,32 @@ MANUAL_COLUMN_SPEC: list[tuple[str, str, str, str]] = [
         "insee",
         "Code INSEE de la commune d'implantation (5 chiffres, ex : 33063 = "
         "Bordeaux).",
+    ),
+    (
+        "nom_commune",
+        "nom_commune",
+        "(calculé)",
+        "Nom de la commune d'implantation, résolu depuis le code INSEE via "
+        "geo.api.gouv.fr (source : IGN Admin Express). Vide si le code INSEE "
+        "est manquant ou ne correspond à aucune commune référencée en "
+        "Gironde.",
+    ),
+    (
+        "epci_siren",
+        "epci_siren",
+        "(calculé)",
+        "Numéro SIREN de l'EPCI (Établissement Public de Coopération "
+        "Intercommunale) auquel la commune appartient. Résolu depuis le code "
+        "INSEE via geo.api.gouv.fr. Vide si la commune n'est rattachée à "
+        "aucun EPCI référencé.",
+    ),
+    (
+        "epci_nom",
+        "epci_nom",
+        "(calculé)",
+        "Nom de l'EPCI (Établissement Public de Coopération Intercommunale) "
+        "auquel la commune appartient (ex : 'Bordeaux Métropole', 'CA du "
+        "Libournais'). Résolu via geo.api.gouv.fr depuis le code INSEE.",
     ),
     (
         "Geo Point",
@@ -258,6 +305,106 @@ MANUAL_COLUMN_SPEC: list[tuple[str, str, str, str]] = [
 DROPPED_COLUMNS = {"", "geom_o", "geom_err", "mdate"}
 
 
+# --- Enrichissement commune / EPCI ----------------------------------------
+
+
+def _fetch_json(url: str) -> object:
+    """GET + JSON parse, user-agent explicite pour geo.api.gouv.fr."""
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "enrichir_libelles.py"}
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.load(resp)
+
+
+def load_commune_epci_lookup() -> dict[str, dict[str, str | None]]:
+    """Retourne un dict INSEE → {nom, epci_siren, epci_nom}.
+
+    Préfère le cache disque si présent (pour les runs offline et pour la
+    reproductibilité). Sinon appelle geo.api.gouv.fr (Etalab), met en
+    cache, retourne. Écriture JSON compacte (une seule ligne) — 48 KB pour
+    les 534 communes de Gironde.
+    """
+    if COMMUNE_EPCI_CACHE.exists():
+        with COMMUNE_EPCI_CACHE.open(encoding="utf-8") as handle:
+            cached = json.load(handle)
+        print(
+            f"[commune] cache {COMMUNE_EPCI_CACHE.relative_to(PROJECT_ROOT)} "
+            f"({len(cached)} communes)"
+        )
+        return cached
+
+    print(f"[commune] cache absent, appel {COMMUNES_API}")
+    communes_raw = _fetch_json(COMMUNES_API)
+    assert isinstance(communes_raw, list), "format inattendu (communes)"
+    print(f"[commune] {len(communes_raw)} communes récupérées")
+
+    print(f"[commune] appel {EPCIS_API}")
+    epcis_raw = _fetch_json(EPCIS_API)
+    assert isinstance(epcis_raw, list), "format inattendu (epcis)"
+    epci_by_code: dict[str, str] = {
+        e["code"]: e["nom"] for e in epcis_raw if isinstance(e, dict)
+    }
+    print(
+        f"[commune] {len(epcis_raw)} EPCIs indexés "
+        f"(dont {len({c.get('codeEpci') for c in communes_raw if c.get('codeEpci')})} "
+        f"distincts en Gironde)"
+    )
+
+    lookup: dict[str, dict[str, str | None]] = {}
+    for entry in communes_raw:
+        if not isinstance(entry, dict):
+            continue
+        code = entry.get("code")
+        if not code:
+            continue
+        siren = entry.get("codeEpci")
+        lookup[code] = {
+            "nom": entry.get("nom"),
+            "epci_siren": siren,
+            "epci_nom": epci_by_code.get(siren) if siren else None,
+        }
+
+    COMMUNE_EPCI_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    with COMMUNE_EPCI_CACHE.open("w", encoding="utf-8") as handle:
+        json.dump(lookup, handle, ensure_ascii=False, separators=(",", ":"))
+    print(
+        f"[commune] cache écrit {COMMUNE_EPCI_CACHE.relative_to(PROJECT_ROOT)} "
+        f"({len(lookup)} communes)"
+    )
+    return lookup
+
+
+def enrich_with_commune_epci(
+    rows: list[dict[str, str]],
+    insee_key: str,
+    lookup: dict[str, dict[str, str | None]],
+) -> None:
+    """Injecte nom_commune / epci_siren / epci_nom sur chaque ligne in-place.
+
+    ``insee_key`` : nom de la colonne contenant le code INSEE dans chaque
+    dict de ligne (diffère entre le bulk et le manuel).
+    """
+    matched = 0
+    missing = 0
+    for row in rows:
+        code = (row.get(insee_key) or "").strip()
+        info = lookup.get(code) if code else None
+        if info:
+            row["nom_commune"] = info.get("nom") or ""
+            row["epci_siren"] = info.get("epci_siren") or ""
+            row["epci_nom"] = info.get("epci_nom") or ""
+            matched += 1
+        else:
+            row["nom_commune"] = ""
+            row["epci_siren"] = ""
+            row["epci_nom"] = ""
+            missing += 1
+    print(
+        f"[commune] appariés : {matched}  |  sans correspondance : {missing}"
+    )
+
+
 # --- Logique d'enrichissement ---------------------------------------------
 
 
@@ -367,7 +514,14 @@ def read_bulk() -> tuple[list[str], list[dict[str, str]]]:
 def write_bulk(
     fieldnames: list[str], enriched: list[dict[str, str]]
 ) -> None:
-    out_fields = fieldnames + ["structure", "etablissement", "libelle_complet"]
+    out_fields = fieldnames + [
+        "structure",
+        "etablissement",
+        "libelle_complet",
+        "nom_commune",
+        "epci_siren",
+        "epci_nom",
+    ]
     with BULK_OUT.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
             handle, fieldnames=out_fields, delimiter=";",
@@ -391,7 +545,13 @@ def join_manual(
     manual_rows: list[dict[str, str]],
     enriched_bulk: list[dict[str, str]],
 ) -> list[dict[str, str]]:
-    """Joint les 3 colonnes enrichies au manuel via ident/codeAiot normalisés."""
+    """Joint les colonnes enrichies (désambiguïsation libellés uniquement)
+    au manuel via ident/codeAiot normalisés.
+
+    L'enrichissement commune/EPCI est calculé séparément sur les lignes
+    du manuel (elles portent leur propre colonne ``insee``), ce qui
+    permet d'enrichir correctement même les lignes orphelines.
+    """
     index = {
         _normalize_ident(row["codeAiot"]): {
             "structure": row["structure"],
@@ -503,8 +663,15 @@ def main() -> int:
     bulk_fields, bulk_rows = read_bulk()
     print(f"[bulk] lu {BULK_IN.relative_to(PROJECT_ROOT)} ({len(bulk_rows)} lignes)")
 
+    # 1. Désambiguïsation libellés (passe bulk, le manuel hérite ensuite).
     enriched_bulk = enrich_bulk_rows(bulk_rows)
     report_stats(enriched_bulk)
+
+    # 2. Enrichissement commune / EPCI depuis geo.api.gouv.fr (ou cache).
+    #    La colonne INSEE côté bulk s'appelle 'codeInsee'.
+    commune_lookup = load_commune_epci_lookup()
+    enrich_with_commune_epci(enriched_bulk, "codeInsee", commune_lookup)
+
     write_bulk(bulk_fields, enriched_bulk)
 
     if MANUAL_IN.exists():
@@ -514,6 +681,8 @@ def main() -> int:
             f"({len(manual_rows)} lignes)"
         )
         enriched_manual = join_manual(manual_fields, manual_rows, enriched_bulk)
+        # Côté manuel, la colonne INSEE s'appelle 'insee' (avant alias).
+        enrich_with_commune_epci(enriched_manual, "insee", commune_lookup)
         write_manual(enriched_manual)
         write_metadata()
     else:

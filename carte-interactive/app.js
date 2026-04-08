@@ -13,6 +13,7 @@
   const RNR_URL = 'carte-interactive/data/reserves-naturelles-regionales.geojson';
   const GIRONDE_CONTOUR_URL = 'carte-interactive/data/gironde-contour.geojson';
   const GIRONDE_COMMUNES_URL = 'carte-interactive/data/gironde-communes.geojson';
+  const SUGGESTION_LIMIT_PER_GROUP = 5;
 
   const CSS = (() => {
     const s = getComputedStyle(document.documentElement);
@@ -189,21 +190,32 @@
     visibleRows: [],
     colorDim: 'regime',
     filters: {
-      search: '',
+      freeSearch: '',
       regime: new Set(['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE']),
       seveso: new Set(['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', '']),
       priority: 'all',
       ied: 'all',
       secteur: new Set(), // empty = no secteur filter; populated = OR of active secteurs
+      // Pill-based filters (OR within each Set, AND across sets)
+      commune: new Set(),   // Set<INSEE code>  e.g. '33063'
+      epci: new Set(),      // Set<EPCI siren>  e.g. '243300316'
+      structure: new Set(), // Set<normalised structure name>
       // Month window filter (disabled by default)
-      // monthEnabled: when true, only show rows whose cdate_month matches state.filters.month
-      // month: e.g., '2025-02' (one of state.monthSteps)
       monthEnabled: false,
       month: null,
     },
     mdateMax: null,
     // month keys derived from the dataset — set after CSV load
     monthSteps: [],
+  };
+
+  // Reference data for suggestions & EPCI checkbox list.
+  // Populated at init from gironde-commune-epci.json + the CSV itself.
+  const reference = {
+    communes: [],   // [{code, nom, norm, epci_siren, epci_nom}]
+    epcis: [],      // [{code, nom, norm, commune_count}]
+    structures: [], // [{name, norm, count}]
+    communeByInsee: new Map(),
   };
 
   function monthKey(isoDate) {
@@ -311,7 +323,14 @@
       const carriere = r.activite_carriere === 'TRUE';
       const libelle = (r.nom_complet || r.nom_original || '(sans nom)').trim();
       const structure = (r.structure || '').trim();
+      const structure_norm = normaliseForSearch(structure);
       const etablissement = (r.etablissement || '').trim();
+      const insee = (r.code_insee_commune || '').trim();
+      // Commune / EPCI are now carried directly in the enriched CSV
+      // (scripts/enrichir_libelles.py joins on code INSEE before export).
+      const commune_nom = (r.nom_commune || '').trim();
+      const epci_siren = (r.epci_siren || '').trim();
+      const epci_nom = (r.epci_nom || '').trim();
 
       // pre-compute per-dimension color
       const color = {
@@ -338,11 +357,17 @@
         lat, lon,
         libelle,
         structure,
+        structure_norm,
         etablissement,
+        insee,
+        commune_nom,
+        epci_siren,
+        epci_nom,
         // Search index: all the human-facing strings a journalist might type.
         // Accent-stripped and lowercased so "reserve" matches "RÉSERVE" etc.
+        // Includes commune + EPCI names so free-text search finds them.
         search_index: normaliseForSearch(
-          [libelle, structure, etablissement, r.siret, r.code_insee_commune]
+          [libelle, structure, etablissement, r.siret, insee, commune_nom, epci_nom]
             .filter(Boolean).join(' ')
         ),
         regime,
@@ -365,16 +390,127 @@
     return rows;
   }
 
+  // ---------- reference data (communes / EPCIs / structures) ----------
+  function buildReferenceData() {
+    // Communes: deduplicated by INSEE, with a row count so the user sees
+    // which ones actually have sites (useful for "why is my filter empty?")
+    const communeMap = new Map(); // insee → {code, nom, norm, epci_siren, epci_nom, count}
+    const epciMap = new Map();    // siren → {code, nom, norm, commune_count, site_count, communes: Set}
+    const structureMap = new Map(); // norm → {name, norm, count}
+
+    for (const row of state.rows) {
+      if (row.insee && row.commune_nom) {
+        const c = communeMap.get(row.insee);
+        if (c) {
+          c.count++;
+        } else {
+          communeMap.set(row.insee, {
+            code: row.insee,
+            nom: row.commune_nom,
+            norm: normaliseForSearch(row.commune_nom),
+            epci_siren: row.epci_siren,
+            epci_nom: row.epci_nom,
+            count: 1,
+          });
+        }
+      }
+      if (row.epci_siren && row.epci_nom) {
+        const e = epciMap.get(row.epci_siren);
+        if (e) {
+          e.site_count++;
+          e.communes.add(row.insee);
+        } else {
+          epciMap.set(row.epci_siren, {
+            code: row.epci_siren,
+            nom: row.epci_nom,
+            norm: normaliseForSearch(row.epci_nom),
+            site_count: 1,
+            communes: new Set([row.insee]),
+          });
+        }
+      }
+      if (row.structure && row.structure_norm) {
+        const s = structureMap.get(row.structure_norm);
+        if (s) {
+          s.count++;
+        } else {
+          structureMap.set(row.structure_norm, {
+            name: row.structure,
+            norm: row.structure_norm,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    reference.communes = [...communeMap.values()].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    reference.epcis = [...epciMap.values()].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    // Structures: only those with at least 2 sites are useful as a filter
+    // option (otherwise they're single sites and the site search handles them)
+    reference.structures = [...structureMap.values()]
+      .filter((s) => s.count >= 2)
+      .sort((a, b) => b.count - a.count);
+    reference.communeByInsee = communeMap;
+  }
+
+  // ---------- suggestion engine ----------
+  function getSuggestions(query) {
+    const tokens = normaliseForSearch(query).split(' ').filter(Boolean);
+    if (tokens.length === 0) return [];
+    const matches = (norm) => {
+      for (const t of tokens) if (!norm.includes(t)) return false;
+      return true;
+    };
+    const groups = [];
+    // Communes
+    const commHits = [];
+    for (const c of reference.communes) {
+      if (matches(c.norm) && !state.filters.commune.has(c.code)) {
+        commHits.push(c);
+        if (commHits.length >= SUGGESTION_LIMIT_PER_GROUP) break;
+      }
+    }
+    if (commHits.length) groups.push({ type: 'commune', label: 'Communes', items: commHits });
+    // EPCI
+    const epciHits = [];
+    for (const e of reference.epcis) {
+      if (matches(e.norm) && !state.filters.epci.has(e.code)) {
+        epciHits.push(e);
+        if (epciHits.length >= SUGGESTION_LIMIT_PER_GROUP) break;
+      }
+    }
+    if (epciHits.length) groups.push({ type: 'epci', label: 'EPCI', items: epciHits });
+    // Structures (entreprises)
+    const structHits = [];
+    for (const s of reference.structures) {
+      if (matches(s.norm) && !state.filters.structure.has(s.norm)) {
+        structHits.push(s);
+        if (structHits.length >= SUGGESTION_LIMIT_PER_GROUP) break;
+      }
+    }
+    if (structHits.length) groups.push({ type: 'structure', label: 'Structures', items: structHits });
+    // Sites (individual ICPE)
+    const siteHits = [];
+    for (const row of state.rows) {
+      if (matches(row.search_index)) {
+        siteHits.push(row);
+        if (siteHits.length >= SUGGESTION_LIMIT_PER_GROUP) break;
+      }
+    }
+    if (siteHits.length) groups.push({ type: 'site', label: 'Sites', items: siteHits });
+    return groups;
+  }
+
   // ---------- filter predicate ----------
   function buildPredicate() {
     const f = state.filters;
-    // Multi-token AND: split the (normalised) query on whitespace, every
-    // token must appear somewhere in the row's search_index. Lets the user
-    // type "heidelberg blanquefort" to find sites matching both words in
-    // any order, and "reserve" to match "RÉSERVE" (accents stripped).
-    const searchTokens = normaliseForSearch(f.search).split(' ').filter(Boolean);
+    // Free-text (substring) search — token-wise AND, accent-insensitive.
+    const searchTokens = normaliseForSearch(f.freeSearch).split(' ').filter(Boolean);
     const hasSearch = searchTokens.length > 0;
     const hasSecteur = f.secteur.size > 0;
+    const hasCommune = f.commune.size > 0;
+    const hasEpci = f.epci.size > 0;
+    const hasStructure = f.structure.size > 0;
     const monthActive = f.monthEnabled && f.month;
 
     return function (row) {
@@ -391,6 +527,10 @@
         if (f.secteur.has('autre') && !row.industrie && !row.carriere) any = true;
         if (!any) return false;
       }
+      // Pill filters: OR within each Set, AND across Sets.
+      if (hasCommune && !f.commune.has(row.insee)) return false;
+      if (hasEpci && !f.epci.has(row.epci_siren)) return false;
+      if (hasStructure && !f.structure.has(row.structure_norm)) return false;
       if (hasSearch) {
         const idx = row.search_index;
         for (let i = 0; i < searchTokens.length; i++) {
@@ -671,6 +811,11 @@
       return;
     }
 
+    // Build reference lists used by the search suggestions and the EPCI
+    // filter checkbox list. Everything is derived from the rows — the
+    // enriched CSV now carries commune/EPCI directly.
+    buildReferenceData();
+
     // header metadata
     siteCountEl.textContent = `${formatCount(state.rows.length)} sites`;
     siteMdateEl.textContent = formatDateFR(state.mdateMax);
@@ -787,9 +932,189 @@
     legendEl.classList.toggle('hide-seveso-row', dim === 'seveso');
   }
 
-  // ---------- event wiring ----------
+  // ---------- EPCI checkbox list (populated from reference data) ----------
+  function populateEpciList() {
+    const container = document.getElementById('epci-list');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const epci of reference.epcis) {
+      const label = document.createElement('label');
+      label.className = 'check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = epci.code;
+      cb.dataset.filter = 'epci';
+      cb.addEventListener('change', () => {
+        if (cb.checked) state.filters.epci.add(epci.code);
+        else state.filters.epci.delete(epci.code);
+        applyFilters();
+      });
+      const text = document.createElement('span');
+      text.className = 'check__text';
+      text.appendChild(document.createTextNode(epci.nom));
+      const count = document.createElement('span');
+      count.className = 'check__count';
+      count.textContent = ` (${formatCount(epci.site_count)})`;
+      text.appendChild(count);
+      label.appendChild(cb);
+      label.appendChild(text);
+      container.appendChild(label);
+    }
+  }
+
+  // ---------- search combobox: pills + suggestion dropdown ----------
   let searchDebounce;
   let sliderDebounce;
+
+  function renderPills() {
+    const container = document.getElementById('search-pills');
+    if (!container) return;
+    container.innerHTML = '';
+    const add = (type, key, label) => {
+      const pill = document.createElement('span');
+      pill.className = `pill pill--${type}`;
+      pill.setAttribute('role', 'listitem');
+      pill.appendChild(document.createTextNode(label));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'pill__remove';
+      x.setAttribute('aria-label', `Retirer ${label}`);
+      x.textContent = '×';
+      x.addEventListener('click', () => {
+        state.filters[type].delete(key);
+        renderPills();
+        applyFilters();
+      });
+      pill.appendChild(x);
+      container.appendChild(pill);
+    };
+    for (const code of state.filters.commune) {
+      const c = reference.communeByInsee.get(code);
+      add('commune', code, c ? c.nom : code);
+    }
+    for (const code of state.filters.epci) {
+      const e = reference.epcis.find((x) => x.code === code);
+      add('epci', code, e ? e.nom : code);
+    }
+    for (const norm of state.filters.structure) {
+      const s = reference.structures.find((x) => x.norm === norm);
+      add('structure', norm, s ? s.name : norm);
+    }
+    // Also reflect EPCI pills in the checkbox list
+    document.querySelectorAll('input[type="checkbox"][data-filter="epci"]').forEach((cb) => {
+      cb.checked = state.filters.epci.has(cb.value);
+    });
+  }
+
+  function renderSuggestions(groups) {
+    const panel = document.getElementById('suggestions');
+    if (!panel) return;
+    if (groups.length === 0) {
+      panel.classList.add('is-hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    panel.classList.remove('is-hidden');
+    panel.innerHTML = '';
+    for (const group of groups) {
+      const h = document.createElement('div');
+      h.className = 'suggestions__group-label';
+      h.textContent = group.label;
+      panel.appendChild(h);
+      const ul = document.createElement('ul');
+      ul.className = 'suggestions__list';
+      for (const item of group.items) {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `suggestion suggestion--${group.type}`;
+        const title = group.type === 'site'
+          ? item.libelle
+          : group.type === 'structure'
+            ? item.name
+            : item.nom;
+        const count = group.type === 'commune'
+          ? item.count
+          : group.type === 'epci'
+            ? item.site_count
+            : group.type === 'structure'
+              ? item.count
+              : null;
+        btn.appendChild(document.createTextNode(title));
+        if (count != null) {
+          const c = document.createElement('span');
+          c.className = 'suggestion__count';
+          c.textContent = ` (${formatCount(count)})`;
+          btn.appendChild(c);
+        }
+        btn.addEventListener('click', () => selectSuggestion(group.type, item));
+        li.appendChild(btn);
+        ul.appendChild(li);
+      }
+      panel.appendChild(ul);
+    }
+  }
+
+  function selectSuggestion(type, item) {
+    const searchInput = document.getElementById('search-input');
+    if (type === 'commune') {
+      state.filters.commune.add(item.code);
+    } else if (type === 'epci') {
+      state.filters.epci.add(item.code);
+    } else if (type === 'structure') {
+      state.filters.structure.add(item.norm);
+    } else if (type === 'site') {
+      // Zoom + open popup, don't create a pill.
+      map.flyTo([item.lat, item.lon], 15, { duration: 0.7 });
+      const m = markerByRow.get(item);
+      if (m) setTimeout(() => m.fire('click'), 700);
+    }
+    searchInput.value = '';
+    state.filters.freeSearch = '';
+    renderPills();
+    renderSuggestions([]);
+    applyFilters();
+    searchInput.focus();
+  }
+
+  function wireSearchCombobox() {
+    const searchInput = document.getElementById('search-input');
+    const panel = document.getElementById('suggestions');
+
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value;
+      renderSuggestions(getSuggestions(q));
+      // Apply free-text filter with debounce (pills already applied instantly)
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        state.filters.freeSearch = q;
+        applyFilters();
+      }, 150);
+    });
+    searchInput.addEventListener('focus', () => {
+      if (searchInput.value) {
+        renderSuggestions(getSuggestions(searchInput.value));
+      }
+    });
+    // Close suggestions on outside click
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== searchInput) {
+        panel.classList.add('is-hidden');
+      }
+    });
+    // Keyboard: Escape closes, Enter picks first suggestion
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        panel.classList.add('is-hidden');
+      } else if (e.key === 'Enter') {
+        const firstBtn = panel.querySelector('.suggestion');
+        if (firstBtn) {
+          e.preventDefault();
+          firstBtn.click();
+        }
+      }
+    });
+  }
 
   // Wire up a single role=radiogroup: sync aria-checked, roving tabindex,
   // arrow-key navigation, and activation on click or Enter/Space.
@@ -859,15 +1184,11 @@
       });
     }
 
-    // search (debounced)
-    const searchInput = document.getElementById('search-input');
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        state.filters.search = searchInput.value;
-        applyFilters();
-      }, 150);
-    });
+    // populate the EPCI checkbox list dynamically from reference data
+    populateEpciList();
+
+    // search with suggestions + pills
+    wireSearchCombobox();
 
     // month filter — checkbox toggles it on/off, slider picks the month
     const monthCheckbox = document.getElementById('month-enabled');
@@ -876,11 +1197,30 @@
       slider.disabled = !on || state.monthSteps.length < 2;
       timebar.classList.toggle('is-disabled', !on);
     };
+    // Force the checkbox off at init (browser bfcache can restore a stale
+    // checked state when reloading).
+    monthCheckbox.checked = false;
+    state.filters.monthEnabled = false;
     setSliderEnabled(false);
+
+    // Snap the slider back to the earliest month. Used when enabling the
+    // month filter or starting playback — keeping the previous slider
+    // position would make the default view confusing ("why did everything
+    // jump to April?"). Starting from the beginning is a predictable
+    // chronology.
+    const snapSliderToStart = () => {
+      if (state.monthSteps.length === 0) return;
+      slider.value = '0';
+      const m = state.monthSteps[0];
+      state.filters.month = m;
+      sliderValue.textContent = formatMonthFR(m);
+      slider.setAttribute('aria-valuetext', formatMonthFR(m));
+    };
 
     monthCheckbox.addEventListener('change', () => {
       state.filters.monthEnabled = monthCheckbox.checked;
       setSliderEnabled(monthCheckbox.checked);
+      if (monthCheckbox.checked) snapSliderToStart();
       applyFilters();
     });
     slider.addEventListener('input', () => {
@@ -910,6 +1250,17 @@
     // Button is enabled whenever we have at least 2 months to walk between.
     setPlayButtonEnabled(state.monthSteps.length >= 2);
 
+    const hud = document.getElementById('playback-hud');
+    const hudText = document.getElementById('playback-hud-text');
+    const showHud = (month) => {
+      if (!hud) return;
+      hudText.textContent = formatMonthFR(month);
+      hud.classList.add('is-visible');
+    };
+    const hideHud = () => {
+      if (hud) hud.classList.remove('is-visible');
+    };
+
     const stopPlayback = () => {
       if (playTimer) {
         clearInterval(playTimer);
@@ -918,19 +1269,23 @@
       playIcon.textContent = '▶';
       playBtn.setAttribute('aria-label', 'Lecture');
       playBtn.setAttribute('title', 'Lecture');
+      hideHud();
     };
     const startPlayback = () => {
       if (state.monthSteps.length < 2) return;
-      // Auto-enable the month filter if it's off
+      // Auto-enable the month filter if it's off, AND snap to the earliest
+      // month so playback always walks the full timeline from the start.
       if (!state.filters.monthEnabled) {
         state.filters.monthEnabled = true;
         monthCheckbox.checked = true;
         setSliderEnabled(true);
-        applyFilters();
       }
+      snapSliderToStart();
+      applyFilters();
       playIcon.textContent = '⏸';
       playBtn.setAttribute('aria-label', 'Pause');
       playBtn.setAttribute('title', 'Pause');
+      showHud(state.filters.month);
       playTimer = setInterval(() => {
         const maxIdx = state.monthSteps.length - 1;
         let idx = parseInt(slider.value, 10);
@@ -950,6 +1305,7 @@
         state.filters.month = m;
         sliderValue.textContent = formatMonthFR(m);
         slider.setAttribute('aria-valuetext', formatMonthFR(m));
+        showHud(m);
         applyFilters();
       }, PLAY_INTERVAL_MS);
     };
@@ -963,12 +1319,15 @@
 
     // reset
     document.getElementById('reset-button').addEventListener('click', () => {
-      state.filters.search = '';
+      state.filters.freeSearch = '';
       state.filters.regime = new Set(['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE']);
       state.filters.seveso = new Set(['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', '']);
       state.filters.priority = 'all';
       state.filters.ied = 'all';
       state.filters.secteur = new Set();
+      state.filters.commune = new Set();
+      state.filters.epci = new Set();
+      state.filters.structure = new Set();
       state.filters.monthEnabled = false;
       if (state.monthSteps.length) {
         state.filters.month = state.monthSteps[state.monthSteps.length - 1];
