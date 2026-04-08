@@ -72,11 +72,18 @@ import unicodedata
 import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
+from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
 # Le helper _metadonnees_util est au même niveau que ce script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _metadonnees_util import merge_metadata  # noqa: E402
+from _metadonnees_util import (  # noqa: E402
+    atomic_write,
+    merge_metadata,
+    normalize_aiot,
+    require_columns,
+)
 
 # --- Configuration ---------------------------------------------------------
 
@@ -118,16 +125,59 @@ MAX_WORKERS = 3
 BATCH_PAUSE = 0.5  # seconds entre deux batches de MAX_WORKERS
 REQUEST_TIMEOUT = 30  # seconds
 MIN_PDF_SIZE = 1024  # octets, en dessous on considère que c'est une page d'erreur
-RETRY_BACKOFF_5XX = [1, 2, 4]  # secondes
-RETRY_BACKOFF_429 = [10, 30, 60]  # secondes, plus conservateur
+RETRY_BACKOFF_5XX = (1, 2, 4)  # secondes
+RETRY_BACKOFF_429 = (10, 30, 60)  # secondes, plus conservateur
+MAX_RETRIES = len(RETRY_BACKOFF_5XX)  # 3, conservé cohérent avec la longueur des backoff lists
+
+# Suffixe (6 derniers caractères de l'identifiant Géorisques) utilisé
+# pour désambiguïser les noms de fichiers lorsque 2 rapports distincts
+# pour la même installation le même jour produiraient un filename identique.
+DEDUP_HASH_LEN = 6
 
 # Sanitisation des noms de fichiers
 SLUG_MAX_LEN = 120
 DEDUP_SUFFIX = re.compile(r"\s*\(#(\d+)\)")
 
+# Colonnes minimales attendues dans les CSV sources.
+REPORTS_SOURCE_COLUMNS = {"codeAiot", "identifiant", "type", "nom"}
+INSPECTION_SOURCE_COLUMNS = {"identifiantFichier", "dateInspection"}
+MANUAL_ENRICHI_COLUMNS = {"id_icpe", "nom_complet", "siret"}
+
 # Noms des fichiers cible (pour ownership du dictionnaire multi-fichiers)
 MANUAL_OUTPUT_FILENAME = "liste-icpe-gironde_enrichi.csv"
 RAPPORTS_OUTPUT_FILENAME = "rapports-inspection.csv"
+
+
+class DownloadStatus(StrEnum):
+    """Statuts de téléchargement. Les 2 membres durables font autorité."""
+
+    OK = "ok"
+    SKIP = "skip"
+    FAIL_404 = "fail_404"
+    FAIL_TINY = "fail_tiny"
+    FAIL_5XX = "fail_5xx"
+    FAIL_429 = "fail_429"
+    FAIL_NET = "fail_net"
+    FAIL_TRANSITOIRE = "fail_transitoire"  # statut normalisé pour le CSV public
+    NOT_PLANNED = "not_planned"
+
+
+# Set unique de vérité : quels statuts sont considérés comme durables
+# (à mémoriser dans _404.txt, à ne plus retenter, à lister dans la
+# section "Échecs durables" du _erreurs.log). Utilisé à 4 endroits du
+# code pour éviter les divergences entre sites qui ont historiquement
+# traité fail_tiny différemment dans chaque branche.
+DURABLE_STATUSES: frozenset[str] = frozenset({
+    DownloadStatus.FAIL_404,
+    DownloadStatus.FAIL_TINY,
+})
+
+# Statuts qui signalent un succès (fichier présent sur disque, cohérent
+# côté downstream).
+SUCCESS_STATUSES: frozenset[str] = frozenset({
+    DownloadStatus.OK,
+    DownloadStatus.SKIP,
+})
 
 # Spécification des colonnes de rapports-inspection.csv.
 # Schéma : (source_key, alias, nom_original_metadata, definition).
@@ -271,9 +321,8 @@ def build_filename(slug: str, id_icpe: str, date: str, siret: str) -> str:
     return f"{slug}_{id_icpe}_{date or 'nodate'}_{siret or 'nosiret'}.pdf"
 
 
-def normalize_aiot(code: str) -> str:
-    """Strip les zéros de tête du codeAiot pour matcher id_icpe."""
-    return code.strip().lstrip("0") or "0"
+# normalize_aiot est importé de _metadonnees_util pour éviter la duplication
+# avec enrichir_libelles.py et fetch_georisques.py.
 
 
 def build_source_url(identifiant: str) -> str:
@@ -294,6 +343,9 @@ def load_rapports_metadata() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     with METADATA_FICHIER_INSPECTION.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle, delimiter=";")
+        require_columns(
+            reader.fieldnames, REPORTS_SOURCE_COLUMNS, METADATA_FICHIER_INSPECTION
+        )
         for row in reader:
             rows.append(
                 {
@@ -308,15 +360,30 @@ def load_rapports_metadata() -> list[dict[str, str]]:
 
 
 def load_inspection_dates() -> dict[str, str]:
-    """Index identifiantFichier → dateInspection."""
+    """Index identifiantFichier → dateInspection avec warning sur duplicats.
+
+    Si le même ``identifiantFichier`` apparaît deux fois avec des dates
+    différentes (situation théorique de schema drift côté Géorisques),
+    on loggue un avertissement et on garde la première date rencontrée
+    (comportement déterministe plutôt que last-write-wins).
+    """
     index: dict[str, str] = {}
     with INSPECTION_CSV.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle, delimiter=";")
+        require_columns(reader.fieldnames, INSPECTION_SOURCE_COLUMNS, INSPECTION_CSV)
         for row in reader:
             ident = row.get("identifiantFichier", "").strip()
             date = row.get("dateInspection", "").strip()
-            if ident and date:
-                index[ident] = date
+            if not ident or not date:
+                continue
+            if ident in index and index[ident] != date:
+                print(
+                    f"[warn] identifiantFichier {ident} a deux dates dans "
+                    f"{INSPECTION_CSV.name} : {index[ident]!r} (conservée) "
+                    f"vs {date!r} (ignorée)"
+                )
+                continue
+            index.setdefault(ident, date)
     print(f"[load] {len(index)} dates d'inspection indexées depuis {INSPECTION_CSV.name}")
     return index
 
@@ -326,6 +393,7 @@ def load_enrichi_lookup() -> dict[str, dict[str, str]]:
     index: dict[str, dict[str, str]] = {}
     with MANUAL_ENRICHI.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
+        require_columns(reader.fieldnames, MANUAL_ENRICHI_COLUMNS, MANUAL_ENRICHI)
         for row in reader:
             key = row.get("id_icpe", "").strip()
             if key:
@@ -342,25 +410,29 @@ def join_all(
     dates: dict[str, str],
     enrichi: dict[str, dict[str, str]],
 ) -> list[dict[str, str]]:
-    """Joint dates et infos installation sur chaque rapport."""
-    orphans_enrichi = 0
+    """Joint dates et infos installation sur chaque rapport.
+
+    Les rapports dont l'installation est absente de l'enrichi (orphelins)
+    sont listés en clair dans la sortie plutôt que juste comptés — 0 cas
+    observés en pratique mais utile pour diagnostiquer si ça change.
+    """
+    orphan_ids: list[str] = []
     for row in rapports:
         row["date_inspection"] = dates.get(row["identifiant_fichier"], "")
-        info = enrichi.get(row["id_icpe"], {})
-        if info:
+        if info := enrichi.get(row["id_icpe"]):
             row["nom_complet"] = info["nom_complet"]
             row["siret"] = info["siret"]
         else:
-            # Rapport d'une installation absente de l'enrichi manuel —
-            # extrêmement rare (0 cas observés en pratique), fallback propre.
-            orphans_enrichi += 1
+            orphan_ids.append(row["id_icpe"])
             row["nom_complet"] = f"installation-{row['id_icpe']}"
             row["siret"] = ""
     with_date = sum(1 for r in rapports if r["date_inspection"])
     print(
         f"[join] dates trouvées : {with_date}/{len(rapports)}  |  "
-        f"orphelins enrichi : {orphans_enrichi}"
+        f"orphelins enrichi : {len(orphan_ids)}"
     )
+    if orphan_ids:
+        print(f"[join] id_icpe orphelins : {sorted(set(orphan_ids))}")
     return rapports
 
 
@@ -393,10 +465,15 @@ def assign_local_filenames(rapports: list[dict[str, str]]) -> None:
     for row in rapports:
         by_identifier[row["identifiant_fichier"]].append(row)
 
-    # Étape 2 — filename naïf par identifiant (primary = plus petit id_icpe)
+    # Étape 2 — filename naïf par identifiant (primary = plus petit id_icpe).
+    # Tri NUMÉRIQUE de id_icpe (pas lexicographique) : pour l'identifiant
+    # partagé, "100078337" vs "5200969" — l'ordre lex choisirait
+    # "100078337" (car '1' < '5') qui est numériquement plus GRAND. L'ordre
+    # numérique choisit 5200969, qui est l'installation au plus petit
+    # id_icpe = sémantiquement correct.
     candidate: dict[str, str] = {}  # identifiant → filename naïf
     for identifier, group in by_identifier.items():
-        group.sort(key=lambda r: r["id_icpe"])
+        group.sort(key=lambda r: int(r["id_icpe"]))
         primary = group[0]
         slug = sanitize_slug(primary["nom_complet"])
         candidate[identifier] = build_filename(
@@ -421,10 +498,11 @@ def assign_local_filenames(rapports: list[dict[str, str]]) -> None:
     for filename, identifiers in collision_groups:
         desambig_count += len(identifiers)
         for identifier in sorted(identifiers):
-            # Suffixe déterministe = 6 derniers caractères de l'identifiant
-            # Géorisques. Les identifiants font 32+ chars alphanumériques,
-            # 6 suffisent à garantir l'unicité dans une collision.
-            suffix = identifier[-6:]
+            # Suffixe déterministe = DEDUP_HASH_LEN derniers caractères
+            # de l'identifiant Géorisques. Les identifiants font 32+ chars
+            # alphanumériques, 6 suffisent à garantir l'unicité dans une
+            # collision.
+            suffix = identifier[-DEDUP_HASH_LEN:]
             base, ext = filename.rsplit(".", 1)
             candidate[identifier] = f"{base}_{suffix}.{ext}"
 
@@ -461,111 +539,117 @@ def assign_local_filenames(rapports: list[dict[str, str]]) -> None:
 
 
 def load_404_memory() -> set[str]:
-    """Charge les identifiants définitivement 404 des runs précédents."""
+    """Charge les identifiants définitivement 404 des runs précédents.
+
+    Supporte les lignes de commentaire indentées grâce au strip préalable :
+    on compare ``startswith("#")`` sur la ligne strippée, pas la brute.
+    """
     if not LOG_404.exists():
         return set()
     with LOG_404.open(encoding="utf-8") as handle:
-        return {line.strip() for line in handle if line.strip() and not line.startswith("#")}
+        return {s for line in handle if (s := line.strip()) and not s.startswith("#")}
 
 
 def save_404_memory(identifiers: set[str]) -> None:
     """Persiste la liste des 404 durables, triée pour un diff stable."""
     PDF_DIR.mkdir(parents=True, exist_ok=True)
     lines = [
-        "# Identifiants de rapports d'inspection connus comme HTTP 404",
-        "# (fichier absent côté Géorisques). Skippés au prochain run pour",
-        "# éviter les requêtes inutiles. Éditable à la main si tu veux forcer",
-        "# une nouvelle tentative.",
+        "# Identifiants de rapports d'inspection connus comme durables (404 /",
+        "# HTTP 500 'Aucun document trouvé' / corps trop petit). Ces",
+        "# identifiants ne seront pas retentés au prochain run, voir",
+        "# DURABLE_STATUSES dans telecharger_rapports_inspection.py. Éditable",
+        "# à la main si tu veux forcer une nouvelle tentative.",
         "",
     ]
     lines.extend(sorted(identifiers))
-    LOG_404.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with atomic_write(LOG_404) as handle:
+        handle.write("\n".join(lines) + "\n")
 
 
 def fetch_one(url: str, dest: Path) -> tuple[str, int, str]:
     """Télécharge un fichier. Retourne (statut, taille_octets, raison).
 
-    Statuts possibles :
-      - "ok"              : téléchargé avec succès, fichier écrit
-      - "fail_404"        : 404 durable côté Géorisques
-      - "fail_5xx"        : 500-599 (transitoire)
-      - "fail_429"        : rate limit (transitoire, backoff long)
-      - "fail_net"        : erreur réseau ou timeout (transitoire)
-      - "fail_tiny"       : réponse < MIN_PDF_SIZE (probablement page d'erreur)
+    Statuts possibles : voir ``DownloadStatus``. Les membres de
+    ``DURABLE_STATUSES`` sont renvoyés tels quels (pas de retry) ; les
+    autres échecs sont considérés comme transitoires par la boucle
+    ``fetch_with_retry`` englobante.
     """
     try:
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
             data = resp.read()
         if len(data) < MIN_PDF_SIZE:
-            return ("fail_tiny", len(data), f"corps < {MIN_PDF_SIZE} octets")
+            return (DownloadStatus.FAIL_TINY, len(data), f"corps < {MIN_PDF_SIZE} octets")
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
-        return ("ok", len(data), "")
+        return (DownloadStatus.OK, len(data), "")
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            return ("fail_404", 0, "HTTP 404")
+            return (DownloadStatus.FAIL_404, 0, "HTTP 404")
         if exc.code == 429:
-            return ("fail_429", 0, "HTTP 429")
+            return (DownloadStatus.FAIL_429, 0, "HTTP 429")
         if 500 <= exc.code < 600:
             # Géorisques renvoie parfois HTTP 500 avec un body JSON
             # {"error":"Internal Server Error","message":"Aucun document trouvé."}
             # C'est sémantiquement un 404 durable (le fichier n'existe plus
             # dans leur backend) mal typé côté serveur. On lit le body pour
             # distinguer les "500 avec message 'Aucun document'" (durables)
-            # des vrais 5xx transitoires.
+            # des vrais 5xx transitoires. except OSError plutôt que bare
+            # Exception : on ne veut pas masquer une KeyboardInterrupt ni
+            # un bug de programmation, seulement les erreurs de lecture
+            # réseau sur le body.
             try:
                 body = exc.read().decode("utf-8", errors="replace")[:500]
-            except Exception:
+            except OSError:
                 body = ""
             lowered = body.lower()
             if "aucun document" in lowered or "document not found" in lowered:
-                return ("fail_404", 0, f"HTTP 500 (aucun document trouvé côté source)")
-            return ("fail_5xx", 0, f"HTTP {exc.code}")
+                return (DownloadStatus.FAIL_404, 0, "HTTP 500 (aucun document trouvé côté source)")
+            return (DownloadStatus.FAIL_5XX, 0, f"HTTP {exc.code}")
         return (f"fail_{exc.code}", 0, f"HTTP {exc.code}")
     except urllib.error.URLError as exc:
-        return ("fail_net", 0, f"réseau: {exc.reason}")
-    except TimeoutError:
-        return ("fail_net", 0, "timeout")
+        return (DownloadStatus.FAIL_NET, 0, f"réseau: {exc.reason}")
+    except TimeoutError as exc:
+        return (DownloadStatus.FAIL_NET, 0, f"timeout: {exc}")
     except OSError as exc:
         # Catche ConnectionResetError, BrokenPipeError, et autres erreurs
         # socket de bas niveau qui échappent à URLError parce qu'elles
         # surviennent pendant resp.read() (après le début du transfert).
-        return ("fail_net", 0, f"OS: {type(exc).__name__}: {exc}")
+        return (DownloadStatus.FAIL_NET, 0, f"OS: {type(exc).__name__}: {exc}")
 
 
 def fetch_with_retry(url: str, dest: Path) -> tuple[str, int, str]:
-    """Wrapper avec retry exponentiel pour les échecs transitoires."""
-    last = ("fail_net", 0, "aucune tentative")
-    for attempt in range(3):
+    """Wrapper avec retry exponentiel pour les échecs transitoires.
+
+    MAX_RETRIES tient automatiquement à ``len(RETRY_BACKOFF_5XX)`` pour
+    qu'on ne puisse pas diverger si on édite l'un sans l'autre.
+    """
+    last = (DownloadStatus.FAIL_NET, 0, "aucune tentative")
+    for attempt in range(MAX_RETRIES):
         statut, taille, raison = fetch_one(url, dest)
-        if statut == "ok":
+        if statut == DownloadStatus.OK:
             return statut, taille, raison
-        if statut == "fail_404" or statut == "fail_tiny":
-            # Durable, pas de retry
+        if statut in DURABLE_STATUSES:
             return statut, taille, raison
         last = (statut, taille, raison)
-        if attempt < 2:
-            if statut == "fail_429":
+        if attempt < MAX_RETRIES - 1:
+            if statut == DownloadStatus.FAIL_429:
                 time.sleep(RETRY_BACKOFF_429[attempt])
             else:
                 time.sleep(RETRY_BACKOFF_5XX[attempt])
-            continue
     return last
 
 
 # --- Planification et exécution --------------------------------------------
 
 
+@dataclass(frozen=True, slots=True)
 class DownloadResult:
-    """Conteneur minimaliste pour le résultat d'un téléchargement."""
+    """Résultat d'une tentative de téléchargement (immuable)."""
 
-    __slots__ = ("statut", "taille", "raison")
-
-    def __init__(self, statut: str, taille: int, raison: str):
-        self.statut = statut
-        self.taille = taille
-        self.raison = raison
+    statut: str
+    taille: int
+    raison: str
 
 
 def plan_downloads(
@@ -581,26 +665,26 @@ def plan_downloads(
         les statuts connus avant exécution (skip si existant, fail_404
         si mémoire, not_planned si au-delà de limit).
     """
-    seen: dict[str, None] = {}  # ordre stable via dict Python 3.7+
-    for row in sorted(rapports, key=lambda r: (r["id_icpe"], r["identifiant_fichier"])):
-        seen.setdefault(row["identifiant_fichier"], None)
+    # Pré-index des lignes par identifiant pour éviter un scan O(n) par
+    # identifiant unique dans la boucle qui suit.
+    row_by_identifier: dict[str, dict[str, str]] = {}
+    for row in sorted(rapports, key=lambda r: (int(r["id_icpe"]), r["identifiant_fichier"])):
+        row_by_identifier.setdefault(row["identifiant_fichier"], row)
 
     plan: list[tuple[str, str, Path]] = []
     results: dict[str, DownloadResult] = {}
-    for identifier in seen:
-        # Retrouve une ligne pour cet identifiant pour récupérer le filename
-        row = next(r for r in rapports if r["identifiant_fichier"] == identifier)
+    for identifier, row in row_by_identifier.items():
         dest = PDF_DIR / row["nom_fichier_local"]
         url = row["url_source_georisques"]
 
         if identifier in known_404:
             results[identifier] = DownloadResult(
-                "fail_404", 0, "connu dans _404.txt"
+                DownloadStatus.FAIL_404, 0, "connu dans _404.txt"
             )
             continue
         if dest.exists():
             results[identifier] = DownloadResult(
-                "skip", dest.stat().st_size, "déjà présent"
+                DownloadStatus.SKIP, dest.stat().st_size, "déjà présent"
             )
             continue
         plan.append((identifier, url, dest))
@@ -613,7 +697,7 @@ def plan_downloads(
         plan = plan[:limit]
     for identifier, _url, _dest in not_planned:
         results[identifier] = DownloadResult(
-            "not_planned", 0, f"au-delà de --limit {limit}"
+            DownloadStatus.NOT_PLANNED, 0, f"au-delà de --limit {limit}"
         )
 
     return plan, results
@@ -643,12 +727,12 @@ def execute_downloads(
                 statut, taille, raison = future.result()
                 counter += 1
                 results[identifier] = DownloadResult(statut, taille, raison)
-                label = "ok   " if statut == "ok" else statut.ljust(5)
+                label = "ok   " if statut == DownloadStatus.OK else statut.ljust(5)
                 print(
                     f"[download] {counter:>4}/{total:<4}  {label}  "
                     f"{dest.name}  ({taille} octets)"
                 )
-                if raison and statut != "ok":
+                if raison and statut != DownloadStatus.OK:
                     print(f"           └─ {raison}")
 
         if batch_start + MAX_WORKERS < total:
@@ -661,16 +745,15 @@ def execute_downloads(
 
 
 def write_rapports_csv(rapports: list[dict[str, str]]) -> None:
-    """Écrit carte-interactive/data/rapports-inspection.csv."""
-    RAPPORTS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    """Écrit carte-interactive/data/rapports-inspection.csv atomiquement."""
     alias_fields = [alias for _src, alias, _orig, _def in REPORTS_COLUMN_SPEC]
-    with RAPPORTS_CSV.open("w", encoding="utf-8", newline="") as handle:
+    with atomic_write(RAPPORTS_CSV) as handle:
         writer = csv.DictWriter(
             handle, fieldnames=alias_fields, quoting=csv.QUOTE_MINIMAL
         )
         writer.writeheader()
         for row in sorted(
-            rapports, key=lambda r: (r["id_icpe"], r["identifiant_fichier"])
+            rapports, key=lambda r: (int(r["id_icpe"]), r["identifiant_fichier"])
         ):
             writer.writerow(
                 {alias: row.get(src, "") for src, alias, _, _ in REPORTS_COLUMN_SPEC}
@@ -682,7 +765,13 @@ def write_rapports_csv(rapports: list[dict[str, str]]) -> None:
 
 
 def update_manual_enrichi_counts(counts: dict[str, int]) -> None:
-    """Ajoute/remplace nb_rapports_inspection dans liste-icpe-gironde_enrichi.csv."""
+    """Ajoute/remplace nb_rapports_inspection dans liste-icpe-gironde_enrichi.csv.
+
+    Écriture atomique : le fichier existant reste intact tant que le
+    nouveau n'est pas entièrement écrit. Un crash au milieu ne laisse
+    pas une version tronquée qui serait ensuite relue par
+    ``enrichir_libelles.py`` et contribuerait des valeurs vides.
+    """
     with MANUAL_ENRICHI.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         fields = list(reader.fieldnames or [])
@@ -695,7 +784,7 @@ def update_manual_enrichi_counts(counts: dict[str, int]) -> None:
         key = row.get("id_icpe", "").strip()
         row["nb_rapports_inspection"] = str(counts.get(key, 0))
 
-    with MANUAL_ENRICHI.open("w", encoding="utf-8", newline="") as handle:
+    with atomic_write(MANUAL_ENRICHI) as handle:
         writer = csv.DictWriter(
             handle, fieldnames=fields, quoting=csv.QUOTE_MINIMAL
         )
@@ -738,16 +827,16 @@ def write_erreurs_log(
     # Dédup par identifiant pour ne pas lister le même PDF plusieurs fois
     seen_ids: set[str] = set()
     for row in sorted(
-        rapports, key=lambda r: (r["id_icpe"], r["identifiant_fichier"])
+        rapports, key=lambda r: (int(r["id_icpe"]), r["identifiant_fichier"])
     ):
         identifier = row["identifiant_fichier"]
         if identifier in seen_ids:
             continue
         seen_ids.add(identifier)
         result = results.get(identifier)
-        if not result:
+        if result is None:
             continue
-        if result.statut == "fail_404" or result.statut == "fail_tiny":
+        if result.statut in DURABLE_STATUSES:
             durables.append((identifier, row, result))
         elif result.statut.startswith("fail_"):
             transitoires.append((identifier, row, result))
@@ -789,7 +878,8 @@ def write_erreurs_log(
         lines.append("_(aucun)_")
     lines.append("")
 
-    ERREURS_LOG.write_text("\n".join(lines), encoding="utf-8")
+    with atomic_write(ERREURS_LOG) as handle:
+        handle.write("\n".join(lines))
     print(
         f"[write] {ERREURS_LOG.relative_to(PROJECT_ROOT)} "
         f"({len(durables)} durables, {len(transitoires)} transitoires)"
@@ -804,17 +894,23 @@ def apply_results_to_rapports(
     rapports: list[dict[str, str]],
     results: dict[str, DownloadResult],
 ) -> None:
-    """Inscrit statut_telechargement et taille_octets sur chaque ligne."""
+    """Inscrit statut_telechargement et taille_octets sur chaque ligne.
+
+    Normalise les statuts internes vers les 4 valeurs publiques du CSV :
+    ``ok``, ``skip``, ``fail_404`` (durable), ``fail_transitoire``
+    (retentable). Utilise ``DURABLE_STATUSES`` comme source unique de
+    vérité pour la classification durable/transitoire.
+    """
     for row in rapports:
         result = results.get(row["identifiant_fichier"])
         if result is None:
-            row["statut_telechargement"] = "not_planned"
+            row["statut_telechargement"] = DownloadStatus.NOT_PLANNED
             row["taille_octets"] = ""
             continue
-        if result.statut == "fail_404" or result.statut == "fail_tiny":
-            row["statut_telechargement"] = "fail_404"
+        if result.statut in DURABLE_STATUSES:
+            row["statut_telechargement"] = DownloadStatus.FAIL_404
         elif result.statut.startswith("fail_"):
-            row["statut_telechargement"] = "fail_transitoire"
+            row["statut_telechargement"] = DownloadStatus.FAIL_TRANSITOIRE
         else:
             row["statut_telechargement"] = result.statut
         row["taille_octets"] = str(result.taille) if result.taille else ""
@@ -826,7 +922,7 @@ def count_successes_per_installation(
     """Compte les rapports téléchargés avec succès par id_icpe."""
     counts: dict[str, int] = defaultdict(int)
     for row in rapports:
-        if row["statut_telechargement"] in ("ok", "skip"):
+        if row["statut_telechargement"] in SUCCESS_STATUSES:
             counts[row["id_icpe"]] += 1
     return dict(counts)
 
@@ -859,12 +955,31 @@ def main() -> int:
     args = parse_args()
     started_at = dt.datetime.now()
 
+    # Prereq checks — les trois sources doivent exister avant qu'on tente
+    # quoi que ce soit. Message explicite pour un utilisateur qui aurait
+    # sauté une étape du pipeline.
+    for path, hint in (
+        (METADATA_FICHIER_INSPECTION, "Lance `python3 scripts/fetch_georisques.py` d'abord."),
+        (INSPECTION_CSV, "Lance `python3 scripts/fetch_georisques.py` d'abord."),
+        (MANUAL_ENRICHI, "Lance `python3 scripts/enrichir_libelles.py` d'abord."),
+    ):
+        if not path.exists():
+            print(
+                f"[error] {path.relative_to(PROJECT_ROOT)} introuvable. {hint}",
+                file=sys.stderr,
+            )
+            return 2
+
     PDF_DIR.mkdir(parents=True, exist_ok=True)
 
     # 1. Chargement et jointures
-    rapports = load_rapports_metadata()
-    dates = load_inspection_dates()
-    enrichi = load_enrichi_lookup()
+    try:
+        rapports = load_rapports_metadata()
+        dates = load_inspection_dates()
+        enrichi = load_enrichi_lookup()
+    except RuntimeError as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        return 2
     join_all(rapports, dates, enrichi)
 
     # 2. Nommage et déduplication par identifiant
@@ -877,14 +992,15 @@ def main() -> int:
     plan, precomputed_results = plan_downloads(rapports, known_404, args.limit)
     print(
         f"[plan] {len(plan)} à télécharger, "
-        f"{sum(1 for r in precomputed_results.values() if r.statut == 'skip')} déjà présents, "
-        f"{sum(1 for r in precomputed_results.values() if r.statut == 'fail_404')} skip 404 connus, "
-        f"{sum(1 for r in precomputed_results.values() if r.statut == 'not_planned')} non planifiés"
+        f"{sum(1 for r in precomputed_results.values() if r.statut == DownloadStatus.SKIP)} déjà présents, "
+        f"{sum(1 for r in precomputed_results.values() if r.statut == DownloadStatus.FAIL_404)} skip 404 connus, "
+        f"{sum(1 for r in precomputed_results.values() if r.statut == DownloadStatus.NOT_PLANNED)} non planifiés"
     )
 
     if args.dry_run:
         print("[dry-run] plan calculé, aucune écriture, exit.")
-        for identifier, url, dest in plan[:10]:
+        print(f"[dry-run] total dans le plan : {len(plan)}")
+        for _identifier, _url, dest in plan[:10]:
             print(f"  DRY  {dest.name}")
         if len(plan) > 10:
             print(f"  … et {len(plan) - 10} autres")
@@ -893,18 +1009,21 @@ def main() -> int:
     # 4. Exécution des téléchargements
     download_results = execute_downloads(plan)
 
-    # 5. Consolidation des résultats (precomputed + download)
-    results: dict[str, DownloadResult] = {**precomputed_results, **download_results}
+    # 5. Consolidation des résultats (precomputed + download). Utilise
+    # l'opérateur | pour cohérence avec la ligne "all_404 = known_404 | new_404"
+    # plus bas (et parce que PEP 584 est plus lisible que {**a, **b}).
+    results: dict[str, DownloadResult] = precomputed_results | download_results
 
-    # 6. Mise à jour de la mémoire _404.txt
-    new_404 = {
+    # 6. Mise à jour de la mémoire _404.txt : tous les statuts durables
+    # sont mémorisés, pas seulement fail_404 (cohérent avec DURABLE_STATUSES).
+    new_durables = {
         identifier
         for identifier, result in download_results.items()
-        if result.statut == "fail_404"
+        if result.statut in DURABLE_STATUSES
     }
-    all_404 = known_404 | new_404
-    if new_404:
-        print(f"[memory] {len(new_404)} nouveaux 404 à mémoriser")
+    all_404 = known_404 | new_durables
+    if new_durables:
+        print(f"[memory] {len(new_durables)} nouveaux durables à mémoriser")
     save_404_memory(all_404)
 
     # 7. Application des statuts sur les lignes de rapports

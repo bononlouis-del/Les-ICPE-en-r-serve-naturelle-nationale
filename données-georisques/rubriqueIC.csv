@@ -44,14 +44,14 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005200677";"2712";"Stockage, dépollution, démontage,? de VHU";"1";Enregistrement;"0.0";"m2";
 "0005207673";"1510";"Entrepot enregistré";"2.b";Enregistrement;"150000.000";"m3";"04/01/2012"
 "0005207673";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"60.000";kW;"04/01/2012"
-"0005205109";"2910";Combustion;"A.2";"Déclaration avec contrôle";"3.500";MW;"17/04/2020"
-"0005205109";"2921";"Installations de refroidissement évaporatif";"1.b";"Déclaration avec contrôle";"1395.000";kW;"17/04/2020"
 "0005205109";"4510";"Dangereux pour l'environnement aquatique de catégorie aiguë 1 ou chronique 1";"2";"Déclaration avec contrôle";"31.000";t;"11/04/2024"
 "0005205109";"4130";"Toxicité aiguë catégorie 3 pour les voies d'exposition par inhalation";"2.a";Autorisation;"27.000";t;"11/04/2024"
 "0005205109";"4422";"Peroxydes organiques type E ou type F";"2";Déclaration;"2.160";t;"17/04/2020"
 "0005205109";"4120";"Toxicité aiguë catégorie 2";"2.b";Déclaration;"1.000";t;"11/04/2024"
 "0005205109";"2915";"Chauffage (procédé de) fluide caloporteur organique combustible";"1.b";Déclaration;"400.000";L;"17/04/2020"
 "0005205109";"1630";"Soude ou potasse caustique";"2";Déclaration;"105.900";t;"17/04/2020"
+"0005205109";"2921";"Installations de refroidissement évaporatif";"1.b";"Déclaration avec contrôle";"1395.000";kW;"17/04/2020"
+"0005205109";"2910";Combustion;"A.2";"Déclaration avec contrôle";"3.500";MW;"17/04/2020"
 "0005200361";"2718";"Déchets dangereux ou contenant des substances ou préparations dangereuses (transit ou tri)";"1";Autorisation;"1889.000";t;"01/03/2024"
 "0005200361";"2713";"Métaux et déchets de métaux (transit)";"2";Déclaration;"999.000";"m2";"01/03/2024"
 "0005200361";"3520";"pour les déchets dangereux";b;Autorisation;"500.000";"t/j";"01/03/2024"
@@ -108,14 +108,14 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005208090";"3260";"Traitement de surface";;Autorisation;"158.100";"m3";"17/02/2026"
 "0005208090";"4130";"Toxicité aiguë catégorie 3 pour les voies d'exposition par inhalation";"2.b";Déclaration;"9.000";t;"17/02/2026"
 "0005208090";"4120";"Toxicité aiguë catégorie 2";"1.b";Déclaration;"45.000";t;"17/02/2026"
-"0005213151";"2517";"Produits minéraux ou déchets non dangereux inertes (transit)";"1";Enregistrement;"29500.000";"m2";"16/05/2022"
-"0005213151";"2515";"Broyage, concassage,...et autres produits minéraux ou déchets non dangereux inertes";"1.a";Enregistrement;"744.000";kW;"16/05/2022"
-"0005213151";"2714";"déchets non dangereux de papiers, plastiques, bois,? (transit) hors 2710,2711 et 2719";"1";Enregistrement;"20000.000";"m3";"16/05/2022"
-"0005213151";"2794";"Broyage de déchets verts";"2";Déclaration;"29.000";"t/j";"16/05/2022"
 "0005213151";"2710";"collecte de déchets non dangereux-E";"2.a";Enregistrement;"550.000";"m3";"16/05/2022"
 "0005213151";"2716";"déchets non dangereux non inertes (transit)";"1";Enregistrement;"30000.000";"m3";"16/05/2022"
 "0005213151";"2710";"collecte de déchets dangereux-DC";"1.b";"Déclaration avec contrôle";"6.500";t;"16/05/2022"
 "0005213151";"1530";"Papiers, cartons ou analogues (dépôt de) hors ERP et 1510";"2";"Déclaration avec contrôle";"5000.000";"m3";"16/05/2022"
+"0005213151";"2517";"Produits minéraux ou déchets non dangereux inertes (transit)";"1";Enregistrement;"29500.000";"m2";"16/05/2022"
+"0005213151";"2515";"Broyage, concassage,...et autres produits minéraux ou déchets non dangereux inertes";"1.a";Enregistrement;"744.000";kW;"16/05/2022"
+"0005213151";"2714";"déchets non dangereux de papiers, plastiques, bois,? (transit) hors 2710,2711 et 2719";"1";Enregistrement;"20000.000";"m3";"16/05/2022"
+"0005213151";"2794";"Broyage de déchets verts";"2";Déclaration;"29.000";"t/j";"16/05/2022"
 "0053320971";"2251";"Vins (préparation, conditionnement)";"1";Enregistrement;"38000.0";"hL/an";
 "0003105140";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"850.000";kW;"09/04/2020"
 "0003105140";"4130";"Toxicité aiguë catégorie 3 pour les voies d'exposition par inhalation";"2.b";Déclaration;"1.410";t;"14/01/2026"
@@ -620,14 +620,14 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005211723";"2930";"Ateliers de réparation et entretien de véhicules à moteur";"1.a";Enregistrement;"7932.0";"m2";
 "0005211723";"1978";"Autres nettoyages de surface";"5";Déclaration;"2.475";"t/an";
 "0003104919";"4718";"Supérieure ou égale à 6 t mais inférieure à 50 t";"2.b";"Déclaration avec contrôle";;;"07/05/2021"
+"0003104919";"4331";"Liquides inflammables de catégorie 2 ou catégorie 3";"3";"Déclaration avec contrôle";"95.000";t;"07/05/2021"
+"0003104919";"4510";"Dangereux pour l'environnement aquatique de catégorie aiguë 1 ou chronique 1";"2";"Déclaration avec contrôle";"40.000";t;"07/05/2021"
+"0003104919";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"51.000";kW;"07/05/2021"
 "0003104919";"4755";"Alcools de bouche d'origine agricole et leurs constituants (inflammables)";"2.b";"Déclaration avec contrôle";;;"07/05/2021"
 "0003104919";"1436";"Liquides combustibles de point éclair compris entre 60° C et 93° C (stockage ou emploi de)";"2";"Déclaration avec contrôle";"500.000";t;"07/05/2021"
 "0003104919";"1185";"Quantité de fluide susceptible d'être présente";"3.1.b";Déclaration;"5.000";t;"07/05/2021"
 "0003104919";"2910";Combustion;"A.2";"Déclaration avec contrôle";"1.100";MW;"07/05/2021"
 "0003104919";"1510";"Entrepot enregistré";"2.b";Enregistrement;"380723.000";"m3";"07/05/2021"
-"0003104919";"4331";"Liquides inflammables de catégorie 2 ou catégorie 3";"3";"Déclaration avec contrôle";"95.000";t;"07/05/2021"
-"0003104919";"4510";"Dangereux pour l'environnement aquatique de catégorie aiguë 1 ou chronique 1";"2";"Déclaration avec contrôle";"40.000";t;"07/05/2021"
-"0003104919";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"51.000";kW;"07/05/2021"
 "0003100819";"2515";"Broyage, concassage,...et autres produits minéraux ou déchets non dangereux inertes";"1.a";Enregistrement;"450.000";kW;"25/01/2022"
 "0003100819";"2790";"Traitement de déchets dangereux";;Autorisation;;;"25/01/2022"
 "0003100819";"3532";"Valorisation de déchets non dangereux";;Autorisation;"82.000";"t/j";"25/01/2022"
@@ -695,12 +695,12 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005205929";"1185";"Quantité susceptible d'être présente";"2.a";"Déclaration avec contrôle";"547.0";kg;
 "0005205929";"2910";Combustion;"A.2";"Déclaration avec contrôle";"2.69";MW;
 "0005203502";"2510";"Carrières (exploitation de)";"1";Autorisation;;;
-"0005200382";"3532";"Valorisation de déchets non dangereux";;Autorisation;"120.000";"t/j";"11/05/2022"
-"0005200382";"2710";"collecte de déchets dangereux-DC";"1.b";"Déclaration avec contrôle";"6.500";t;"11/05/2022"
-"0005200382";"2714";"déchets non dangereux de papiers, plastiques, bois,? (transit) hors 2710,2711 et 2719";"1";Enregistrement;"3451.000";"m3";"11/05/2022"
 "0005200382";"2713";"Métaux et déchets de métaux (transit)";"2";Déclaration;"101.000";"m2";"11/05/2022"
 "0005200382";"2716";"déchets non dangereux non inertes (transit)";"1";Enregistrement;"7180.000";"m3";"11/05/2022"
 "0005200382";"2710";"collecte de déchets non dangereux-E";"2.a";Enregistrement;"700.000";"m3";"11/05/2022"
+"0005200382";"3532";"Valorisation de déchets non dangereux";;Autorisation;"120.000";"t/j";"11/05/2022"
+"0005200382";"2710";"collecte de déchets dangereux-DC";"1.b";"Déclaration avec contrôle";"6.500";t;"11/05/2022"
+"0005200382";"2714";"déchets non dangereux de papiers, plastiques, bois,? (transit) hors 2710,2711 et 2719";"1";Enregistrement;"3451.000";"m3";"11/05/2022"
 "0005200870";"4718";"Supérieure ou égale à 6 t mais inférieure à 50 t";"2.b";"Déclaration avec contrôle";;;
 "0005200870";"1532";"Stockage bois déclaré";"2.b";Déclaration;"19976.0";"m3";
 "0005200870";"2410";"Supérieur à 250 kW";"1";Enregistrement;"849.0";kW;
@@ -1709,9 +1709,6 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005201154";"2921";"Installations de refroidissement évaporatif";"1.b";"Déclaration avec contrôle";"873.0";kW;
 "0005201154";"2251";"Vins (préparation, conditionnement)";"1";Enregistrement;"55000.0";"hL/an";
 "0005206598";"2410";"Supérieur à 250 kW";"1";Enregistrement;"0.0";kW;
-"0005201008";"2930";"Ateliers de réparation et entretien de véhicules à moteur";"1.a";Enregistrement;"47325.000";"m2";"07/12/2018"
-"0005201008";"4120";"Toxicité aiguë catégorie 2";"2.a";Autorisation;"13.680";t;"07/12/2018"
-"0005201008";"4110";"Toxicité aiguë catégorie 1";"1.b";"Déclaration avec contrôle";"565.000";kg;"07/12/2018"
 "0005201008";"2565";"Traitement de surface";"2.a";Enregistrement;"48684.000";l;"07/12/2018"
 "0005201008";"2560";"Supérieure à 150 kW, mais inférieure ou égale à 1 000 kW";"2";"Déclaration avec contrôle";"511.000";kW;"07/12/2018"
 "0005201008";"2712";"Stockage, dépollution, démontage,? de VHU";"2";Autorisation;"4000.000";"m2";"07/12/2018"
@@ -1729,6 +1726,9 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005201008";"1978";"Autres nettoyages de surface";"5";Déclaration;"7.500";"t/an";"31/08/2021"
 "0005201008";"2575";"Emploi de matières abrasives";;Déclaration;"30.000";kW;"07/12/2018"
 "0005201008";"2565";Cadmium;"1.a";Enregistrement;;;"07/12/2018"
+"0005201008";"2930";"Ateliers de réparation et entretien de véhicules à moteur";"1.a";Enregistrement;"47325.000";"m2";"07/12/2018"
+"0005201008";"4120";"Toxicité aiguë catégorie 2";"2.a";Autorisation;"13.680";t;"07/12/2018"
+"0005201008";"4110";"Toxicité aiguë catégorie 1";"1.b";"Déclaration avec contrôle";"565.000";kg;"07/12/2018"
 "0005213680";"2760";"Installation de stockage de déchets inertes";"3";Enregistrement;;;"29/02/2016"
 "0003103383";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"45.0";kW;
 "0003103383";"1510";"Entrepot enregistré";"2.b";Enregistrement;"82500.0";"m3";
@@ -1884,11 +1884,11 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005200342";"4702";"Engrais solides";IV;"Déclaration avec contrôle";;;"03/06/2024"
 "0005200342";"2517";"Produits minéraux ou déchets non dangereux inertes (transit)";"1";Enregistrement;"35000.000";"m2";"05/12/2017"
 "0003101036";"2760";"Installation de stockage de déchets inertes";"3";Enregistrement;;;
-"0005201365";"2795";"Lavage de fûts, conteneurs,... de substances ou mélanges ou de déchets dangereux";"1";Autorisation;"60.000";"m3/j";"02/12/2021"
-"0005201365";"4331";"Liquides inflammables de catégorie 2 ou catégorie 3";"3";"Déclaration avec contrôle";"32.830";t;"02/12/2021"
 "0005201365";"2930";"Ateliers de réparation et entretien de véhicules à moteur";"1.b";"Déclaration avec contrôle";"3500.000";"m2";"02/12/2021"
 "0005201365";"1435";"Stations-service";"2";"Déclaration avec contrôle";"1000.000";"m3";"02/12/2021"
 "0005201365";"4734";"Produits pétroliers spécifiques et carburants de substitution";"1.c";"Déclaration avec contrôle";;;"02/12/2021"
+"0005201365";"2795";"Lavage de fûts, conteneurs,... de substances ou mélanges ou de déchets dangereux";"1";Autorisation;"60.000";"m3/j";"02/12/2021"
+"0005201365";"4331";"Liquides inflammables de catégorie 2 ou catégorie 3";"3";"Déclaration avec contrôle";"32.830";t;"02/12/2021"
 "0005205211";"2251";"Vins (préparation, conditionnement)";"1";Enregistrement;"200000.0";"hL/an";
 "0005205211";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"72.0";kW;
 "0005205211";"1510";"Entrepot enregistré";"2.b";Enregistrement;"163305.0";"m3";
@@ -2166,6 +2166,7 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005200249";"2915";"Chauffage (procédé de) fluide caloporteur organique combustible";"1.a";Enregistrement;"39000.000";L;"01/04/2020"
 "0005206258";"1532";"Stockage bois déclaré";"2.b";Déclaration;"0.0";"m3";
 "0005206258";"2410";"Supérieure à 50 kW, mais inférieure ou égale à 250 kW";"2";Déclaration;"0.0";kW;
+"0005201375";"4725";"Oxygène (numéro CAS 7782-44-7)";"2";Déclaration;;;"10/10/2022"
 "0005201375";"3330";"Fabrication du verre";;Autorisation;"990.000";"t/j";"10/10/2022"
 "0005201375";"2921";"Installations de refroidissement évaporatif";"1.b";"Déclaration avec contrôle";"1814.000";kW;"16/06/2022"
 "0005201375";"2515";"Broyage, concassage,...et autres produits minéraux ou déchets non dangereux inertes";"2.b";Déclaration;"50.000";kW;"10/10/2022"
@@ -2174,7 +2175,6 @@ codeAiot;numeroRubrique;nature;alinea;regimeAutoriseAlinea;quantiteTotale;unite;
 "0005201375";"4718";"Gaz inflammables liquéfiés de catégorie 1 et 2";"2";"Déclaration avec contrôle";;;"17/04/2020"
 "0005201375";"1414";"Gaz inflammables liquéfiés (remplissage ou distribution)";"3";"Déclaration avec contrôle";;;"17/04/2020"
 "0005201375";"2910";Combustion;"A.2";"Déclaration avec contrôle";"7.512";MW;"16/06/2022"
-"0005201375";"4725";"Oxygène (numéro CAS 7782-44-7)";"2";Déclaration;;;"10/10/2022"
 "0003104841";"2510";"Carrières (exploitation de)";"1";Autorisation;;;"25/06/2021"
 "0005200848";"2925";"Charge d'accumulateurs dégageant de l'hydrogène";"1";Déclaration;"8.000";kW;"17/02/2019"
 "0005200848";"2940";"Vernis, peinture, colle, ... (application, cuisson, séchage)";"2.b";"Déclaration avec contrôle";"20.000";"kg/j";"17/02/2019"

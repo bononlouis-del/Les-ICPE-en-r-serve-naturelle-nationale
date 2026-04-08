@@ -1,8 +1,8 @@
 # Comparaison bulk Géorisques vs CSV manuel
 
-date            : 2026-04-08T15:17:13
+date            : 2026-04-08T18:41:02
 bulk            : données-georisques/InstallationClassee.csv
-manuel          : ENQUETE DATA - ICPE EN GIRONDE.csv
+manuel          : carte-interactive/liste-icpe-gironde.csv
 
 bulk            :  2890 installations
 manuel          :  2888 installations
