@@ -8,7 +8,7 @@
   'use strict';
 
   // ---------- constants ----------
-  const CSV_URL = 'carte-interactive/liste-icpe-gironde_enrichi.csv';
+  const CSV_URL = 'carte-interactive/data/liste-icpe-gironde_enrichi.csv';
   const RNN_URL = 'carte-interactive/data/reserves-naturelles-nationales.geojson';
   const RNR_URL = 'carte-interactive/data/reserves-naturelles-regionales.geojson';
   const GIRONDE_CONTOUR_URL = 'carte-interactive/data/gironde-contour.geojson';
@@ -262,11 +262,14 @@
   }
 
   function transformRows(rawRows) {
-    // Transform each CSV row into a compact object with pre-computed colors
+    // Transform each CSV row into a compact object with pre-computed colors.
+    // The CSV is the aliased enrichment output produced by
+    // scripts/enrichir_libelles.py — see data/metadonnees_colonnes.csv for
+    // the column dictionary.
     const rows = [];
     let mdateMax = null;
     for (const r of rawRows) {
-      const geoPoint = r['Geo Point'];
+      const geoPoint = r.coordonnees_lat_lon;
       if (!geoPoint) continue;
       const parts = geoPoint.split(',');
       if (parts.length !== 2) continue;
@@ -274,13 +277,13 @@
       const lon = parseFloat(parts[1]);
       if (!isFinite(lat) || !isFinite(lon)) continue;
 
-      const regime = r.regime || 'AUTRE';
-      const seveso = (r.cat_seveso || '').trim();
+      const regime = r.regime_icpe || 'AUTRE';
+      const seveso = (r.categorie_seveso || '').trim();
       const priority = r.priorite_nationale === 'TRUE';
-      const ied = r.ied === 'TRUE';
-      const industrie = r.industrie === 'TRUE';
-      const carriere = r.carriere === 'TRUE';
-      const libelleComplet = (r.libelle_complet || r.libelle || '(sans nom)').trim();
+      const ied = r.directive_ied === 'TRUE';
+      const industrie = r.activite_industrielle === 'TRUE';
+      const carriere = r.activite_carriere === 'TRUE';
+      const libelleComplet = (r.nom_complet || r.nom_original || '(sans nom)').trim();
       const structure = (r.structure || '').trim();
       const etablissement = (r.etablissement || '').trim();
       const libelle = libelleComplet; // unified display name
@@ -296,11 +299,14 @@
                  : PALETTE.secteur.autre,
       };
 
-      const mdate = r.mdate || '';
+      // mdate no longer exists as a separate column (it was a strict duplicate
+      // of cdate in the data.gouv.fr bulk export, so the pipeline dropped it).
+      // Use date_enregistrement for both "date" semantics.
+      const cdate = r.date_enregistrement || '';
+      const mdate = cdate;
       if (mdate && (!mdateMax || mdate > mdateMax)) mdateMax = mdate;
 
       // cdate → quarter key for the time slider
-      const cdate = r.cdate || '';
       const cdate_quarter = quarterKey(cdate);
 
       rows.push({
@@ -317,12 +323,12 @@
         industrie,
         carriere,
         cdate_quarter,
-        fiche: r.fiche || '',
+        fiche: r.url_fiche_georisques || '',
         siret: r.siret || '',
-        insee: r.insee || '',
+        insee: r.code_insee_commune || '',
         cdate,
         mdate,
-        activite: (r.activite_principale || '').toString(),
+        activite: (r.code_naf_division || '').toString(),
         isSeveso: seveso === 'SEUIL_HAUT' || seveso === 'SEUIL_BAS',
         color,
       });
