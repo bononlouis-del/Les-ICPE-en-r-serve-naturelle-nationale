@@ -11,9 +11,8 @@
   const CSV_URL = 'carte-interactive/liste-icpe-gironde_enrichi.csv';
   const RNN_URL = 'carte-interactive/data/reserves-naturelles-nationales.geojson';
   const RNR_URL = 'carte-interactive/data/reserves-naturelles-regionales.geojson';
-  const GIRONDE_CONTOUR_URL = 'https://geo.api.gouv.fr/departements/33/contour?format=geojson';
-  const GIRONDE_COMMUNES_URL = 'https://geo.api.gouv.fr/departements/33/communes?format=geojson&geometry=contour';
-  const CACHE_TTL_MS = 30 * 24 * 3600 * 1000; // 30 days
+  const GIRONDE_CONTOUR_URL = 'carte-interactive/data/gironde-contour.geojson';
+  const GIRONDE_COMMUNES_URL = 'carte-interactive/data/gironde-communes.geojson';
 
   const CSS = (() => {
     const s = getComputedStyle(document.documentElement);
@@ -196,24 +195,31 @@
       priority: 'all',
       ied: 'all',
       secteur: new Set(), // empty = no secteur filter; populated = OR of active secteurs
-      // cutoff month (YYYY-MM) — rows with cdate <= cutoff are visible.
-      // Null means "no time filter" (show everything).
-      cutoff: null,
+      // Quarter window filter (disabled by default)
+      // quarterEnabled: when true, only show rows whose cdate_quarter matches state.filters.quarter
+      // quarter: e.g., '2025-Q1' (one of state.quarterSteps)
+      quarterEnabled: false,
+      quarter: null,
     },
     mdateMax: null,
-    // monthly steps derived from the dataset — set after CSV load
-    monthSteps: [],
+    // quarter keys derived from the dataset — set after CSV load
+    quarterSteps: [],
   };
 
-  const MONTHS_FR = [
-    'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
-  ];
-  function formatMonthYearFR(ym) {
-    // ym is "YYYY-MM"
-    if (!ym) return '—';
-    const [y, m] = ym.split('-');
-    return `${MONTHS_FR[parseInt(m, 10) - 1]} ${y}`;
+  function quarterKey(isoDate) {
+    // isoDate like "2025-02-10T..." → "2025-Q1"
+    if (!isoDate || isoDate.length < 7) return '';
+    const y = isoDate.substring(0, 4);
+    const m = parseInt(isoDate.substring(5, 7), 10);
+    if (!m) return '';
+    const q = Math.ceil(m / 3);
+    return `${y}-Q${q}`;
+  }
+  function formatQuarterFR(qkey) {
+    // qkey like "2025-Q1" → "T1 2025"
+    if (!qkey) return '—';
+    const [y, q] = qkey.split('-Q');
+    return `T${q} ${y}`;
   }
 
   // ---------- utilities ----------
@@ -234,41 +240,25 @@
     })[c]);
   }
 
-  function cacheGet(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const { t, v } = JSON.parse(raw);
-      if (Date.now() - t > CACHE_TTL_MS) return null;
-      return v;
-    } catch (_) { return null; }
-  }
-  function cacheSet(key, v) {
-    try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch (_) {}
-  }
-
-  async function fetchJSONCached(url, cacheKey) {
-    const hit = cacheGet(cacheKey);
-    if (hit) return hit;
+  async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`fetch ${url}: ${res.status}`);
-    const json = await res.json();
-    cacheSet(cacheKey, json);
-    return json;
+    return res.json();
   }
 
-  // ---------- CSV loading ----------
-  function parseCSV() {
-    return new Promise((resolve, reject) => {
-      Papa.parse(CSV_URL, {
-        worker: true,
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => resolve(result.data),
-        error: reject,
-      });
+  // ---------- CSV loading (main thread; worker mode has silent-failure issues) ----------
+  async function parseCSV() {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error(`CSV fetch ${res.status}`);
+    const text = await res.text();
+    const result = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
     });
+    if (result.errors && result.errors.length > 0) {
+      console.warn('PapaParse errors:', result.errors.slice(0, 5));
+    }
+    return result.data;
   }
 
   function transformRows(rawRows) {
@@ -309,9 +299,9 @@
       const mdate = r.mdate || '';
       if (mdate && (!mdateMax || mdate > mdateMax)) mdateMax = mdate;
 
-      // cdate → year-month string (YYYY-MM) for the time slider
+      // cdate → quarter key for the time slider
       const cdate = r.cdate || '';
-      const cdate_ym = cdate ? cdate.substring(0, 7) : '';
+      const cdate_quarter = quarterKey(cdate);
 
       rows.push({
         lat, lon,
@@ -326,7 +316,7 @@
         ied,
         industrie,
         carriere,
-        cdate_ym,
+        cdate_quarter,
         fiche: r.fiche || '',
         siret: r.siret || '',
         insee: r.insee || '',
@@ -347,7 +337,7 @@
     const search = f.search.trim().toLowerCase();
     const hasSearch = search.length > 0;
     const hasSecteur = f.secteur.size > 0;
-    const cutoff = f.cutoff;
+    const quarterActive = f.quarterEnabled && f.quarter;
 
     return function (row) {
       if (!f.regime.has(row.regime)) return false;
@@ -357,15 +347,14 @@
       if (f.ied === 'yes' && !row.ied) return false;
       if (f.ied === 'no' && row.ied) return false;
       if (hasSecteur) {
-        // OR between active secteur flags
         let any = false;
         if (f.secteur.has('industrie') && row.industrie) any = true;
         if (f.secteur.has('carriere') && row.carriere) any = true;
         if (!any) return false;
       }
       if (hasSearch && row.search_index.indexOf(search) === -1) return false;
-      // time cutoff — ISO year-month strings are lexicographically comparable
-      if (cutoff && row.cdate_ym && row.cdate_ym > cutoff) return false;
+      // Quarter window — only show rows whose cdate falls in the selected quarter
+      if (quarterActive && row.cdate_quarter !== f.quarter) return false;
       return true;
     };
   }
@@ -581,10 +570,10 @@
   }
 
   async function init() {
-    // Start all data loads in parallel
+    // Start all data loads in parallel (all local static files)
     const [csvResult, girondeResult, rnnResult, rnrResult] = await Promise.allSettled([
       parseCSV(),
-      fetchJSONCached(GIRONDE_CONTOUR_URL, 'cache_gironde_contour'),
+      fetchJSON(GIRONDE_CONTOUR_URL),
       fetch(RNN_URL).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(RNR_URL).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
@@ -621,27 +610,27 @@
     siteMdateEl.setAttribute('datetime', state.mdateMax || '');
     counterTotal.textContent = formatCount(state.rows.length);
 
-    // derive monthly steps from the data (unique YYYY-MM values, sorted)
-    const ymSet = new Set();
+    // derive quarter keys from the data (unique YYYY-QN values, sorted)
+    const qSet = new Set();
     for (const row of state.rows) {
-      if (row.cdate_ym) ymSet.add(row.cdate_ym);
+      if (row.cdate_quarter) qSet.add(row.cdate_quarter);
     }
-    state.monthSteps = Array.from(ymSet).sort();
-    // default cutoff = max month (show all)
-    state.filters.cutoff = state.monthSteps.length ? state.monthSteps[state.monthSteps.length - 1] : null;
+    state.quarterSteps = Array.from(qSet).sort();
+    // default quarter selection = most recent (useful when user enables the toggle)
+    state.filters.quarter = state.quarterSteps.length
+      ? state.quarterSteps[state.quarterSteps.length - 1]
+      : null;
 
-    // configure the slider
+    // configure the slider (starts disabled; checkbox enables it)
     const slider = document.getElementById('time-slider');
     const sliderValue = document.getElementById('time-slider-value');
-    const sliderCount = document.getElementById('time-slider-count');
-    if (state.monthSteps.length >= 2) {
+    if (state.quarterSteps.length >= 2) {
       slider.min = '0';
-      slider.max = String(state.monthSteps.length - 1);
+      slider.max = String(state.quarterSteps.length - 1);
       slider.step = '1';
-      slider.value = slider.max; // rightmost = all
-      sliderValue.textContent = formatMonthYearFR(state.filters.cutoff);
+      slider.value = slider.max;
+      sliderValue.textContent = formatQuarterFR(state.filters.quarter);
     } else {
-      // only one month or none — disable the control
       slider.disabled = true;
     }
 
@@ -663,8 +652,23 @@
     const visible = state.rows.filter(predicate);
     state.visibleRows = visible;
     counterShown.textContent = formatCount(visible.length);
+
+    // Show the quarter count in the bottom bar:
+    // if the quarter filter is active, show its count; otherwise show
+    // the total number of rows matching the selected quarter for preview
     const sliderCount = document.getElementById('time-slider-count');
-    if (sliderCount) sliderCount.textContent = formatCount(visible.length);
+    if (sliderCount) {
+      if (state.filters.quarterEnabled) {
+        sliderCount.textContent = formatCount(visible.length);
+      } else if (state.filters.quarter) {
+        const q = state.filters.quarter;
+        let n = 0;
+        for (const r of state.rows) if (r.cdate_quarter === q) n++;
+        sliderCount.textContent = formatCount(n);
+      } else {
+        sliderCount.textContent = '—';
+      }
+    }
 
     // Rebuild cluster layer with the filtered subset
     clusterGroup.clearLayers();
@@ -757,16 +761,28 @@
       }, 150);
     });
 
-    // time slider — instant update (predicate is cheap)
+    // quarter filter — checkbox toggles it on/off, slider picks the quarter
     const slider = document.getElementById('time-slider');
     const sliderValue = document.getElementById('time-slider-value');
-    const sliderCount = document.getElementById('time-slider-count');
+    const quarterCheckbox = document.getElementById('quarter-enabled');
+    const timebar = document.getElementById('timebar');
+    const setSliderEnabled = (on) => {
+      slider.disabled = !on;
+      timebar.classList.toggle('is-disabled', !on);
+    };
+    setSliderEnabled(false);
+
+    quarterCheckbox.addEventListener('change', () => {
+      state.filters.quarterEnabled = quarterCheckbox.checked;
+      setSliderEnabled(quarterCheckbox.checked);
+      applyFilters();
+    });
     slider.addEventListener('input', () => {
       const idx = parseInt(slider.value, 10);
-      const cutoff = state.monthSteps[idx];
-      state.filters.cutoff = cutoff;
-      sliderValue.textContent = formatMonthYearFR(cutoff);
-      applyFilters();
+      const q = state.quarterSteps[idx];
+      state.filters.quarter = q;
+      sliderValue.textContent = formatQuarterFR(q);
+      if (state.filters.quarterEnabled) applyFilters();
     });
 
     // reset
@@ -777,11 +793,14 @@
       state.filters.priority = 'all';
       state.filters.ied = 'all';
       state.filters.secteur = new Set();
-      if (state.monthSteps.length) {
-        state.filters.cutoff = state.monthSteps[state.monthSteps.length - 1];
+      state.filters.quarterEnabled = false;
+      if (state.quarterSteps.length) {
+        state.filters.quarter = state.quarterSteps[state.quarterSteps.length - 1];
         slider.value = slider.max;
-        sliderValue.textContent = formatMonthYearFR(state.filters.cutoff);
+        sliderValue.textContent = formatQuarterFR(state.filters.quarter);
       }
+      quarterCheckbox.checked = false;
+      setSliderEnabled(false);
       // reflect in DOM
       searchInput.value = '';
       document.querySelectorAll('input[type="checkbox"][data-filter="regime"]').forEach((cb) => cb.checked = true);
@@ -792,26 +811,34 @@
       applyFilters();
     });
 
-    // lazy communes: when user enables the Communes overlay, fetch + simplify on demand
+    // lazy communes: fetch from static file on first enable
     map.on('overlayadd', async (e) => {
       if (e.layer === communesLayer && communesLayer.getLayers().length === 0) {
         try {
-          let cached = cacheGet('cache_gironde_communes_simplified');
-          if (!cached) {
-            const raw = await (await fetch(GIRONDE_COMMUNES_URL)).json();
-            if (window.turf && window.turf.simplify) {
-              cached = window.turf.simplify(raw, { tolerance: 0.001, highQuality: false });
-            } else {
-              cached = raw;
-            }
-            cacheSet('cache_gironde_communes_simplified', cached);
-          }
-          communesLayer.addData(cached);
+          const data = await fetchJSON(GIRONDE_COMMUNES_URL);
+          communesLayer.addData(data);
         } catch (err) {
           console.error('communes load failed', err);
         }
       }
     });
+
+    // legend toggle
+    const legendEl = document.getElementById('legend');
+    const legendToggle = document.getElementById('legend-toggle');
+    const legendClose = document.getElementById('legend-close');
+    const setLegendOpen = (open) => {
+      legendEl.classList.toggle('is-hidden', !open);
+      legendToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      try { localStorage.setItem('legend-open', open ? '1' : '0'); } catch (_) {}
+    };
+    const stored = (() => { try { return localStorage.getItem('legend-open'); } catch (_) { return null; } })();
+    setLegendOpen(stored === null ? true : stored === '1');
+    legendToggle.addEventListener('click', () => {
+      const isHidden = legendEl.classList.contains('is-hidden');
+      setLegendOpen(isHidden); // toggle open
+    });
+    legendClose.addEventListener('click', () => setLegendOpen(false));
   }
 
   // ---------- go ----------
