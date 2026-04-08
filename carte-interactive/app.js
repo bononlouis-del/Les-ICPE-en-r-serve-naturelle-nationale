@@ -13,6 +13,7 @@
   const RNR_URL = 'carte-interactive/data/reserves-naturelles-regionales.geojson';
   const GIRONDE_CONTOUR_URL = 'carte-interactive/data/gironde-contour.geojson';
   const GIRONDE_COMMUNES_URL = 'carte-interactive/data/gironde-communes.geojson';
+  const EPCI_OUTLINES_URL = 'carte-interactive/data/gironde-epci-outlines.geojson';
   const SUGGESTION_LIMIT_PER_GROUP = 5;
 
   const CSS = (() => {
@@ -659,6 +660,22 @@
     style: { color: CSS.lead, weight: 0.5, opacity: 0.6, fill: false },
     interactive: false,
   });
+  // EPCI outlines — lazy-loaded on first EPCI filter activation. The file
+  // is ~1.2 MB uncompressed (375 KB gzipped) and most users won't touch
+  // an EPCI filter, so we pay the download cost only on demand. Once
+  // loaded, `epciFeaturesBySiren` serves the layer without re-fetching.
+  const epciOutlineLayer = L.geoJSON(null, {
+    style: {
+      color: CSS.azur,
+      weight: 2.5,
+      fillColor: CSS.azur,
+      fillOpacity: 0.06,
+      dashArray: '4 3',
+    },
+    interactive: false,
+  });
+  let epciFeaturesBySiren = null; // null = not loaded; Map<siren,Feature> once loaded
+  let epciLoadPromise = null;     // in-flight fetch promise (coalesces rapid toggles)
   const rnnLayer = L.geoJSON(null, {
     style: { color: CSS.mossDeep, weight: 1.5, fillColor: CSS.moss, fillOpacity: 0.18 },
     onEachFeature: (feat, layer) => {
@@ -677,6 +694,63 @@
       });
     },
   });
+
+  // Lazy-load the EPCI outlines GeoJSON on first demand.
+  async function ensureEpciOutlinesLoaded() {
+    if (epciFeaturesBySiren) return epciFeaturesBySiren;
+    if (epciLoadPromise) return epciLoadPromise;
+    epciLoadPromise = fetchJSON(EPCI_OUTLINES_URL)
+      .then((data) => {
+        const map = new Map();
+        for (const feat of (data && data.features) || []) {
+          const siren = feat && feat.properties && feat.properties.siren;
+          if (siren) map.set(siren, feat);
+        }
+        epciFeaturesBySiren = map;
+        return map;
+      })
+      .catch((err) => {
+        console.error('EPCI outlines load failed', err);
+        epciLoadPromise = null; // allow retry
+        throw err;
+      });
+    return epciLoadPromise;
+  }
+
+  // Redraw the EPCI outline layer based on state.filters.epci, and swap
+  // the Gironde département contour in/out accordingly.
+  async function updateEpciOutlines() {
+    const active = state.filters.epci;
+    if (active.size === 0) {
+      // No EPCI filter: restore the département outline, clear the layer.
+      epciOutlineLayer.clearLayers();
+      if (!map.hasLayer(girondeLayer)) girondeLayer.addTo(map);
+      return;
+    }
+    // At least one EPCI selected — hide the département contour,
+    // show the EPCI outlines instead.
+    if (map.hasLayer(girondeLayer)) map.removeLayer(girondeLayer);
+    if (!map.hasLayer(epciOutlineLayer)) epciOutlineLayer.addTo(map);
+    try {
+      const lookup = await ensureEpciOutlinesLoaded();
+      // State may have changed while awaiting; re-check.
+      const current = state.filters.epci;
+      if (current.size === 0) {
+        epciOutlineLayer.clearLayers();
+        if (!map.hasLayer(girondeLayer)) girondeLayer.addTo(map);
+        return;
+      }
+      epciOutlineLayer.clearLayers();
+      for (const siren of current) {
+        const feat = lookup.get(siren);
+        if (feat) epciOutlineLayer.addData(feat);
+      }
+    } catch (_) {
+      // Fetch failed — keep the département contour as a safe fallback.
+      if (!map.hasLayer(girondeLayer)) girondeLayer.addTo(map);
+      epciOutlineLayer.clearLayers();
+    }
+  }
 
   function buildReservePopup(p, typeLabel) {
     const parts = [];
@@ -728,12 +802,13 @@
   // ordering: reserves under markers, contours on top of tiles but below markers
   girondeLayer.addTo(map);
   rnnLayer.addTo(map);
-  // communesLayer and rnrLayer added via control
+  // communesLayer, rnrLayer and epciOutlineLayer added via control / on demand
   clusterGroup.addTo(map);
 
   // layer control
   const overlays = {
     'Contour Gironde': girondeLayer,
+    'Contours EPCI': epciOutlineLayer,
     'Communes': communesLayer,
     'Réserves Nat. Nationales': rnnLayer,
     'Réserves Nat. Régionales': rnrLayer,
@@ -947,7 +1022,9 @@
       cb.addEventListener('change', () => {
         if (cb.checked) state.filters.epci.add(epci.code);
         else state.filters.epci.delete(epci.code);
+        renderPills();
         applyFilters();
+        updateEpciOutlines();
       });
       const text = document.createElement('span');
       text.className = 'check__text';
@@ -984,6 +1061,7 @@
         state.filters[type].delete(key);
         renderPills();
         applyFilters();
+        if (type === 'epci') updateEpciOutlines();
       });
       pill.appendChild(x);
       container.appendChild(pill);
@@ -1074,6 +1152,7 @@
     renderPills();
     renderSuggestions([]);
     applyFilters();
+    if (type === 'epci') updateEpciOutlines();
     searchInput.focus();
   }
 
@@ -1328,6 +1407,8 @@
       state.filters.commune = new Set();
       state.filters.epci = new Set();
       state.filters.structure = new Set();
+      updateEpciOutlines(); // hide EPCI layer + restore Gironde contour
+      renderPills();
       state.filters.monthEnabled = false;
       if (state.monthSteps.length) {
         state.filters.month = state.monthSteps[state.monthSteps.length - 1];
