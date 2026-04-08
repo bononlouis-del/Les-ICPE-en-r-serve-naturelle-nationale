@@ -26,3 +26,16 @@ liste-icpe-gironde_enrichi.csv,ied,directive_ied,"TRUE si l'installation relève
 liste-icpe-gironde_enrichi.csv,activite_principale,code_naf_division,"Code NAF division (niveau 2 chiffres) de l'activité principale. Ex : 11 = fabrication de boissons, 46 = commerce de gros, 38 = collecte/traitement des déchets. Vide pour 978 lignes."
 liste-icpe-gironde_enrichi.csv,cdate,date_enregistrement,Date d'enregistrement dans l'export data.gouv.fr (ISO 8601). La colonne mdate de la source était un doublon strict et a été droppée.
 liste-icpe-gironde_enrichi.csv,année,annee_enregistrement,Année extraite de la date d'enregistrement (2025 ou 2026).
+rapports-inspection.csv,(calculé),id_icpe,Identifiant de l'installation classée (codeAiot sans zéros de tête). Clé de jointure avec liste-icpe-gironde_enrichi.csv.
+rapports-inspection.csv,(calculé),nom_complet,Libellé désambiguïsé de l'installation (copié depuis liste-icpe-gironde_enrichi.csv au moment du téléchargement).
+rapports-inspection.csv,(calculé),siret,SIRET de l'exploitant (copié depuis liste-icpe-gironde_enrichi.csv). Vide si non renseigné dans la source.
+rapports-inspection.csv,dateInspection,date_inspection,"Date de l'inspection (format YYYY-MM-DD), jointe depuis inspection.csv via identifiantFichier. Vide si absente dans la source."
+rapports-inspection.csv,identifiant,identifiant_fichier,Identifiant opaque du fichier côté Géorisques. Clé d'unicité du fichier PDF.
+rapports-inspection.csv,type,type_fichier,Type de document selon Géorisques. Toujours 'Rapport d'inspection publiable' dans ce CSV.
+rapports-inspection.csv,nom,nom_fichier_source,Nom du fichier tel que fourni par Géorisques (non utilisé pour le stockage local).
+rapports-inspection.csv,(calculé),nom_fichier_local,Nom de fichier local après sanitisation : {slug_nom_complet}_{id_icpe}_{date}_{siret}.pdf avec fallbacks nosiret / nodate. Deux lignes peuvent partager le même nom quand un identifiant est référencé par plusieurs installations (dedup par identifiant).
+rapports-inspection.csv,(calculé),url_source_georisques,URL canonique du PDF côté Géorisques (webappReport). Utilisée par le script pour le téléchargement.
+rapports-inspection.csv,(calculé),url_pages,URL GitHub Pages du PDF local post-push. S'ouvre directement dans le navigateur quand on clique.
+rapports-inspection.csv,(calculé),statut_telechargement,"Statut du dernier téléchargement : 'ok' (téléchargé cette fois-ci), 'skip' (déjà présent), 'fail_404' (absent côté source, durable), 'fail_transitoire' (timeout/5xx/réseau, à retenter)."
+rapports-inspection.csv,(calculé),taille_octets,Taille du fichier PDF local en octets (stat() après écriture). Vide si pas téléchargé.
+liste-icpe-gironde_enrichi.csv,(calculé),nb_rapports_inspection,Nombre de rapports d'inspection publiables téléchargés avec succès pour cette installation (écrit par telecharger_rapports_inspection.py). Seuls les statuts 'ok' et 'skip' comptent. Valeur 0 si aucun rapport téléchargé ou installation sans inspection publiable.

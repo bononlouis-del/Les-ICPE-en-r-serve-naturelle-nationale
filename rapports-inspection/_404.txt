@@ -1,0 +1,5 @@
+# Identifiants de rapports d'inspection connus comme HTTP 404
+# (fichier absent côté Géorisques). Skippés au prochain run pour
+# éviter les requêtes inutiles. Éditable à la main si tu veux forcer
+# une nouvelle tentative.
+
