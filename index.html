@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 
 <!-- Our styles — ?v bumped on each deploy to bust Pages CDN cache -->
-<link rel="stylesheet" href="carte-interactive/style.css?v=3">
+<link rel="stylesheet" href="carte-interactive/style.css?v=4">
 </head>
 <body>
 
@@ -55,7 +55,8 @@
 
     <div class="filters__section">
       <label class="filters__section-label" for="search-input">Recherche</label>
-      <input id="search-input" type="search" placeholder="Nom de l'établissement…" autocomplete="off">
+      <input id="search-input" type="search" placeholder="nom, commune, SIRET…" autocomplete="off">
+      <p class="filters__hint">Mots multiples (ET), accents ignorés. Ex. « <em>heidelberg blanquefort</em> ».</p>
     </div>
 
     <div class="filters__section">
@@ -148,6 +149,6 @@
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
 <!-- Our app — ?v bumped on each deploy to bust Pages CDN cache -->
-<script src="carte-interactive/app.js?v=3"></script>
+<script src="carte-interactive/app.js?v=4"></script>
 </body>
 </html>

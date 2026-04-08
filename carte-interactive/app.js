@@ -242,6 +242,18 @@
     })[c]);
   }
 
+  // Normalise a string for search: lowercase + strip diacritics + collapse
+  // whitespace. Lets the user type "reserve" and match "RÉSERVE".
+  function normaliseForSearch(s) {
+    if (!s) return '';
+    return String(s)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove combining diacritical marks
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   // Only allow http(s) URLs in href attributes — blocks javascript:, data:, etc.
   function safeHref(url) {
     if (!url) return '';
@@ -327,8 +339,12 @@
         libelle,
         structure,
         etablissement,
-        // search across name + etablissement + siret so partial queries work
-        search_index: (libelle + ' ' + etablissement + ' ' + (r.siret || '')).toLowerCase(),
+        // Search index: all the human-facing strings a journalist might type.
+        // Accent-stripped and lowercased so "reserve" matches "RÉSERVE" etc.
+        search_index: normaliseForSearch(
+          [libelle, structure, etablissement, r.siret, r.code_insee_commune]
+            .filter(Boolean).join(' ')
+        ),
         regime,
         seveso,
         priority,
@@ -352,8 +368,12 @@
   // ---------- filter predicate ----------
   function buildPredicate() {
     const f = state.filters;
-    const search = f.search.trim().toLowerCase();
-    const hasSearch = search.length > 0;
+    // Multi-token AND: split the (normalised) query on whitespace, every
+    // token must appear somewhere in the row's search_index. Lets the user
+    // type "heidelberg blanquefort" to find sites matching both words in
+    // any order, and "reserve" to match "RÉSERVE" (accents stripped).
+    const searchTokens = normaliseForSearch(f.search).split(' ').filter(Boolean);
+    const hasSearch = searchTokens.length > 0;
     const hasSecteur = f.secteur.size > 0;
     const monthActive = f.monthEnabled && f.month;
 
@@ -371,7 +391,12 @@
         if (f.secteur.has('autre') && !row.industrie && !row.carriere) any = true;
         if (!any) return false;
       }
-      if (hasSearch && !row.search_index.includes(search)) return false;
+      if (hasSearch) {
+        const idx = row.search_index;
+        for (let i = 0; i < searchTokens.length; i++) {
+          if (!idx.includes(searchTokens[i])) return false;
+        }
+      }
       // Month window — only show rows whose cdate falls in the selected month.
       // Rows without any recorded date pass through (they exist but have no
       // temporal anchor; hiding them would be silent data loss).
