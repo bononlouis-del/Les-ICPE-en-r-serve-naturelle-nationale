@@ -14,9 +14,16 @@ Fichiers produits :
   (conserve les noms de colonnes Géorisques d'origine)
 
 - ``carte-interactive/data/liste-icpe-gironde_enrichi.csv``
-  (colonnes renommées avec des alias lisibles)
+  (colonnes renommées avec des alias lisibles ; les colonnes externes
+  écrites par d'autres scripts — ex. ``nb_rapports_inspection`` ajoutée
+  par ``telecharger_rapports_inspection.py`` — sont préservées verbatim
+  lors du re-run de ce script, voir ``write_manual``)
 - ``carte-interactive/data/metadonnees_colonnes.csv``
-  (dictionnaire nom_original / alias / définition)
+  (dictionnaire multi-fichiers partagé — schéma 4 colonnes
+  ``fichier / nom_original / alias / definition``. Ce script possède les
+  lignes dont ``fichier == MANUAL_OUTPUT_FILENAME`` ; les lignes
+  appartenant à d'autres fichiers sont préservées via le helper
+  ``_metadonnees_util.merge_metadata``)
 
 Les fichiers originaux ne sont jamais modifiés.
 
@@ -70,8 +77,13 @@ BULK_IN = PROJECT_ROOT / "données-georisques" / "InstallationClassee.csv"
 BULK_OUT = PROJECT_ROOT / "données-georisques" / "InstallationClassee_enrichi.csv"
 MANUAL_IN = PROJECT_ROOT / "carte-interactive" / "liste-icpe-gironde.csv"
 MANUAL_OUT_DIR = PROJECT_ROOT / "carte-interactive" / "data"
-MANUAL_OUT = MANUAL_OUT_DIR / "liste-icpe-gironde_enrichi.csv"
+MANUAL_OUTPUT_FILENAME = "liste-icpe-gironde_enrichi.csv"
+MANUAL_OUT = MANUAL_OUT_DIR / MANUAL_OUTPUT_FILENAME
 METADATA_OUT = MANUAL_OUT_DIR / "metadonnees_colonnes.csv"
+
+# Le helper _metadonnees_util est au même niveau que ce script.
+# L'import se fait au niveau fonction pour isoler la dépendance de path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # Cache de la correspondance code INSEE → {nom, epci_siren, epci_nom}.
 # Présent = le script n'appelle pas l'API. Supprimer pour forcer un refresh.
@@ -586,14 +598,55 @@ def join_manual(
 def write_manual(enriched_manual: list[dict[str, str]]) -> None:
     """Écrit le CSV manuel aliasé dans data/ selon MANUAL_COLUMN_SPEC.
 
-    Seules les colonnes listées dans la spec sont écrites (ce qui drop
-    automatiquement la colonne anonyme vide du CSV d'origine). Les noms
-    des colonnes dans le fichier de sortie sont les *alias* définis dans
-    la spec.
+    Les colonnes listées dans la spec sont écrites en premier, dans
+    l'ordre de la spec. Les colonnes absentes de la spec **et non
+    explicitement droppées** sont droppées (c'est ainsi que la colonne
+    anonyme vide du CSV d'origine est éliminée). Les noms de colonnes
+    du fichier de sortie sont les *alias* définis dans la spec.
+
+    **Préservation des colonnes externes** : si le fichier de sortie
+    existe déjà et contient des colonnes qui ne sont ni dans
+    MANUAL_COLUMN_SPEC ni dans DROPPED_COLUMNS, ces colonnes sont
+    considérées comme gérées par un autre script (ex.
+    ``nb_rapports_inspection`` écrite par
+    ``telecharger_rapports_inspection.py``) et **préservées verbatim**
+    à la fin du fichier réécrit. Les valeurs sont indexées par
+    ``id_icpe`` dans le fichier existant et réinjectées dans les lignes
+    correspondantes. Les nouvelles installations (absentes du fichier
+    existant) reçoivent des valeurs vides pour ces colonnes : au prochain
+    run du script qui gère ces colonnes, elles seront recalculées.
     """
     MANUAL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     alias_fields = [alias for _src, alias, _orig, _definition in MANUAL_COLUMN_SPEC]
+    own_alias_set = set(alias_fields)
+
+    # Préservation des colonnes externes : on lit le fichier existant (si
+    # présent) pour détecter des colonnes gérées par d'autres scripts, et
+    # on indexe leurs valeurs par id_icpe. Ces colonnes seront ré-écrites
+    # à la fin du fichier, en préservant leurs valeurs ligne par ligne.
+    preserved_cols: list[str] = []
+    preserved_values: dict[str, dict[str, str]] = {}
+    if MANUAL_OUT.exists():
+        with MANUAL_OUT.open(encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            existing_headers = list(reader.fieldnames or [])
+            preserved_cols = [
+                col
+                for col in existing_headers
+                if col not in own_alias_set and col not in DROPPED_COLUMNS
+            ]
+            if preserved_cols:
+                for existing_row in reader:
+                    key = existing_row.get("id_icpe", "").strip()
+                    if key:
+                        preserved_values[key] = {
+                            col: existing_row.get(col, "") for col in preserved_cols
+                        }
+                print(
+                    f"[manual] colonnes externes préservées : {preserved_cols} "
+                    f"({len(preserved_values)} lignes indexées par id_icpe)"
+                )
 
     # Détection des colonnes du CSV d'entrée absentes de la spec ET
     # non explicitement droppées. Sert à repérer un changement de schéma
@@ -609,36 +662,59 @@ def write_manual(enriched_manual: list[dict[str, str]]) -> None:
                 f"(non écrites) : {sorted(unexpected)}"
             )
 
+    out_fields = alias_fields + preserved_cols
     with MANUAL_OUT.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
-            handle, fieldnames=alias_fields, quoting=csv.QUOTE_MINIMAL,
+            handle, fieldnames=out_fields, quoting=csv.QUOTE_MINIMAL,
         )
         writer.writeheader()
         for row in enriched_manual:
-            writer.writerow(
-                {
-                    alias: row.get(src, "")
-                    for src, alias, _orig, _definition in MANUAL_COLUMN_SPEC
-                }
-            )
+            output_row = {
+                alias: row.get(src, "")
+                for src, alias, _orig, _definition in MANUAL_COLUMN_SPEC
+            }
+            if preserved_cols:
+                external = preserved_values.get(output_row.get("id_icpe", ""), {})
+                for col in preserved_cols:
+                    output_row[col] = external.get(col, "")
+            writer.writerow(output_row)
+
     print(
         f"[manual] écrit {MANUAL_OUT.relative_to(PROJECT_ROOT)} "
-        f"({len(enriched_manual)} lignes, {len(alias_fields)} colonnes aliasées)"
+        f"({len(enriched_manual)} lignes, {len(out_fields)} colonnes "
+        f"[{len(alias_fields)} spec + {len(preserved_cols)} préservées])"
     )
 
 
 def write_metadata() -> None:
-    """Écrit le dictionnaire nom_original / alias / definition."""
+    """Merge les entrées de MANUAL_COLUMN_SPEC dans le dictionnaire partagé.
+
+    Ce script possède les lignes de ``metadonnees_colonnes.csv`` dont
+    ``fichier == MANUAL_OUTPUT_FILENAME``. Les lignes appartenant à
+    d'autres fichiers de données (ex. ``rapports-inspection.csv``,
+    géré par ``telecharger_rapports_inspection.py``) sont **préservées
+    verbatim** par le helper ``_metadonnees_util.merge_metadata``. Voir
+    ce module pour le protocole complet d'ownership multi-fichiers.
+
+    Migration automatique : si le fichier existant est au legacy schéma
+    3-colonnes (nom_original / alias / definition) utilisé avant le
+    refactor multi-fichiers, il sera détecté comme "schema inconnu" et
+    réécrit intégralement au nouveau schéma 4-colonnes (fichier /
+    nom_original / alias / definition).
+    """
+    from _metadonnees_util import merge_metadata
+
     MANUAL_OUT_DIR.mkdir(parents=True, exist_ok=True)
-    with METADATA_OUT.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle, quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(["nom_original", "alias", "definition"])
-        for _src, alias, nom_orig, definition in MANUAL_COLUMN_SPEC:
-            writer.writerow([nom_orig, alias, definition])
-    print(
-        f"[meta] écrit {METADATA_OUT.relative_to(PROJECT_ROOT)} "
-        f"({len(MANUAL_COLUMN_SPEC)} lignes)"
-    )
+    own_rows = [
+        {
+            "fichier": MANUAL_OUTPUT_FILENAME,
+            "nom_original": nom_orig,
+            "alias": alias,
+            "definition": definition,
+        }
+        for _src, alias, nom_orig, definition in MANUAL_COLUMN_SPEC
+    ]
+    merge_metadata(METADATA_OUT, MANUAL_OUTPUT_FILENAME, own_rows)
 
 
 # --- Rapport ---------------------------------------------------------------
