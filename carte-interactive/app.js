@@ -185,6 +185,15 @@
     NON_SEVESO: 'badge--lead',
   };
 
+  // Default values used by BOTH the URL serializer (to decide whether to
+  // emit a param) AND the state initializer / reset handler (so all three
+  // agree on "the default state"). Declared early so the state object can
+  // reference it.
+  const URL_DEFAULTS = {
+    regime: ['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE'],
+    seveso: ['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', ''],
+  };
+
   // ---------- state ----------
   const state = {
     rows: [],
@@ -192,8 +201,8 @@
     colorDim: 'regime',
     filters: {
       freeSearch: '',
-      regime: new Set(['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE']),
-      seveso: new Set(['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', '']),
+      regime: new Set(URL_DEFAULTS.regime),
+      seveso: new Set(URL_DEFAULTS.seveso),
       priority: 'all',
       ied: 'all',
       secteur: new Set(), // empty = no secteur filter; populated = OR of active secteurs
@@ -210,13 +219,16 @@
     monthSteps: [],
   };
 
-  // Reference data for suggestions & EPCI checkbox list.
-  // Populated at init from gironde-commune-epci.json + the CSV itself.
+  // Reference data for suggestions & EPCI checkbox list. Derived from the
+  // enriched CSV at load time (the CSV already carries commune/EPCI via
+  // scripts/enrichir_libelles.py).
   const reference = {
-    communes: [],   // [{code, nom, norm, epci_siren, epci_nom}]
-    epcis: [],      // [{code, nom, norm, commune_count}]
+    communes: [],   // [{code, nom, norm, epci_siren, epci_nom, count}]
+    epcis: [],      // [{code, nom, norm, site_count}]
     structures: [], // [{name, norm, count}]
-    communeByInsee: new Map(),
+    communeByInsee: new Map(),  // code → commune object
+    epciByCode: new Map(),       // siren → epci object
+    structureByNorm: new Map(),  // normalised name → structure object
   };
 
   function monthKey(isoDate) {
@@ -289,12 +301,9 @@
   //
   // Every filter that is "non-default" can be reflected in the URL, so
   // a given view can be shared or embedded with a single link. Parsing
-  // happens once at init, after the reference data is built so we can
-  // validate codes (e.g. commune INSEE, EPCI siren) against the known set.
-  const URL_DEFAULTS = {
-    regime: ['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE'],
-    seveso: ['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', ''],
-  };
+  // happens once at init. Codes are currently NOT validated against the
+  // reference data — an invalid INSEE or SIREN will simply match zero
+  // rows, which fails safely but silently.
 
   function parseUrlToFilters() {
     const p = new URLSearchParams(window.location.search);
@@ -348,6 +357,40 @@
     return new URLSearchParams(window.location.search).get('embed') === '1';
   }
 
+  // Features that can be toggled off from an embed URL via ?hide=
+  // Names map 1:1 to body classes (.hide-sidebar, .hide-timebar, …) so CSS
+  // is all that's needed on top. Listed here for validation + the dialog UI.
+  const HIDEABLE_FEATURES = ['sidebar', 'timebar', 'legend', 'layers', 'zoom', 'reserves'];
+
+  function parseHiddenFeatures() {
+    const raw = new URLSearchParams(window.location.search).get('hide');
+    if (!raw) return new Set();
+    return new Set(
+      raw.split(',')
+        .map((s) => s.trim())
+        .filter((s) => HIDEABLE_FEATURES.includes(s))
+    );
+  }
+
+  function applyHiddenFeatures(hidden) {
+    for (const feat of HIDEABLE_FEATURES) {
+      document.body.classList.toggle(`hide-${feat}`, hidden.has(feat));
+    }
+    // Leaflet-controlled elements that CSS alone can't tidy:
+    if (typeof map !== 'undefined' && map.zoomControl) {
+      if (hidden.has('zoom')) map.zoomControl.remove();
+      else if (!map.hasLayer(map.zoomControl)) map.zoomControl.addTo(map);
+    }
+    // Reserves layers: remove from map entirely when hidden, so they
+    // don't appear in the layer control either.
+    if (typeof rnnLayer !== 'undefined' && typeof rnrLayer !== 'undefined') {
+      if (hidden.has('reserves')) {
+        if (map.hasLayer(rnnLayer)) map.removeLayer(rnnLayer);
+        if (map.hasLayer(rnrLayer)) map.removeLayer(rnrLayer);
+      }
+    }
+  }
+
   function applyParsedUrlState(parsed) {
     if (!parsed) return;
     // Only assign fields that were present in the URL — unset fields keep
@@ -371,9 +414,12 @@
   // Build a shareable URL reflecting the current filter state. Only
   // non-default fields are serialised; the URL stays short for the
   // common "no filters" case.
-  function buildShareableUrl({ embed = false, includeFilters = true } = {}) {
+  function buildShareableUrl({ embed = false, includeFilters = true, hide = null } = {}) {
     const params = new URLSearchParams();
     if (embed) params.set('embed', '1');
+    if (hide && hide.size > 0) {
+      params.set('hide', [...hide].sort().join(','));
+    }
     if (includeFilters) {
       const f = state.filters;
       // Multi-value sets — only emit if the set is different from the default
@@ -390,7 +436,7 @@
       if (f.structure.size > 0) {
         // Serialise using the original display name so the URL is human-readable
         const names = [...f.structure].map((norm) => {
-          const s = reference.structures.find((x) => x.norm === norm);
+          const s = reference.structureByNorm.get(norm);
           return s ? s.name : norm;
         });
         params.set('structure', names.join(','));
@@ -453,6 +499,7 @@
     // the column dictionary.
     const rows = [];
     let mdateMax = null;
+    let mdateMaxDate = null;
     for (const r of rawRows) {
       const geoPoint = r.coordonnees_lat_lon;
       if (!geoPoint) continue;
@@ -493,10 +540,15 @@
       // date_enregistrement is the only date column in the aliased bulk export.
       // (mdate/cdate were strict duplicates and the pipeline dropped the extra.)
       const dateEnreg = r.date_enregistrement || '';
-      // Track latest date via Date() comparison — robust against non-padded ISO.
+      // Track latest date via Date() comparison — robust against non-padded
+      // ISO. Keep a parallel Date object so we don't re-parse mdateMax on
+      // every row during a 2,888-row scan.
       if (dateEnreg) {
         const d = new Date(dateEnreg);
-        if (!isNaN(d) && (!mdateMax || d > new Date(mdateMax))) mdateMax = dateEnreg;
+        if (!isNaN(d) && (!mdateMaxDate || d > mdateMaxDate)) {
+          mdateMax = dateEnreg;
+          mdateMaxDate = d;
+        }
       }
       const cdate_month = monthKey(dateEnreg);
 
@@ -526,7 +578,6 @@
         cdate_month,
         fiche: r.url_fiche_georisques || '',
         siret: r.siret || '',
-        insee: r.code_insee_commune || '',
         date_enregistrement: dateEnreg,
         activite: (r.code_naf_division || '').toString(),
         isSeveso: seveso === 'SEUIL_HAUT' || seveso === 'SEUIL_BAS',
@@ -541,9 +592,9 @@
   function buildReferenceData() {
     // Communes: deduplicated by INSEE, with a row count so the user sees
     // which ones actually have sites (useful for "why is my filter empty?")
-    const communeMap = new Map(); // insee → {code, nom, norm, epci_siren, epci_nom, count}
-    const epciMap = new Map();    // siren → {code, nom, norm, commune_count, site_count, communes: Set}
-    const structureMap = new Map(); // norm → {name, norm, count}
+    const communeMap = new Map();   // insee → commune object
+    const epciMap = new Map();       // siren → epci object
+    const structureMap = new Map();  // norm → structure object
 
     for (const row of state.rows) {
       if (row.insee && row.commune_nom) {
@@ -565,14 +616,12 @@
         const e = epciMap.get(row.epci_siren);
         if (e) {
           e.site_count++;
-          e.communes.add(row.insee);
         } else {
           epciMap.set(row.epci_siren, {
             code: row.epci_siren,
             nom: row.epci_nom,
             norm: normaliseForSearch(row.epci_nom),
             site_count: 1,
-            communes: new Set([row.insee]),
           });
         }
       }
@@ -597,7 +646,11 @@
     reference.structures = [...structureMap.values()]
       .filter((s) => s.count >= 2)
       .sort((a, b) => b.count - a.count);
+
+    // O(1) lookups keyed by the code that the filter Sets store
     reference.communeByInsee = communeMap;
+    reference.epciByCode = epciMap;
+    reference.structureByNorm = structureMap;
   }
 
   // ---------- suggestion engine ----------
@@ -847,13 +900,13 @@
     if (epciLoadPromise) return epciLoadPromise;
     epciLoadPromise = fetchJSON(EPCI_OUTLINES_URL)
       .then((data) => {
-        const map = new Map();
+        const lookup = new Map();
         for (const feat of (data && data.features) || []) {
           const siren = feat && feat.properties && feat.properties.siren;
-          if (siren) map.set(siren, feat);
+          if (siren) lookup.set(siren, feat);
         }
-        epciFeaturesBySiren = map;
-        return map;
+        epciFeaturesBySiren = lookup;
+        return lookup;
       })
       .catch((err) => {
         console.error('EPCI outlines load failed', err);
@@ -1048,10 +1101,17 @@
     // grid row sizes just shift.
     if (isEmbedMode()) {
       document.body.classList.add('is-embed');
-      // Leaflet needs a hint to recompute its size after the masthead
-      // disappears, otherwise tile math is wrong on first paint.
-      setTimeout(() => map.invalidateSize(), 0);
     }
+
+    // ?hide=sidebar,timebar,legend,layers,zoom,reserves — strips specific
+    // pieces of the UI. Used by embeds that only want a minimal map.
+    const hiddenFeatures = parseHiddenFeatures();
+    applyHiddenFeatures(hiddenFeatures);
+
+    // Leaflet needs a hint to recompute its size after any grid row
+    // collapses (embed mode or feature-hiding), otherwise tile math is
+    // wrong on first paint.
+    setTimeout(() => map.invalidateSize(), 0);
 
     // header metadata
     siteCountEl.textContent = `${formatCount(state.rows.length)} sites`;
@@ -1065,10 +1125,13 @@
       if (row.cdate_month) mSet.add(row.cdate_month);
     }
     state.monthSteps = Array.from(mSet).sort();
-    // default month selection = most recent (useful when user enables the toggle)
-    state.filters.month = state.monthSteps.length
-      ? state.monthSteps[state.monthSteps.length - 1]
-      : null;
+    // Default month selection = most recent. Honor any value already set
+    // by URL hydration (applyParsedUrlState ran earlier).
+    if (!state.filters.month) {
+      state.filters.month = state.monthSteps.length
+        ? state.monthSteps[state.monthSteps.length - 1]
+        : null;
+    }
 
     // Pre-compute per-month counts once (static after CSV load)
     monthCounts.clear();
@@ -1150,24 +1213,29 @@
       b.setAttribute('aria-checked', isActive ? 'true' : 'false');
       b.tabIndex = isActive ? 0 : -1;
     });
-    // Month filter: slider + checkbox
+    // Month filter: slider + checkbox. Handle BOTH the enabled and the
+    // disabled case so the slider visually dims after Reset.
     const monthCheckbox = document.getElementById('month-enabled');
+    const timebar = document.getElementById('timebar');
     if (monthCheckbox) {
       monthCheckbox.checked = state.filters.monthEnabled;
-      if (state.filters.monthEnabled && state.filters.month) {
-        const idx = state.monthSteps.indexOf(state.filters.month);
-        if (idx >= 0) {
-          slider.value = String(idx);
-          slider.disabled = state.monthSteps.length < 2;
+      if (state.filters.monthEnabled) {
+        if (state.filters.month) {
+          const idx = state.monthSteps.indexOf(state.filters.month);
+          if (idx >= 0) slider.value = String(idx);
           sliderValue.textContent = formatMonthFR(state.filters.month);
           slider.setAttribute('aria-valuetext', formatMonthFR(state.filters.month));
-          const timebar = document.getElementById('timebar');
-          if (timebar) timebar.classList.remove('is-disabled');
         }
+        slider.disabled = state.monthSteps.length < 2;
+        if (timebar) timebar.classList.remove('is-disabled');
+      } else {
+        slider.disabled = true;
+        if (timebar) timebar.classList.add('is-disabled');
       }
     }
-    // Pills (commune / epci / structure)
+    // Pills (commune / epci / structure) and EPCI checkbox list
     renderPills();
+    syncEpciCheckboxes();
     // Legend updates if color dim changed
     renderLegend();
   }
@@ -1203,6 +1271,12 @@
     const markers = new Array(visible.length);
     for (let i = 0; i < visible.length; i++) markers[i] = markerByRow.get(visible[i]);
     clusterGroup.addLayers(markers);
+
+    // If the embed dialog is open, keep its preview URL in sync with the
+    // filter state so the user can't accidentally copy a stale URL.
+    if (typeof window.__icpeEmbedDialogRefresh === 'function') {
+      window.__icpeEmbedDialogRefresh();
+    }
   }
 
   function switchColorDim(dim) {
@@ -1292,8 +1366,15 @@
       x.addEventListener('click', () => {
         state.filters[type].delete(key);
         renderPills();
+        if (type === 'epci') {
+          syncEpciCheckboxes();
+          updateEpciOutlines();
+        }
         applyFilters();
-        if (type === 'epci') updateEpciOutlines();
+        // Return focus to the search input so the keyboard user doesn't
+        // land on document.body after the button they clicked is destroyed.
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.focus();
       });
       pill.appendChild(x);
       container.appendChild(pill);
@@ -1303,40 +1384,57 @@
       add('commune', code, c ? c.nom : code);
     }
     for (const code of state.filters.epci) {
-      const e = reference.epcis.find((x) => x.code === code);
+      const e = reference.epciByCode.get(code);
       add('epci', code, e ? e.nom : code);
     }
     for (const norm of state.filters.structure) {
-      const s = reference.structures.find((x) => x.norm === norm);
+      const s = reference.structureByNorm.get(norm);
       add('structure', norm, s ? s.name : norm);
     }
-    // Also reflect EPCI pills in the checkbox list
+  }
+
+  // Sync the EPCI checkbox list's checked state from state.filters.epci.
+  // Called only from the paths that mutate state.filters.epci (pill remove,
+  // suggestion select, reset, URL hydration) — not on every renderPills().
+  function syncEpciCheckboxes() {
     document.querySelectorAll('input[type="checkbox"][data-filter="epci"]').forEach((cb) => {
       cb.checked = state.filters.epci.has(cb.value);
     });
   }
 
+  // Cache the last rendered item payloads so the delegated click handler
+  // on the panel can look them up by index without rebuilding closures.
+  let suggestionFlatItems = [];
+
   function renderSuggestions(groups) {
     const panel = document.getElementById('suggestions');
+    const searchInput = document.getElementById('search-input');
     if (!panel) return;
+    suggestionFlatItems = [];
     if (groups.length === 0) {
       panel.classList.add('is-hidden');
       panel.innerHTML = '';
+      if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
       return;
     }
     panel.classList.remove('is-hidden');
-    panel.innerHTML = '';
+    if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
+    const frag = document.createDocumentFragment();
+    let flatIndex = 0;
     for (const group of groups) {
+      // Group heading — labelled so screen readers get context without
+      // being exposed as a separate control.
       const h = document.createElement('div');
       h.className = 'suggestions__group-label';
+      h.setAttribute('role', 'presentation');
       h.textContent = group.label;
-      panel.appendChild(h);
-      const ul = document.createElement('ul');
-      ul.className = 'suggestions__list';
+      frag.appendChild(h);
       for (const item of group.items) {
-        const li = document.createElement('li');
         const btn = document.createElement('button');
         btn.type = 'button';
+        btn.setAttribute('role', 'option');
+        btn.setAttribute('aria-selected', 'false');
+        btn.dataset.flatIndex = String(flatIndex);
         btn.className = `suggestion suggestion--${group.type}`;
         const title = group.type === 'site'
           ? item.libelle
@@ -1357,12 +1455,12 @@
           c.textContent = ` (${formatCount(count)})`;
           btn.appendChild(c);
         }
-        btn.addEventListener('click', () => selectSuggestion(group.type, item));
-        li.appendChild(btn);
-        ul.appendChild(li);
+        suggestionFlatItems.push({ type: group.type, item });
+        flatIndex++;
+        frag.appendChild(btn);
       }
-      panel.appendChild(ul);
     }
+    panel.replaceChildren(frag);
   }
 
   function selectSuggestion(type, item) {
@@ -1384,7 +1482,10 @@
     renderPills();
     renderSuggestions([]);
     applyFilters();
-    if (type === 'epci') updateEpciOutlines();
+    if (type === 'epci') {
+      syncEpciCheckboxes();
+      updateEpciOutlines();
+    }
     searchInput.focus();
   }
 
@@ -1404,25 +1505,49 @@
     const scriptOut = document.getElementById('embed-script-code');
     if (!openBtn || !dialog) return;
 
+    // Build the iframe selector from the current URL so the generated
+    // auto-resize script actually matches the embed the user is pasting.
+    // The previous hardcoded slug never matched and the script silently
+    // did nothing. encodeURI keeps it safe inside a CSS-ish attribute.
+    const pageSlug = window.location.pathname.split('/').filter(Boolean).pop() || '/';
+    const safeSelector = pageSlug.replace(/"/g, '\\"');
+
+    let dialogOpen = false;
+
     const refresh = () => {
       const includeFilters = includeFiltersCb.checked;
       const compact = compactCb.checked;
-      const url = buildShareableUrl({ embed: compact, includeFilters });
+      // Collect hide-feature checkboxes (data-hide="sidebar" etc.)
+      const hide = new Set();
+      dialog.querySelectorAll('input[type="checkbox"][data-hide]').forEach((cb) => {
+        if (cb.checked) hide.add(cb.dataset.hide);
+      });
+      const url = buildShareableUrl({ embed: compact, includeFilters, hide });
       urlInput.value = url;
       const height = Math.max(400, parseInt(heightInput.value, 10) || 780);
       iframeOut.value =
         `<iframe\n  src="${url}"\n  width="100%"\n  height="${height}"\n  style="border: 1px solid #d1ccc2; max-width: 100%;"\n  title="Carte des ICPE en Gironde"\n  loading="lazy"\n  allowfullscreen\n  referrerpolicy="no-referrer-when-downgrade"\n></iframe>`;
       scriptOut.value =
-        `<script>\n// Optional: auto-resize the iframe based on its content.\nwindow.addEventListener('message', function (e) {\n  if (!e.data || e.data.type !== 'icpe-map-height') return;\n  var f = document.querySelector('iframe[src*=\\"Les-ICPE-en-r-serve-naturelle-nationale\\"]');\n  if (f) f.style.height = e.data.height + 'px';\n});\n<\/script>`;
+        `<script>\n// Optional: auto-resize the iframe based on its content.\n// Validate origin and clamp the height to safe bounds before applying.\nwindow.addEventListener('message', function (e) {\n  if (!e.data || e.data.type !== 'icpe-map-height') return;\n  var f = document.querySelector('iframe[src*="${safeSelector}"]');\n  if (!f) return;\n  var h = Math.max(400, Math.min(5000, Number(e.data.height) || 0));\n  if (h) f.style.height = h + 'px';\n});\n<\/script>`;
     };
     const open = () => {
       refresh();
+      dialogOpen = true;
       if (typeof dialog.showModal === 'function') dialog.showModal();
       else dialog.setAttribute('open', '');
     };
     const close = () => {
+      dialogOpen = false;
       if (typeof dialog.close === 'function') dialog.close();
       else dialog.removeAttribute('open');
+      // Return focus to the button that opened the dialog.
+      if (openBtn) openBtn.focus();
+    };
+
+    // Expose a refresh hook so applyFilters() can keep the dialog's URL
+    // fresh when the underlying filter state changes while it's open.
+    window.__icpeEmbedDialogRefresh = () => {
+      if (dialogOpen) refresh();
     };
     const copy = async (text, btn) => {
       try {
@@ -1439,6 +1564,9 @@
     closeBtn.addEventListener('click', close);
     includeFiltersCb.addEventListener('change', refresh);
     compactCb.addEventListener('change', refresh);
+    dialog.querySelectorAll('input[type="checkbox"][data-hide]').forEach((cb) => {
+      cb.addEventListener('change', refresh);
+    });
     heightInput.addEventListener('input', refresh);
     copyUrlBtn.addEventListener('click', () => copy(urlInput.value, copyUrlBtn));
     copyIframeBtn.addEventListener('click', () => copy(iframeOut.value, copyIframeBtn));
@@ -1453,14 +1581,20 @@
   function wireMobileSidebar() {
     const fab = document.getElementById('mobile-filters-fab');
     const closeBtn = document.getElementById('mobile-filters-close');
+    const fabLabel = fab ? fab.querySelector('.mobile-filters-fab__label') : null;
     if (!fab) return;
     const open = () => {
       document.body.classList.add('mobile-filters-open');
       fab.setAttribute('aria-expanded', 'true');
+      fab.setAttribute('aria-label', 'Masquer les filtres');
+      if (fabLabel) fabLabel.textContent = 'Fermer';
     };
     const close = () => {
       document.body.classList.remove('mobile-filters-open');
       fab.setAttribute('aria-expanded', 'false');
+      fab.setAttribute('aria-label', 'Afficher les filtres');
+      if (fabLabel) fabLabel.textContent = 'Filtres';
+      fab.focus(); // return focus to the control that opened the panel
     };
     fab.addEventListener('click', () => {
       if (document.body.classList.contains('mobile-filters-open')) close();
@@ -1478,16 +1612,31 @@
   function wireSearchCombobox() {
     const searchInput = document.getElementById('search-input');
     const panel = document.getElementById('suggestions');
+    if (!searchInput || !panel) return;
 
+    // Delegated click handler — one listener for the whole panel, looks
+    // up the payload via data-flat-index instead of per-button closures.
+    panel.addEventListener('click', (e) => {
+      const btn = e.target.closest('.suggestion');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.flatIndex, 10);
+      const entry = suggestionFlatItems[idx];
+      if (entry) selectSuggestion(entry.type, entry.item);
+    });
+
+    // Both the suggestion dropdown and the free-text filter share a single
+    // debounce timer. getSuggestions() scans up to 2,888 rows on each
+    // keystroke, so running it inside the 150 ms debounce (instead of
+    // synchronously) is the single biggest perf win for search.
+    const runSearch = (q) => {
+      renderSuggestions(getSuggestions(q));
+      state.filters.freeSearch = q;
+      applyFilters();
+    };
     searchInput.addEventListener('input', () => {
       const q = searchInput.value;
-      renderSuggestions(getSuggestions(q));
-      // Apply free-text filter with debounce (pills already applied instantly)
       clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        state.filters.freeSearch = q;
-        applyFilters();
-      }, 150);
+      searchDebounce = setTimeout(() => runSearch(q), 150);
     });
     searchInput.addEventListener('focus', () => {
       if (searchInput.value) {
@@ -1498,18 +1647,45 @@
     document.addEventListener('click', (e) => {
       if (!panel.contains(e.target) && e.target !== searchInput) {
         panel.classList.add('is-hidden');
+        searchInput.setAttribute('aria-expanded', 'false');
       }
     });
-    // Keyboard: Escape closes, Enter picks first suggestion
+    // Keyboard: Escape closes, Enter picks first suggestion, Down moves
+    // focus into the first visible suggestion option.
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         panel.classList.add('is-hidden');
+        searchInput.setAttribute('aria-expanded', 'false');
       } else if (e.key === 'Enter') {
         const firstBtn = panel.querySelector('.suggestion');
         if (firstBtn) {
           e.preventDefault();
           firstBtn.click();
         }
+      } else if (e.key === 'ArrowDown') {
+        const firstBtn = panel.querySelector('.suggestion');
+        if (firstBtn) {
+          e.preventDefault();
+          firstBtn.focus();
+        }
+      }
+    });
+    // Arrow-key navigation within the suggestions panel itself.
+    panel.addEventListener('keydown', (e) => {
+      const items = Array.from(panel.querySelectorAll('.suggestion'));
+      if (items.length === 0) return;
+      const idx = items.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        items[(idx + 1) % items.length].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (idx <= 0) searchInput.focus();
+        else items[idx - 1].focus();
+      } else if (e.key === 'Escape') {
+        panel.classList.add('is-hidden');
+        searchInput.setAttribute('aria-expanded', 'false');
+        searchInput.focus();
       }
     });
   }
@@ -1595,11 +1771,11 @@
       slider.disabled = !on || state.monthSteps.length < 2;
       timebar.classList.toggle('is-disabled', !on);
     };
-    // Force the checkbox off at init (browser bfcache can restore a stale
-    // checked state when reloading).
-    monthCheckbox.checked = false;
-    state.filters.monthEnabled = false;
-    setSliderEnabled(false);
+    // Mirror the DOM checkbox from the state model. This defensively fixes
+    // browser bfcache restoring a stale checked attribute, WITHOUT
+    // clobbering URL-hydrated monthEnabled (which would break ?month=).
+    monthCheckbox.checked = state.filters.monthEnabled;
+    setSliderEnabled(state.filters.monthEnabled);
 
     // Snap the slider back to the earliest month. Used when enabling the
     // month filter or starting playback — keeping the previous slider
@@ -1614,13 +1790,6 @@
       sliderValue.textContent = formatMonthFR(m);
       slider.setAttribute('aria-valuetext', formatMonthFR(m));
     };
-
-    monthCheckbox.addEventListener('change', () => {
-      state.filters.monthEnabled = monthCheckbox.checked;
-      setSliderEnabled(monthCheckbox.checked);
-      if (monthCheckbox.checked) snapSliderToStart();
-      applyFilters();
-    });
     slider.addEventListener('input', () => {
       const idx = parseInt(slider.value, 10);
       const m = state.monthSteps[idx];
@@ -1642,16 +1811,13 @@
     const PLAY_INTERVAL_MS = 900;
     let playTimer = null;
 
-    const setPlayButtonEnabled = (on) => {
-      playBtn.disabled = !on;
-    };
-    // Button is enabled whenever we have at least 2 months to walk between.
-    setPlayButtonEnabled(state.monthSteps.length >= 2);
+    // Enable the play button whenever we have at least 2 months to walk between.
+    playBtn.disabled = state.monthSteps.length < 2;
 
     const hud = document.getElementById('playback-hud');
     const hudText = document.getElementById('playback-hud-text');
     const showHud = (month) => {
-      if (!hud) return;
+      if (!hud || !hudText) return;
       hudText.textContent = formatMonthFR(month);
       hud.classList.add('is-visible');
     };
@@ -1710,16 +1876,27 @@
     playBtn.addEventListener('click', () => {
       if (playTimer) stopPlayback(); else startPlayback();
     });
-    // Unchecking the month filter should stop playback.
+
+    // Consolidated monthCheckbox handler: toggles filter state, enables/
+    // disables the slider, snaps to start when enabling, and stops
+    // playback when disabling. Single source of truth — the previous
+    // code had two separate 'change' listeners racing.
     monthCheckbox.addEventListener('change', () => {
-      if (!monthCheckbox.checked) stopPlayback();
+      state.filters.monthEnabled = monthCheckbox.checked;
+      setSliderEnabled(monthCheckbox.checked);
+      if (monthCheckbox.checked) {
+        snapSliderToStart();
+      } else {
+        stopPlayback();
+      }
+      applyFilters();
     });
 
     // reset — clears every filter and resets the color dim to default
     document.getElementById('reset-button').addEventListener('click', () => {
       state.filters.freeSearch = '';
-      state.filters.regime = new Set(['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE']);
-      state.filters.seveso = new Set(['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', '']);
+      state.filters.regime = new Set(URL_DEFAULTS.regime);
+      state.filters.seveso = new Set(URL_DEFAULTS.seveso);
       state.filters.priority = 'all';
       state.filters.ied = 'all';
       state.filters.secteur = new Set();

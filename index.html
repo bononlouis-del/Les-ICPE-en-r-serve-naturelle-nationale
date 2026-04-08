@@ -14,10 +14,11 @@
 <!-- Leaflet core + marker clustering -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+      integrity="sha256-YU3qCpj/P06tdPBJGPax0bm6Q1wltfwjsho5TR4+TYc=" crossorigin="">
 
 <!-- Our styles — ?v bumped on each deploy to bust Pages CDN cache -->
-<link rel="stylesheet" href="carte-interactive/style.css?v=8">
+<link rel="stylesheet" href="carte-interactive/style.css?v=9">
 </head>
 <body>
 
@@ -60,9 +61,18 @@
 
     <div class="filters__section">
       <label class="filters__section-label" for="search-input">Recherche</label>
-      <div class="search-combobox" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-owns="suggestions">
+      <div class="search-combobox">
         <div id="search-pills" class="search-pills" role="list" aria-label="Filtres sélectionnés"></div>
-        <input id="search-input" type="search" placeholder="commune, EPCI, entreprise, site…" autocomplete="off" aria-autocomplete="list" aria-controls="suggestions">
+        <input
+          id="search-input"
+          type="search"
+          placeholder="commune, EPCI, entreprise, site…"
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          aria-controls="suggestions">
         <div id="suggestions" class="suggestions is-hidden" role="listbox" aria-label="Suggestions"></div>
       </div>
       <p class="filters__hint">Choisissez une suggestion dans la liste, ou tapez librement pour filtrer par SIRET / nom partiel.</p>
@@ -174,6 +184,18 @@
         </label>
       </div>
 
+      <fieldset class="embed-dialog__hide-features">
+        <legend>Masquer des éléments dans l'embed</legend>
+        <div class="embed-dialog__hide-grid">
+          <label class="check"><input type="checkbox" data-hide="sidebar"><span>Barre latérale (filtres)</span></label>
+          <label class="check"><input type="checkbox" data-hide="timebar"><span>Barre temporelle</span></label>
+          <label class="check"><input type="checkbox" data-hide="legend"><span>Légende</span></label>
+          <label class="check"><input type="checkbox" data-hide="layers"><span>Sélecteur de couches</span></label>
+          <label class="check"><input type="checkbox" data-hide="zoom"><span>Boutons +/- de zoom</span></label>
+          <label class="check"><input type="checkbox" data-hide="reserves"><span>Réserves naturelles (RNN/RNR)</span></label>
+        </div>
+      </fieldset>
+
       <div class="embed-dialog__field">
         <label for="embed-url">Lien direct</label>
         <div class="embed-dialog__row">
@@ -236,10 +258,12 @@
 <!-- JS libraries -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+        integrity="sha256-Hk4dIpcqOSb0hZjgyvFOP+cEmDXUKKNE/tT542ZbNQg=" crossorigin=""></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"
+        integrity="sha256-uOhwxdKyl3LxDJ+pppPIuJaqyFQO1nAePMYwTGg/69s=" crossorigin=""></script>
 
 <!-- Our app — ?v bumped on each deploy to bust Pages CDN cache -->
-<script src="carte-interactive/app.js?v=8"></script>
+<script src="carte-interactive/app.js?v=9"></script>
 </body>
 </html>

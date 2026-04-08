@@ -1179,7 +1179,9 @@ input { font: inherit; color: inherit; }
 /* ---------- focus rings (keyboard accessibility) ---------- */
 button:focus-visible,
 input:focus-visible,
-a:focus-visible {
+a:focus-visible,
+summary:focus-visible,
+[role="option"]:focus-visible {
   outline: 2px solid var(--copper);
   outline-offset: 2px;
 }
@@ -1202,6 +1204,37 @@ body.is-embed {
 body.is-embed .masthead {
   display: none;
 }
+
+/* ---------- hide features for streamlined embeds (?hide=...) ---------- */
+/* Each body class collapses its grid row/column if needed so the map
+   expands to fill the available space. */
+body.hide-sidebar .workspace {
+  grid-template-columns: 1fr;
+}
+body.hide-sidebar .filters {
+  display: none;
+}
+body.hide-timebar {
+  grid-template-rows: var(--header-height) 1fr 0;
+}
+body.hide-timebar.is-embed {
+  grid-template-rows: 0 1fr 0;
+}
+body.hide-timebar .timebar {
+  display: none;
+}
+body.hide-legend .legend,
+body.hide-legend .legend-toggle {
+  display: none !important;
+}
+body.hide-layers .leaflet-control-layers {
+  display: none;
+}
+body.hide-reserves {
+  /* The RNN/RNR layers are also removed imperatively in applyHiddenFeatures
+     but hiding any stray SVG elements here is a belt-and-braces safety net. */
+}
+/* zoom control hiding is handled imperatively in applyHiddenFeatures() */
 
 /* ---------- embed / share dialog ---------- */
 .filters__actions {
@@ -1295,6 +1328,28 @@ body.is-embed .masthead {
   font-size: 13px;
 }
 .embed-dialog__opts .check { padding: 0; }
+
+.embed-dialog__hide-features {
+  border: 1px solid var(--rule-soft);
+  padding: 10px 14px 12px 14px;
+  margin: 0 0 14px 0;
+}
+.embed-dialog__hide-features > legend {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 0 6px;
+}
+.embed-dialog__hide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 12.5px;
+}
+.embed-dialog__hide-grid .check { padding: 2px 0; }
 .embed-height {
   display: flex;
   align-items: center;
