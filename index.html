@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 
 <!-- Our styles — ?v bumped on each deploy to bust Pages CDN cache -->
-<link rel="stylesheet" href="carte-interactive/style.css?v=7">
+<link rel="stylesheet" href="carte-interactive/style.css?v=8">
 </head>
 <body>
 
@@ -127,8 +127,87 @@
       <summary>EPCI</summary>
       <div id="epci-list" class="epci-list"></div>
     </details>
+
+    <div class="filters__actions">
+      <button type="button" id="embed-open" class="embed-button" aria-haspopup="dialog">
+        <span aria-hidden="true">⌘</span> Partager / Intégrer
+      </button>
+    </div>
+
+    <button type="button" id="mobile-filters-close" class="mobile-filters-close" aria-label="Fermer les filtres">×</button>
   </aside>
 </main>
+
+<!-- Mobile filter FAB — visible only on narrow viewports -->
+<button type="button" id="mobile-filters-fab" class="mobile-filters-fab" aria-label="Afficher les filtres" aria-expanded="false">
+  <span aria-hidden="true">⚙</span>
+  <span class="mobile-filters-fab__label">Filtres</span>
+</button>
+
+<!-- Embed / share dialog -->
+<dialog id="embed-dialog" class="embed-dialog" aria-label="Intégrer la carte">
+  <form method="dialog" class="embed-dialog__form">
+    <header class="embed-dialog__head">
+      <h2>Partager / Intégrer la carte</h2>
+      <button type="button" id="embed-close" class="embed-dialog__close" aria-label="Fermer">×</button>
+    </header>
+
+    <div class="embed-dialog__body">
+      <p class="embed-dialog__intro">
+        Copiez le lien direct pour partager la vue actuelle, ou le code
+        <code>&lt;iframe&gt;</code> pour intégrer la carte dans un article.
+      </p>
+
+      <div class="embed-dialog__opts">
+        <label class="check">
+          <input type="checkbox" id="embed-include-filters" checked>
+          <span>Conserver les filtres actuels</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="embed-compact" checked>
+          <span>Mode embed (masquer l'en-tête)</span>
+        </label>
+        <label class="embed-height">
+          Hauteur de l'iframe&nbsp;:
+          <input type="number" id="embed-height" min="400" max="2000" step="20" value="780">
+          <span>px</span>
+        </label>
+      </div>
+
+      <div class="embed-dialog__field">
+        <label for="embed-url">Lien direct</label>
+        <div class="embed-dialog__row">
+          <input id="embed-url" type="text" readonly>
+          <button type="button" id="embed-copy-url" class="embed-copy">Copier</button>
+        </div>
+      </div>
+
+      <div class="embed-dialog__field">
+        <label for="embed-iframe-code">Code d'intégration (<code>&lt;iframe&gt;</code>)</label>
+        <div class="embed-dialog__row">
+          <textarea id="embed-iframe-code" rows="6" readonly></textarea>
+          <button type="button" id="embed-copy-iframe" class="embed-copy">Copier</button>
+        </div>
+        <p class="embed-dialog__hint">
+          Collez ce bloc dans un « HTML personnalisé » WordPress.
+          Fonctionne dans tout thème qui accepte les iframes.
+        </p>
+      </div>
+
+      <details class="embed-dialog__advanced">
+        <summary>Redimensionnement automatique (optionnel)</summary>
+        <p class="embed-dialog__hint">
+          Ajoutez ce script une fois sur la page WordPress pour que l'iframe
+          s'adapte automatiquement à son contenu.
+        </p>
+        <div class="embed-dialog__row">
+          <textarea id="embed-script-code" rows="5" readonly></textarea>
+          <button type="button" id="embed-copy-script" class="embed-copy">Copier</button>
+        </div>
+      </details>
+    </div>
+  </form>
+</dialog>
 
 <div class="timebar" id="timebar" role="region" aria-label="Filtre temporel">
   <label class="timebar__toggle">
@@ -161,6 +240,6 @@
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
 <!-- Our app — ?v bumped on each deploy to bust Pages CDN cache -->
-<script src="carte-interactive/app.js?v=7"></script>
+<script src="carte-interactive/app.js?v=8"></script>
 </body>
 </html>

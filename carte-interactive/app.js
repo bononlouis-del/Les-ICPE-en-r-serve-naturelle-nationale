@@ -285,6 +285,152 @@
     return res.json();
   }
 
+  // ---------- URL query-param hydration & serialization ----------
+  //
+  // Every filter that is "non-default" can be reflected in the URL, so
+  // a given view can be shared or embedded with a single link. Parsing
+  // happens once at init, after the reference data is built so we can
+  // validate codes (e.g. commune INSEE, EPCI siren) against the known set.
+  const URL_DEFAULTS = {
+    regime: ['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE'],
+    seveso: ['SEUIL_HAUT', 'SEUIL_BAS', 'NON_SEVESO', ''],
+  };
+
+  function parseUrlToFilters() {
+    const p = new URLSearchParams(window.location.search);
+    const out = {};
+    // Multi-value filters (comma-separated); a missing param means "keep default"
+    const readSet = (name) => {
+      const raw = p.get(name);
+      if (raw == null) return null;
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    };
+    const regime = readSet('regime');
+    if (regime) out.regime = new Set(regime);
+    const seveso = readSet('seveso');
+    if (seveso) {
+      // Special-case: 'nonclasse' stands in for the empty-string Seveso bucket
+      out.seveso = new Set(seveso.map((v) => (v === 'nonclasse' ? '' : v)));
+    }
+    const secteur = readSet('secteur');
+    if (secteur) out.secteur = new Set(secteur);
+    const commune = readSet('commune');
+    if (commune) out.commune = new Set(commune);
+    const epci = readSet('epci');
+    if (epci) out.epci = new Set(epci);
+    const structure = readSet('structure');
+    if (structure) {
+      // URL carries raw strings; normalise to match row.structure_norm
+      out.structure = new Set(structure.map((s) => normaliseForSearch(s)));
+    }
+    // Scalar filters
+    const priority = p.get('priority');
+    if (priority === 'yes' || priority === 'no' || priority === 'all') out.priority = priority;
+    const ied = p.get('ied');
+    if (ied === 'yes' || ied === 'no' || ied === 'all') out.ied = ied;
+    const q = p.get('q');
+    if (q != null) out.freeSearch = q;
+    const month = p.get('month');
+    if (month && /^\d{4}-\d{2}$/.test(month)) {
+      out.month = month;
+      out.monthEnabled = true;
+    }
+    // Color dimension
+    const color = p.get('color');
+    if (color && ['regime', 'seveso', 'priority', 'ied', 'secteur'].includes(color)) {
+      out.colorDim = color;
+    }
+    // Embed flag is handled separately (it's not a filter)
+    return out;
+  }
+
+  function isEmbedMode() {
+    return new URLSearchParams(window.location.search).get('embed') === '1';
+  }
+
+  function applyParsedUrlState(parsed) {
+    if (!parsed) return;
+    // Only assign fields that were present in the URL — unset fields keep
+    // their current default so partial URLs do partial things.
+    if (parsed.regime)   state.filters.regime   = parsed.regime;
+    if (parsed.seveso)   state.filters.seveso   = parsed.seveso;
+    if (parsed.secteur)  state.filters.secteur  = parsed.secteur;
+    if (parsed.commune)  state.filters.commune  = parsed.commune;
+    if (parsed.epci)     state.filters.epci     = parsed.epci;
+    if (parsed.structure) state.filters.structure = parsed.structure;
+    if (parsed.priority !== undefined) state.filters.priority = parsed.priority;
+    if (parsed.ied !== undefined)       state.filters.ied       = parsed.ied;
+    if (parsed.freeSearch !== undefined) state.filters.freeSearch = parsed.freeSearch;
+    if (parsed.month) {
+      state.filters.month = parsed.month;
+      state.filters.monthEnabled = true;
+    }
+    if (parsed.colorDim) state.colorDim = parsed.colorDim;
+  }
+
+  // Build a shareable URL reflecting the current filter state. Only
+  // non-default fields are serialised; the URL stays short for the
+  // common "no filters" case.
+  function buildShareableUrl({ embed = false, includeFilters = true } = {}) {
+    const params = new URLSearchParams();
+    if (embed) params.set('embed', '1');
+    if (includeFilters) {
+      const f = state.filters;
+      // Multi-value sets — only emit if the set is different from the default
+      const setsEqual = (a, b) => a.size === b.length && b.every((v) => a.has(v));
+      if (!setsEqual(f.regime, URL_DEFAULTS.regime)) {
+        params.set('regime', [...f.regime].join(','));
+      }
+      if (!setsEqual(f.seveso, URL_DEFAULTS.seveso)) {
+        params.set('seveso', [...f.seveso].map((v) => v === '' ? 'nonclasse' : v).join(','));
+      }
+      if (f.secteur.size > 0) params.set('secteur', [...f.secteur].join(','));
+      if (f.commune.size > 0) params.set('commune', [...f.commune].join(','));
+      if (f.epci.size > 0)    params.set('epci',    [...f.epci].join(','));
+      if (f.structure.size > 0) {
+        // Serialise using the original display name so the URL is human-readable
+        const names = [...f.structure].map((norm) => {
+          const s = reference.structures.find((x) => x.norm === norm);
+          return s ? s.name : norm;
+        });
+        params.set('structure', names.join(','));
+      }
+      if (f.priority !== 'all') params.set('priority', f.priority);
+      if (f.ied !== 'all')      params.set('ied', f.ied);
+      if (f.freeSearch.trim())  params.set('q', f.freeSearch.trim());
+      if (f.monthEnabled && f.month) params.set('month', f.month);
+      if (state.colorDim !== 'regime') params.set('color', state.colorDim);
+    }
+    const qs = params.toString();
+    const origin = window.location.origin + window.location.pathname;
+    return qs ? `${origin}?${qs}` : origin;
+  }
+
+  // postMessage bridge for parent-page auto-resize when embedded.
+  // Parent listens for { type: 'icpe-map-height', height } and resizes
+  // the iframe accordingly. Throttled by rAF and only active in embed mode.
+  function installEmbedResizeBridge() {
+    if (!isEmbedMode() || window.parent === window) return;
+    let rafPending = false;
+    const report = () => {
+      rafPending = false;
+      const h = document.documentElement.scrollHeight;
+      try {
+        window.parent.postMessage({ type: 'icpe-map-height', height: h }, '*');
+      } catch (_) { /* cross-origin restrictions — fine */ }
+    };
+    const queue = () => {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(report);
+    };
+    window.addEventListener('resize', queue);
+    // Report once on load, then on any significant DOM change
+    queue();
+    const ro = new ResizeObserver(queue);
+    ro.observe(document.documentElement);
+  }
+
   // ---------- CSV loading (main thread; worker mode has silent-failure issues) ----------
   async function parseCSV() {
     const res = await fetch(CSV_URL);
@@ -891,6 +1037,22 @@
     // enriched CSV now carries commune/EPCI directly.
     buildReferenceData();
 
+    // Hydrate filter state from any ?param=value in the URL. This happens
+    // after the reference data is built because we want to validate codes
+    // against the known set (e.g. only honor an ?epci= that matches a
+    // real Gironde SIREN).
+    applyParsedUrlState(parseUrlToFilters());
+
+    // Embed mode toggles a body class that hides the masthead and tightens
+    // the layout. Safe to apply after Leaflet has initialised because the
+    // grid row sizes just shift.
+    if (isEmbedMode()) {
+      document.body.classList.add('is-embed');
+      // Leaflet needs a hint to recompute its size after the masthead
+      // disappears, otherwise tile math is wrong on first paint.
+      setTimeout(() => map.invalidateSize(), 0);
+    }
+
     // header metadata
     siteCountEl.textContent = `${formatCount(state.rows.length)} sites`;
     siteMdateEl.textContent = formatDateFR(state.mdateMax);
@@ -934,10 +1096,80 @@
 
     // legend
     renderLegend();
-    applyFilters(); // also performs the initial clusterGroup population
 
-    // wire up controls
+    // wire up controls BEFORE applying filters so the DOM event listeners
+    // exist (they don't need to fire yet, just to be bound)
     wireUp();
+
+    // Sync any hydrated state from URL into the DOM (checkboxes, segmented
+    // buttons, pills, EPCI outlines), then run the initial filter pass.
+    syncUiFromState();
+    applyFilters();
+    updateEpciOutlines();
+
+    // Install the postMessage resize bridge if we're inside an iframe.
+    installEmbedResizeBridge();
+  }
+
+  // Reflect state.filters and state.colorDim back into the DOM. Used after
+  // URL hydration and after the reset button clears state.
+  function syncUiFromState() {
+    // Free-text search input
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = state.filters.freeSearch || '';
+    // Régime checkboxes
+    document.querySelectorAll('input[type="checkbox"][data-filter="regime"]').forEach((cb) => {
+      cb.checked = state.filters.regime.has(cb.value);
+    });
+    // Seveso checkboxes
+    document.querySelectorAll('input[type="checkbox"][data-filter="seveso"]').forEach((cb) => {
+      cb.checked = state.filters.seveso.has(cb.value);
+    });
+    // Secteur checkboxes
+    document.querySelectorAll('input[type="checkbox"][data-filter="secteur"]').forEach((cb) => {
+      cb.checked = state.filters.secteur.has(cb.value);
+    });
+    // EPCI checkboxes (rendered dynamically — happens in wireUp)
+    document.querySelectorAll('input[type="checkbox"][data-filter="epci"]').forEach((cb) => {
+      cb.checked = state.filters.epci.has(cb.value);
+    });
+    // Priority / IED radios
+    for (const key of ['priority', 'ied']) {
+      const current = state.filters[key];
+      document.querySelectorAll(`[data-filter="${key}"]`).forEach((b) => {
+        const isActive = b.dataset.value === current;
+        b.classList.toggle('is-active', isActive);
+        b.setAttribute('aria-checked', isActive ? 'true' : 'false');
+        b.tabIndex = isActive ? 0 : -1;
+      });
+    }
+    // Color dimension segmented control
+    document.querySelectorAll('[data-color-dim]').forEach((b) => {
+      const isActive = b.dataset.colorDim === state.colorDim;
+      b.classList.toggle('is-active', isActive);
+      b.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      b.tabIndex = isActive ? 0 : -1;
+    });
+    // Month filter: slider + checkbox
+    const monthCheckbox = document.getElementById('month-enabled');
+    if (monthCheckbox) {
+      monthCheckbox.checked = state.filters.monthEnabled;
+      if (state.filters.monthEnabled && state.filters.month) {
+        const idx = state.monthSteps.indexOf(state.filters.month);
+        if (idx >= 0) {
+          slider.value = String(idx);
+          slider.disabled = state.monthSteps.length < 2;
+          sliderValue.textContent = formatMonthFR(state.filters.month);
+          slider.setAttribute('aria-valuetext', formatMonthFR(state.filters.month));
+          const timebar = document.getElementById('timebar');
+          if (timebar) timebar.classList.remove('is-disabled');
+        }
+      }
+    }
+    // Pills (commune / epci / structure)
+    renderPills();
+    // Legend updates if color dim changed
+    renderLegend();
   }
 
   // ---------- filtering ----------
@@ -1154,6 +1386,93 @@
     applyFilters();
     if (type === 'epci') updateEpciOutlines();
     searchInput.focus();
+  }
+
+  // ---------- embed dialog ----------
+  function wireEmbedDialog() {
+    const openBtn = document.getElementById('embed-open');
+    const dialog = document.getElementById('embed-dialog');
+    const closeBtn = document.getElementById('embed-close');
+    const includeFiltersCb = document.getElementById('embed-include-filters');
+    const compactCb = document.getElementById('embed-compact');
+    const urlInput = document.getElementById('embed-url');
+    const iframeOut = document.getElementById('embed-iframe-code');
+    const heightInput = document.getElementById('embed-height');
+    const copyUrlBtn = document.getElementById('embed-copy-url');
+    const copyIframeBtn = document.getElementById('embed-copy-iframe');
+    const copyScriptBtn = document.getElementById('embed-copy-script');
+    const scriptOut = document.getElementById('embed-script-code');
+    if (!openBtn || !dialog) return;
+
+    const refresh = () => {
+      const includeFilters = includeFiltersCb.checked;
+      const compact = compactCb.checked;
+      const url = buildShareableUrl({ embed: compact, includeFilters });
+      urlInput.value = url;
+      const height = Math.max(400, parseInt(heightInput.value, 10) || 780);
+      iframeOut.value =
+        `<iframe\n  src="${url}"\n  width="100%"\n  height="${height}"\n  style="border: 1px solid #d1ccc2; max-width: 100%;"\n  title="Carte des ICPE en Gironde"\n  loading="lazy"\n  allowfullscreen\n  referrerpolicy="no-referrer-when-downgrade"\n></iframe>`;
+      scriptOut.value =
+        `<script>\n// Optional: auto-resize the iframe based on its content.\nwindow.addEventListener('message', function (e) {\n  if (!e.data || e.data.type !== 'icpe-map-height') return;\n  var f = document.querySelector('iframe[src*=\\"Les-ICPE-en-r-serve-naturelle-nationale\\"]');\n  if (f) f.style.height = e.data.height + 'px';\n});\n<\/script>`;
+    };
+    const open = () => {
+      refresh();
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    };
+    const close = () => {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+    };
+    const copy = async (text, btn) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        const prev = btn.textContent;
+        btn.textContent = 'Copié ✓';
+        setTimeout(() => { btn.textContent = prev; }, 1500);
+      } catch (_) {
+        btn.textContent = 'Échec';
+      }
+    };
+
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    includeFiltersCb.addEventListener('change', refresh);
+    compactCb.addEventListener('change', refresh);
+    heightInput.addEventListener('input', refresh);
+    copyUrlBtn.addEventListener('click', () => copy(urlInput.value, copyUrlBtn));
+    copyIframeBtn.addEventListener('click', () => copy(iframeOut.value, copyIframeBtn));
+    copyScriptBtn.addEventListener('click', () => copy(scriptOut.value, copyScriptBtn));
+    // Close on backdrop click
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) close();
+    });
+  }
+
+  // ---------- mobile sidebar (FAB-driven slide-in) ----------
+  function wireMobileSidebar() {
+    const fab = document.getElementById('mobile-filters-fab');
+    const closeBtn = document.getElementById('mobile-filters-close');
+    if (!fab) return;
+    const open = () => {
+      document.body.classList.add('mobile-filters-open');
+      fab.setAttribute('aria-expanded', 'true');
+    };
+    const close = () => {
+      document.body.classList.remove('mobile-filters-open');
+      fab.setAttribute('aria-expanded', 'false');
+    };
+    fab.addEventListener('click', () => {
+      if (document.body.classList.contains('mobile-filters-open')) close();
+      else open();
+    });
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    // Escape key closes
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('mobile-filters-open')) {
+        close();
+      }
+    });
   }
 
   function wireSearchCombobox() {
@@ -1396,7 +1715,7 @@
       if (!monthCheckbox.checked) stopPlayback();
     });
 
-    // reset
+    // reset — clears every filter and resets the color dim to default
     document.getElementById('reset-button').addEventListener('click', () => {
       state.filters.freeSearch = '';
       state.filters.regime = new Set(['AUTORISATION', 'ENREGISTREMENT', 'NON_ICPE', 'AUTRE']);
@@ -1407,32 +1726,15 @@
       state.filters.commune = new Set();
       state.filters.epci = new Set();
       state.filters.structure = new Set();
-      updateEpciOutlines(); // hide EPCI layer + restore Gironde contour
-      renderPills();
       state.filters.monthEnabled = false;
       if (state.monthSteps.length) {
         state.filters.month = state.monthSteps[state.monthSteps.length - 1];
-        slider.value = slider.max;
-        sliderValue.textContent = formatMonthFR(state.filters.month);
       }
-      monthCheckbox.checked = false;
-      setSliderEnabled(false);
+      state.colorDim = 'regime';
       stopPlayback();
       if (loopCheckbox) loopCheckbox.checked = false;
-      slider.setAttribute('aria-valuetext', formatMonthFR(state.filters.month));
-      // reflect in DOM
-      searchInput.value = '';
-      document.querySelectorAll('input[type="checkbox"][data-filter="regime"]').forEach((cb) => cb.checked = true);
-      document.querySelectorAll('input[type="checkbox"][data-filter="seveso"]').forEach((cb) => cb.checked = true);
-      document.querySelectorAll('input[type="checkbox"][data-filter="secteur"]').forEach((cb) => cb.checked = false);
-      for (const key of ['priority', 'ied']) {
-        document.querySelectorAll(`[data-filter="${key}"]`).forEach((b) => {
-          const isAll = b.dataset.value === 'all';
-          b.classList.toggle('is-active', isAll);
-          b.setAttribute('aria-checked', isAll ? 'true' : 'false');
-          b.tabIndex = isAll ? 0 : -1;
-        });
-      }
+      syncUiFromState();
+      updateEpciOutlines();
       applyFilters();
     });
 
@@ -1453,6 +1755,12 @@
         }
       }
     });
+
+    // embed dialog
+    wireEmbedDialog();
+
+    // mobile sidebar toggle (FAB-driven slide-in)
+    wireMobileSidebar();
 
     // legend toggle
     const legendToggle = document.getElementById('legend-toggle');
