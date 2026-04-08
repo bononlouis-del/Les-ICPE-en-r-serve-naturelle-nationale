@@ -1,13 +1,14 @@
-# Erreurs de téléchargement — run du 2026-04-08T18:05:45
+# Erreurs de téléchargement — run du 2026-04-08T18:10:08
 
-Durables (404 / page d'erreur)      : 0
-Transitoires (timeout, 5xx, réseau) : 1
+Durables (404 / page d'erreur)      : 1
+Transitoires (timeout, 5xx, réseau) : 0
 
 ## Échecs durables
 
-_(aucun)_
+- COREP_5211411_2022-03-17_47120040200041.pdf  (fail_404 : HTTP 500 (aucun document trouvé côté source))
+    id_icpe=5211411  identifiant=TMnedBc53Ms35NwiwTPVajRx4R7gdOh1
+    url=https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/TMnedBc53Ms35NwiwTPVajRx4R7gdOh1
 
 ## Échecs transitoires (à retenter au prochain run)
 
-- COREP_5211411_2022-03-17_47120040200041.pdf  (fail_5xx : HTTP 500)
-    id_icpe=5211411  identifiant=TMnedBc53Ms35NwiwTPVajRx4R7gdOh1
+_(aucun)_

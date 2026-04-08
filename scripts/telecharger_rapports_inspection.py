@@ -508,6 +508,19 @@ def fetch_one(url: str, dest: Path) -> tuple[str, int, str]:
         if exc.code == 429:
             return ("fail_429", 0, "HTTP 429")
         if 500 <= exc.code < 600:
+            # Géorisques renvoie parfois HTTP 500 avec un body JSON
+            # {"error":"Internal Server Error","message":"Aucun document trouvé."}
+            # C'est sémantiquement un 404 durable (le fichier n'existe plus
+            # dans leur backend) mal typé côté serveur. On lit le body pour
+            # distinguer les "500 avec message 'Aucun document'" (durables)
+            # des vrais 5xx transitoires.
+            try:
+                body = exc.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                body = ""
+            lowered = body.lower()
+            if "aucun document" in lowered or "document not found" in lowered:
+                return ("fail_404", 0, f"HTTP 500 (aucun document trouvé côté source)")
             return ("fail_5xx", 0, f"HTTP {exc.code}")
         return (f"fail_{exc.code}", 0, f"HTTP {exc.code}")
     except urllib.error.URLError as exc:
