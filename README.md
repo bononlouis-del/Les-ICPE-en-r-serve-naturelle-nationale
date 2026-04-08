@@ -57,6 +57,27 @@ Pages pour chaque rapport. Le fichier enrichi reçoit une colonne
 supplémentaire `nb_rapports_inspection` comptant les rapports
 disponibles par installation.
 
+Ensuite, `scripts/extract_rapports_markdown.py` convertit ces PDFs en
+fichiers markdown déterministes dans `rapports-inspection-markdown/`,
+avec un front matter YAML strict validé par JSON Schema. Chaque
+markdown est classifié vers l'un des chemins suivants :
+
+- **`dreal_parser`** (≈ 88 %) — PDF reconnu comme gabarit DREAL
+  Nouvelle-Aquitaine, parsé en sections sémantiques (Contexte,
+  Constats, Fiches de constat N° X comme H4 indexables).
+- **`pymupdf4llm_generic`** (≈ 9 %) — PDF texte au gabarit non DREAL
+  (courriers, propositions de suites), converti via `pymupdf4llm`.
+- **`ocr_then_dreal_parser`** / **`ocr_then_pymupdf4llm`** (≈ 3 %) —
+  scan sans couche texte, OCRisé via `ocrmypdf --force-ocr --language
+  fra+eng` puis routé vers le parser correspondant. L'OCR est fait
+  en place (atomique via tmp + os.replace).
+
+Un `_manifest.jsonl` append-only trace chaque extraction avec
+`source_sha256` et `markdown_sha256`, ce qui garantit l'idempotence :
+un PDF déjà extrait au bon sha et à la bonne version du script est
+skippé. La colonne `url_markdown` du CSV rapports pointe vers la
+version markdown GitHub Pages.
+
 Le dictionnaire des colonnes (schéma multi-fichiers : `fichier`,
 `nom_original`, `alias`, `definition`) est dans
 `carte-interactive/data/metadonnees_colonnes.csv`. Il décrit les
@@ -72,11 +93,15 @@ bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
 ```
 ├── index.html                     # point d'entrée (racine, servi par Pages)
 ├── README.md
-├── scripts/                       # pipeline Géorisques
+├── scripts/                       # pipeline Géorisques + extraction markdown
 │   ├── fetch_georisques.py                 # téléchargement + extraction bulk officiel
 │   ├── enrichir_libelles.py                # enrichissement des libellés ICPE
 │   ├── telecharger_rapports_inspection.py  # téléchargement des PDFs d'inspection
-│   └── _metadonnees_util.py                # helper partagé pour le dictionnaire multi-fichiers
+│   ├── extract_rapports_markdown.py        # extraction markdown des PDFs (pymupdf + ocrmypdf)
+│   ├── _metadonnees_util.py                # helper partagé pour le dictionnaire multi-fichiers
+│   ├── schemas/
+│   │   └── markdown_frontmatter.json       # JSON Schema draft-07 du front matter YAML
+│   └── tests/                              # tests stdlib + uv (unittest discover)
 ├── données-georisques/            # source canonique API Géorisques V1
 │   ├── raw/                       # archives ZIP datées (traçabilité sha256)
 │   ├── InstallationClassee.csv    # installations (brut)
@@ -92,6 +117,10 @@ bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
 │   ├── *.pdf                      # nommés {slug}_{id_icpe}_{date}_{siret}.pdf
 │   ├── _404.txt                   # mémoire des identifiants définitivement 404
 │   └── _erreurs.log               # rapport du dernier run (durables + transitoires)
+├── rapports-inspection-markdown/  # versions markdown des PDFs (1 .md par PDF)
+│   ├── *.md                       # front matter YAML + corps sémantique
+│   ├── _manifest.jsonl            # provenance append-only (sha256, version, timestamp)
+│   └── _erreurs.log               # rapport des extractions failed du dernier run
 └── carte-interactive/
     ├── app.js                     # logique de la carte
     ├── style.css                  # design « cahier d'enquête »
@@ -108,8 +137,12 @@ bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
 
 ## Rafraîchir les données
 
-Le pipeline Géorisques est rejouable (stdlib Python uniquement, aucune
-dépendance à installer) :
+Les scripts 1 à 3 ne dépendent que de la stdlib Python 3.13+. Le script
+4 a des dépendances tierces déclarées inline via PEP 723 (`pymupdf`,
+`pymupdf4llm`, `jsonschema`) résolues automatiquement par `uv run`, plus
+`ocrmypdf` invoqué via `uvx` pour les scans. Sur macOS :
+`brew install tesseract tesseract-lang` une fois pour disposer du pack
+français.
 
 ```bash
 # 1. Télécharge et extrait le bulk officiel, archive le ZIP, écrit le diff
@@ -121,9 +154,20 @@ python3 scripts/enrichir_libelles.py
 # 3. Télécharge les rapports d'inspection PDF, renomme, indexe avec URL Pages
 python3 scripts/telecharger_rapports_inspection.py
 
+# 4. Convertit les PDFs d'inspection en markdown avec front matter YAML
+uv run scripts/extract_rapports_markdown.py
+
 # Flags utiles du script 3 :
 #   --limit 5   : test progressif sur 5 PDFs
 #   --dry-run   : calcule le plan sans rien écrire ni télécharger
+
+# Flags utiles du script 4 :
+#   --limit 10  : test progressif sur 10 PDFs
+#   --dry-run   : liste ce qui serait fait
+#   --force     : ignore le manifeste et ré-extrait tout
+#   --no-ocr    : marque les scans FAILED au lieu d'appeler ocrmypdf
+#   --validate  : relit tous les .md et valide leur front matter
+#   --only-ocr  : pré-OCRise les scans sans écrire de markdown
 ```
 
 Chaque exécution de `fetch_georisques.py` archive un nouveau ZIP horodaté
@@ -138,6 +182,29 @@ pause entre batches (politesse envers le serveur Géorisques). Les
 échecs durables (HTTP 404) sont mémorisés dans
 `rapports-inspection/_404.txt` pour ne pas être retentés, les échecs
 transitoires (5xx, réseau, timeout) le seront au prochain run.
+
+`extract_rapports_markdown.py` est **idempotent** grâce au manifeste
+append-only `rapports-inspection-markdown/_manifest.jsonl` : un PDF
+déjà extrait au bon `source_sha256` et à la bonne `extraction_version`
+est skippé. L'OCR est fait en place sur les scans (`rapports-inspection/`
+est modifié), toujours atomiquement via tmp + `os.replace`. Le run
+complet sur 1 782 PDFs écrit 1 780 markdowns exploitables (≈ 88 %
+`dreal_parser`, ≈ 9 % `pymupdf4llm_generic`, ≈ 3 % avec OCR préalable)
+et 2 markdowns `failed` pour des PDFs source effectivement vides (1 KB
+et 3 KB). Les 2 cibles `failed` contiennent tout de même un front matter
+complet et une raison lisible, et ont un `url_markdown` valide pour
+garder la cohérence 1 PDF = 1 .md.
+
+Les tests :
+
+```bash
+# Tests unitaires (stdlib uniquement, pas de deps)
+python3 -m unittest discover scripts/tests
+
+# Suite complète (intégration + schema, requiert uv)
+uv run --with jsonschema --with pymupdf --with pymupdf4llm \
+    -m unittest discover scripts/tests
+```
 
 - **Réserves naturelles** : `uv run carte-interactive/scripts/prep_reserves.py`
 - **Polices** : `bash carte-interactive/scripts/fetch_fonts.sh`
