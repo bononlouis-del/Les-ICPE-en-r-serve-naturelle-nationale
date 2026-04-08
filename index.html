@@ -10,40 +10,39 @@
 <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
 <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link rel="preconnect" href="https://geo.api.gouv.fr" crossorigin>
 
 <!-- Leaflet core + marker clustering -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 
-<!-- Our styles (carries @font-face, the design system, and layout) -->
-<link rel="stylesheet" href="carte-interactive/style.css">
+<!-- Our styles — ?v bumped on each deploy to bust Pages CDN cache -->
+<link rel="stylesheet" href="carte-interactive/style.css?v=3">
 </head>
 <body>
 
-<header class="masthead">
+<header class="masthead" aria-label="En-tête du cahier d'enquête">
   <div class="masthead__label">Cahier d'enquête</div>
   <h1 class="masthead__title">ICPE en Gironde</h1>
   <p class="masthead__meta">
     <span id="site-count" class="meta-count">…</span>
     <span class="meta-sep">·</span>
-    <span>source : <a href="https://www.georisques.gouv.fr/" target="_blank" rel="noopener">Géorisques</a></span>
+    <span>source : <a href="https://www.georisques.gouv.fr/" target="_blank" rel="noopener">Géorisques <span class="sr-only">(ouvre dans un nouvel onglet)</span></a></span>
     <span class="meta-sep">·</span>
     <span>mis à jour <time id="site-mdate">…</time></span>
   </p>
 </header>
 
 <main class="workspace">
-  <div id="map" aria-label="Carte interactive des ICPE en Gironde"></div>
+  <div id="map" role="application" aria-label="Carte interactive des ICPE en Gironde"></div>
 
-  <button type="button" id="legend-toggle" class="legend-toggle" aria-label="Afficher / masquer la légende" aria-expanded="true" title="Légende">
+  <button type="button" id="legend-toggle" class="legend-toggle" aria-controls="legend" aria-expanded="true" title="Afficher la légende">
     Lég.
   </button>
-  <div id="legend" class="legend" aria-label="Légende">
+  <div id="legend" class="legend" role="region" aria-label="Légende">
     <div class="legend__head">
       <div class="legend__title">Légende — <span id="legend-dim">Régime</span></div>
-      <button type="button" id="legend-close" class="legend__close" aria-label="Masquer la légende">×</button>
+      <button type="button" id="legend-close" class="legend__close" aria-controls="legend" aria-label="Masquer la légende">×</button>
     </div>
     <ul id="legend-items" class="legend__items"></ul>
     <div class="legend__seveso" id="legend-seveso">
@@ -60,8 +59,8 @@
     </div>
 
     <div class="filters__section">
-      <div class="filters__section-label">Colorer par</div>
-      <div class="segmented" role="radiogroup" aria-label="Dimension de couleur">
+      <div class="filters__section-label" id="label-color-dim">Colorer par</div>
+      <div class="segmented" role="radiogroup" aria-labelledby="label-color-dim">
         <button type="button" role="radio" class="segmented__option is-active" data-color-dim="regime">Régime</button>
         <button type="button" role="radio" class="segmented__option" data-color-dim="seveso">Seveso</button>
         <button type="button" role="radio" class="segmented__option" data-color-dim="priority">Priorité</button>
@@ -87,8 +86,8 @@
     </div>
 
     <div class="filters__section">
-      <div class="filters__section-label">Priorité nationale</div>
-      <div class="segmented segmented--small" role="radiogroup">
+      <div class="filters__section-label" id="label-priority">Priorité nationale</div>
+      <div class="segmented segmented--small" role="radiogroup" aria-labelledby="label-priority">
         <button type="button" role="radio" class="segmented__option is-active" data-filter="priority" data-value="all">Tous</button>
         <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="yes">Oui</button>
         <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="no">Non</button>
@@ -96,8 +95,8 @@
     </div>
 
     <div class="filters__section">
-      <div class="filters__section-label">IED</div>
-      <div class="segmented segmented--small" role="radiogroup">
+      <div class="filters__section-label" id="label-ied">IED</div>
+      <div class="segmented segmented--small" role="radiogroup" aria-labelledby="label-ied">
         <button type="button" role="radio" class="segmented__option is-active" data-filter="ied" data-value="all">Tous</button>
         <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="yes">Oui</button>
         <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="no">Non</button>
@@ -112,26 +111,35 @@
 
 
     <div class="filters__footer">
-      <div class="counter"><span id="counter-shown">0</span> <span class="counter__of">sur</span> <span id="counter-total">0</span> <span class="counter__label">sites</span></div>
+      <div class="counter" aria-live="polite" aria-atomic="true"><span id="counter-shown">0</span> <span class="counter__of">sur</span> <span id="counter-total">0</span> <span class="counter__label">sites</span></div>
       <button type="button" id="reset-button" class="reset">Réinitialiser</button>
     </div>
   </aside>
 </main>
 
-<footer class="timebar" id="timebar">
+<div class="timebar" id="timebar" role="region" aria-label="Filtre temporel">
   <label class="timebar__toggle">
-    <input type="checkbox" id="quarter-enabled">
+    <input type="checkbox" id="month-enabled">
     <span class="timebar__toggle-label">Filtre mensuel</span>
   </label>
+  <div class="timebar__transport" role="group" aria-label="Lecture du filtre temporel">
+    <button type="button" id="time-play" class="timebar__play" aria-label="Lecture" title="Lecture / pause" disabled>
+      <span class="time-play-icon" aria-hidden="true">▶</span>
+    </button>
+    <label class="timebar__loop">
+      <input type="checkbox" id="time-loop">
+      <span>Boucle</span>
+    </label>
+  </div>
   <div class="timebar__slider-wrap">
-    <input type="range" id="time-slider" min="0" max="0" step="1" value="0" disabled>
+    <input type="range" id="time-slider" min="0" max="0" step="1" value="0" disabled aria-label="Mois sélectionné">
   </div>
   <div class="timebar__readout">
     <strong id="time-slider-value">—</strong>
     <span class="timebar__count"><span id="time-slider-count">—</span>&nbsp;dossiers</span>
   </div>
   <p class="timebar__hint">Fenêtre d'un mois — affiche les dossiers dont la dernière activité administrative tombe dans cette période. Désactivé par défaut.</p>
-</footer>
+</div>
 
 <!-- JS libraries -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -139,7 +147,7 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
-<!-- Our app -->
-<script src="carte-interactive/app.js"></script>
+<!-- Our app — ?v bumped on each deploy to bust Pages CDN cache -->
+<script src="carte-interactive/app.js?v=3"></script>
 </body>
 </html>

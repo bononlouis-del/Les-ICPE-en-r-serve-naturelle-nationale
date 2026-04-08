@@ -242,6 +242,18 @@
     })[c]);
   }
 
+  // Only allow http(s) URLs in href attributes — blocks javascript:, data:, etc.
+  function safeHref(url) {
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+      return escapeHTML(url);
+    } catch (_) {
+      return '';
+    }
+  }
+
   async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`fetch ${url}: ${res.status}`);
@@ -285,10 +297,9 @@
       const ied = r.directive_ied === 'TRUE';
       const industrie = r.activite_industrielle === 'TRUE';
       const carriere = r.activite_carriere === 'TRUE';
-      const libelleComplet = (r.nom_complet || r.nom_original || '(sans nom)').trim();
+      const libelle = (r.nom_complet || r.nom_original || '(sans nom)').trim();
       const structure = (r.structure || '').trim();
       const etablissement = (r.etablissement || '').trim();
-      const libelle = libelleComplet; // unified display name
 
       // pre-compute per-dimension color
       const color = {
@@ -301,15 +312,15 @@
                  : PALETTE.secteur.autre,
       };
 
-      // mdate no longer exists as a separate column (it was a strict duplicate
-      // of cdate in the data.gouv.fr bulk export, so the pipeline dropped it).
-      // Use date_enregistrement for both "date" semantics.
-      const cdate = r.date_enregistrement || '';
-      const mdate = cdate;
-      if (mdate && (!mdateMax || mdate > mdateMax)) mdateMax = mdate;
-
-      // cdate → month key for the time slider
-      const cdate_month = monthKey(cdate);
+      // date_enregistrement is the only date column in the aliased bulk export.
+      // (mdate/cdate were strict duplicates and the pipeline dropped the extra.)
+      const dateEnreg = r.date_enregistrement || '';
+      // Track latest date via Date() comparison — robust against non-padded ISO.
+      if (dateEnreg) {
+        const d = new Date(dateEnreg);
+        if (!isNaN(d) && (!mdateMax || d > new Date(mdateMax))) mdateMax = dateEnreg;
+      }
+      const cdate_month = monthKey(dateEnreg);
 
       rows.push({
         lat, lon,
@@ -328,8 +339,7 @@
         fiche: r.url_fiche_georisques || '',
         siret: r.siret || '',
         insee: r.code_insee_commune || '',
-        cdate,
-        mdate,
+        date_enregistrement: dateEnreg,
         activite: (r.code_naf_division || '').toString(),
         isSeveso: seveso === 'SEUIL_HAUT' || seveso === 'SEUIL_BAS',
         color,
@@ -358,18 +368,20 @@
         let any = false;
         if (f.secteur.has('industrie') && row.industrie) any = true;
         if (f.secteur.has('carriere') && row.carriere) any = true;
+        if (f.secteur.has('autre') && !row.industrie && !row.carriere) any = true;
         if (!any) return false;
       }
-      if (hasSearch && row.search_index.indexOf(search) === -1) return false;
-      // Month window — only show rows whose cdate falls in the selected month
-      if (monthActive && row.cdate_month !== f.month) return false;
+      if (hasSearch && !row.search_index.includes(search)) return false;
+      // Month window — only show rows whose cdate falls in the selected month.
+      // Rows without any recorded date pass through (they exist but have no
+      // temporal anchor; hiding them would be silent data loss).
+      if (monthActive && row.cdate_month && row.cdate_month !== f.month) return false;
       return true;
     };
   }
 
   // ---------- marker creation ----------
-  let rowToMarker; // populated after map is created
-  let markerByRow = new WeakMap();
+  const markerByRow = new WeakMap();
 
   function makeMarker(row) {
     const isSeveso = row.isSeveso;
@@ -427,14 +439,15 @@
         parts.push(`<dt>Activité</dt><dd>NAF ${escapeHTML(row.activite)}</dd>`);
       }
     }
-    if (row.mdate) parts.push(`<dt>Mise à jour</dt><dd>${formatDateFR(row.mdate)}</dd>`);
+    if (row.date_enregistrement) parts.push(`<dt>Date d'enregistrement</dt><dd>${formatDateFR(row.date_enregistrement)}</dd>`);
     if (row.siret) parts.push(`<dt>SIRET</dt><dd>${escapeHTML(row.siret)}</dd>`);
     if (row.insee) parts.push(`<dt>INSEE</dt><dd>${escapeHTML(row.insee)}</dd>`);
     parts.push(`<dt>Lat, Lon</dt><dd>${row.lat.toFixed(5)}, ${row.lon.toFixed(5)}</dd>`);
     parts.push('</dl>');
 
-    if (row.fiche) {
-      parts.push(`<a class="popup-fiche" href="${escapeHTML(row.fiche)}" target="_blank" rel="noopener">Fiche Géorisques →</a>`);
+    const href = safeHref(row.fiche);
+    if (href) {
+      parts.push(`<a class="popup-fiche" href="${href}" target="_blank" rel="noopener">Fiche Géorisques <span class="sr-only">(ouvre dans un nouvel onglet)</span>→</a>`);
     }
     return parts.join('');
   }
@@ -510,8 +523,9 @@
     if (p.operateur) parts.push(`<dt>Opérateur</dt><dd>${escapeHTML(p.operateur)}</dd>`);
     if (p.gest_site) parts.push(`<dt>Gestionnaire</dt><dd>${escapeHTML(p.gest_site)}</dd>`);
     parts.push('</dl>');
-    if (p.url_fiche) {
-      parts.push(`<a class="popup-fiche" href="${escapeHTML(p.url_fiche)}" target="_blank" rel="noopener">Fiche INPN →</a>`);
+    const href = safeHref(p.url_fiche);
+    if (href) {
+      parts.push(`<a class="popup-fiche" href="${href}" target="_blank" rel="noopener">Fiche INPN <span class="sr-only">(ouvre dans un nouvel onglet)</span>→</a>`);
     }
     return parts.join('');
   }
@@ -562,28 +576,40 @@
   };
   L.control.layers(baseLayers, overlays, { collapsed: true, position: 'topright' }).addTo(map);
 
-  // ---------- data loading flow ----------
-  const siteCountEl = document.getElementById('site-count');
-  const siteMdateEl = document.getElementById('site-mdate');
-  const counterShown = document.getElementById('counter-shown');
-  const counterTotal = document.getElementById('counter-total');
+  // ---------- cached DOM references (queried once at module load) ----------
+  const siteCountEl    = document.getElementById('site-count');
+  const siteMdateEl    = document.getElementById('site-mdate');
+  const counterShown   = document.getElementById('counter-shown');
+  const counterTotal   = document.getElementById('counter-total');
+  const slider         = document.getElementById('time-slider');
+  const sliderValue    = document.getElementById('time-slider-value');
+  const sliderCountEl  = document.getElementById('time-slider-count');
+  const legendEl       = document.getElementById('legend');
+  const legendDimEl    = document.getElementById('legend-dim');
+  const legendItemsEl  = document.getElementById('legend-items');
+
+  // Pre-computed counts per month key, populated at CSV load
+  const monthCounts = new Map();
 
   function showError(msg) {
     const existing = document.querySelector('.error-banner');
     if (existing) existing.remove();
     const div = document.createElement('div');
     div.className = 'error-banner';
+    div.setAttribute('role', 'alert'); // implies aria-live=assertive
     div.textContent = msg;
     document.body.appendChild(div);
   }
 
   async function init() {
-    // Start all data loads in parallel (all local static files)
+    // Start all data loads in parallel (all local static files).
+    // Every fetch goes through fetchJSON so errors surface consistently
+    // in Promise.allSettled's .reason instead of being swallowed.
     const [csvResult, girondeResult, rnnResult, rnrResult] = await Promise.allSettled([
       parseCSV(),
       fetchJSON(GIRONDE_CONTOUR_URL),
-      fetch(RNN_URL).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RNR_URL).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetchJSON(RNN_URL),
+      fetchJSON(RNR_URL),
     ]);
 
     // Gironde contour
@@ -596,12 +622,16 @@
       console.warn('Gironde contour load failed', girondeResult.reason);
     }
 
-    // RNN / RNR
+    // RNN / RNR — log failures instead of silently hiding the layer
     if (rnnResult.status === 'fulfilled' && rnnResult.value && rnnResult.value.features) {
       rnnLayer.addData(rnnResult.value);
+    } else if (rnnResult.status === 'rejected') {
+      console.warn('RNN load failed', rnnResult.reason);
     }
     if (rnrResult.status === 'fulfilled' && rnrResult.value && rnrResult.value.features) {
       rnrLayer.addData(rnrResult.value);
+    } else if (rnrResult.status === 'rejected') {
+      console.warn('RNR load failed', rnrResult.reason);
     }
 
     // CSV
@@ -611,6 +641,10 @@
       return;
     }
     state.rows = transformRows(csvResult.value);
+    if (state.rows.length === 0) {
+      showError('Aucun site géolocalisé dans les données — format de CSV inattendu.');
+      return;
+    }
 
     // header metadata
     siteCountEl.textContent = `${formatCount(state.rows.length)} sites`;
@@ -629,26 +663,33 @@
       ? state.monthSteps[state.monthSteps.length - 1]
       : null;
 
+    // Pre-compute per-month counts once (static after CSV load)
+    monthCounts.clear();
+    for (const row of state.rows) {
+      if (row.cdate_month) {
+        monthCounts.set(row.cdate_month, (monthCounts.get(row.cdate_month) || 0) + 1);
+      }
+    }
+
     // configure the slider (starts disabled; checkbox enables it)
-    const slider = document.getElementById('time-slider');
-    const sliderValue = document.getElementById('time-slider-value');
-    if (state.monthSteps.length >= 2) {
+    if (state.monthSteps.length >= 1) {
       slider.min = '0';
-      slider.max = String(state.monthSteps.length - 1);
+      slider.max = String(Math.max(0, state.monthSteps.length - 1));
       slider.step = '1';
       slider.value = slider.max;
+      slider.disabled = state.monthSteps.length < 2;
+      slider.setAttribute('aria-valuetext', formatMonthFR(state.filters.month));
       sliderValue.textContent = formatMonthFR(state.filters.month);
     } else {
       slider.disabled = true;
     }
 
-    // build markers
-    const markers = state.rows.map(makeMarker);
-    clusterGroup.addLayers(markers);
+    // Build markers once; applyFilters() below does the initial cluster add.
+    for (const row of state.rows) makeMarker(row);
 
     // legend
     renderLegend();
-    applyFilters(); // sets initial visible count
+    applyFilters(); // also performs the initial clusterGroup population
 
     // wire up controls
     wireUp();
@@ -661,103 +702,137 @@
     state.visibleRows = visible;
     counterShown.textContent = formatCount(visible.length);
 
-    // Show the quarter count in the bottom bar:
-    // if the quarter filter is active, show its count; otherwise show
-    // the total number of rows matching the selected quarter for preview
-    const sliderCount = document.getElementById('time-slider-count');
-    if (sliderCount) {
-      if (state.filters.monthEnabled) {
-        sliderCount.textContent = formatCount(visible.length);
-      } else if (state.filters.month) {
-        const m = state.filters.month;
-        let n = 0;
-        for (const r of state.rows) if (r.cdate_month === m) n++;
-        sliderCount.textContent = formatCount(n);
-      } else {
-        sliderCount.textContent = '—';
-      }
+    // Bottom-bar month count:
+    //   - filter active → count of currently visible rows (same as counter)
+    //   - filter inactive → preview count from the pre-computed monthCounts
+    //     map (static, O(1) lookup), intersected with other active filters
+    //     for coherence between the preview and the eventual enabled view
+    if (state.filters.monthEnabled) {
+      sliderCountEl.textContent = formatCount(visible.length);
+    } else if (state.filters.month) {
+      // Preview = how many of state.visibleRows would remain if the month
+      // filter were enabled right now. Scan visible (usually small after
+      // other filters) rather than the full dataset.
+      const m = state.filters.month;
+      let n = 0;
+      for (const r of visible) if (r.cdate_month === m) n++;
+      sliderCountEl.textContent = formatCount(n);
+    } else {
+      sliderCountEl.textContent = '—';
     }
 
     // Rebuild cluster layer with the filtered subset
     clusterGroup.clearLayers();
-    const markers = visible.map((row) => markerByRow.get(row) || makeMarker(row));
+    const markers = new Array(visible.length);
+    for (let i = 0; i < visible.length; i++) markers[i] = markerByRow.get(visible[i]);
     clusterGroup.addLayers(markers);
   }
 
   function switchColorDim(dim) {
     state.colorDim = dim;
-    // Update marker fill colors in place (no rebuild)
+    // Mutate each marker's fillColor option in place — no setStyle redraw
+    // per marker. Then ask the canvas renderer to repaint once for the
+    // whole layer, batched into a single frame.
     for (const row of state.rows) {
       const m = markerByRow.get(row);
-      if (m) m.setStyle({ fillColor: row.color[dim] });
+      if (m) m.options.fillColor = row.color[dim];
     }
-    // Redraw clusters to update accent ring
-    clusterGroup.refreshClusters();
+    requestAnimationFrame(() => {
+      if (canvasRenderer._redraw) canvasRenderer._redraw();
+      clusterGroup.refreshClusters();
+    });
     renderLegend();
   }
 
   // ---------- legend ----------
   function renderLegend() {
     const dim = state.colorDim;
-    document.getElementById('legend-dim').textContent = DIM_HUMAN[dim];
-    const ul = document.getElementById('legend-items');
-    ul.innerHTML = '';
+    legendDimEl.textContent = DIM_HUMAN[dim];
+    const frag = document.createDocumentFragment();
     for (const [label, color] of LEGEND_LABELS[dim]) {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHTML(label)}`;
-      ul.appendChild(li);
+      const swatch = document.createElement('span');
+      swatch.className = 'legend-swatch';
+      swatch.style.background = color;
+      li.appendChild(swatch);
+      li.appendChild(document.createTextNode(label));
+      frag.appendChild(li);
     }
-    // Hide the "Seveso contour" note when Seveso is the active dim
-    const legend = document.getElementById('legend');
-    legend.classList.toggle('hide-seveso-row', dim === 'seveso');
+    legendItemsEl.replaceChildren(frag);
+    legendEl.classList.toggle('hide-seveso-row', dim === 'seveso');
   }
 
   // ---------- event wiring ----------
   let searchDebounce;
+  let sliderDebounce;
+
+  // Wire up a single role=radiogroup: sync aria-checked, roving tabindex,
+  // arrow-key navigation, and activation on click or Enter/Space.
+  function wireRadioGroup(selector, onChange) {
+    const buttons = Array.from(document.querySelectorAll(selector));
+    if (buttons.length === 0) return;
+    const activate = (btn) => {
+      for (const b of buttons) {
+        const isActive = b === btn;
+        b.classList.toggle('is-active', isActive);
+        b.setAttribute('aria-checked', isActive ? 'true' : 'false');
+        b.tabIndex = isActive ? 0 : -1;
+      }
+      onChange(btn);
+    };
+    // initialise aria-checked / tabindex from whatever has is-active already
+    const initial = buttons.find((b) => b.classList.contains('is-active')) || buttons[0];
+    for (const b of buttons) {
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', b === initial ? 'true' : 'false');
+      b.tabIndex = b === initial ? 0 : -1;
+      b.addEventListener('click', () => activate(b));
+      b.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const i = buttons.indexOf(b);
+          const next = buttons[(i + 1) % buttons.length];
+          next.focus();
+          activate(next);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const i = buttons.indexOf(b);
+          const prev = buttons[(i - 1 + buttons.length) % buttons.length];
+          prev.focus();
+          activate(prev);
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          activate(b);
+        }
+      });
+    }
+  }
+
   function wireUp() {
     // color-by segmented
-    document.querySelectorAll('[data-color-dim]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-color-dim]').forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        switchColorDim(btn.dataset.colorDim);
-      });
-    });
+    wireRadioGroup('[data-color-dim]', (btn) => switchColorDim(btn.dataset.colorDim));
 
-    // régime/seveso checkboxes
-    document.querySelectorAll('input[type="checkbox"][data-filter="regime"]').forEach((cb) => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) state.filters.regime.add(cb.value);
-        else state.filters.regime.delete(cb.value);
-        applyFilters();
-      });
-    });
-    document.querySelectorAll('input[type="checkbox"][data-filter="seveso"]').forEach((cb) => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) state.filters.seveso.add(cb.value);
-        else state.filters.seveso.delete(cb.value);
-        applyFilters();
-      });
-    });
-    document.querySelectorAll('input[type="checkbox"][data-filter="secteur"]').forEach((cb) => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) state.filters.secteur.add(cb.value);
-        else state.filters.secteur.delete(cb.value);
-        applyFilters();
-      });
-    });
-
-    // priority / ied radios
-    ['priority', 'ied'].forEach((key) => {
-      document.querySelectorAll(`[data-filter="${key}"]`).forEach((btn) => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll(`[data-filter="${key}"]`).forEach((b) => b.classList.remove('is-active'));
-          btn.classList.add('is-active');
-          state.filters[key] = btn.dataset.value;
+    // régime/seveso/secteur checkboxes
+    const bindCheckGroup = (filterKey) => {
+      document.querySelectorAll(`input[type="checkbox"][data-filter="${filterKey}"]`).forEach((cb) => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.filters[filterKey].add(cb.value);
+          else state.filters[filterKey].delete(cb.value);
           applyFilters();
         });
       });
-    });
+    };
+    bindCheckGroup('regime');
+    bindCheckGroup('seveso');
+    bindCheckGroup('secteur');
+
+    // priority / ied radios
+    for (const key of ['priority', 'ied']) {
+      wireRadioGroup(`[data-filter="${key}"]`, (btn) => {
+        state.filters[key] = btn.dataset.value;
+        applyFilters();
+      });
+    }
 
     // search (debounced)
     const searchInput = document.getElementById('search-input');
@@ -770,12 +845,10 @@
     });
 
     // month filter — checkbox toggles it on/off, slider picks the month
-    const slider = document.getElementById('time-slider');
-    const sliderValue = document.getElementById('time-slider-value');
-    const monthCheckbox = document.getElementById('quarter-enabled');
+    const monthCheckbox = document.getElementById('month-enabled');
     const timebar = document.getElementById('timebar');
     const setSliderEnabled = (on) => {
-      slider.disabled = !on;
+      slider.disabled = !on || state.monthSteps.length < 2;
       timebar.classList.toggle('is-disabled', !on);
     };
     setSliderEnabled(false);
@@ -790,7 +863,77 @@
       const m = state.monthSteps[idx];
       state.filters.month = m;
       sliderValue.textContent = formatMonthFR(m);
-      if (state.filters.monthEnabled) applyFilters();
+      slider.setAttribute('aria-valuetext', formatMonthFR(m));
+      if (state.filters.monthEnabled) {
+        clearTimeout(sliderDebounce);
+        sliderDebounce = setTimeout(applyFilters, 60);
+      }
+    });
+
+    // Play / pause for the month slider — auto-advances one month per tick.
+    // Enabling Play also activates the month filter (the animation is
+    // meaningless while every site is visible).
+    const playBtn = document.getElementById('time-play');
+    const playIcon = playBtn.querySelector('.time-play-icon');
+    const loopCheckbox = document.getElementById('time-loop');
+    const PLAY_INTERVAL_MS = 900;
+    let playTimer = null;
+
+    const setPlayButtonEnabled = (on) => {
+      playBtn.disabled = !on;
+    };
+    // Button is enabled whenever we have at least 2 months to walk between.
+    setPlayButtonEnabled(state.monthSteps.length >= 2);
+
+    const stopPlayback = () => {
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      playIcon.textContent = '▶';
+      playBtn.setAttribute('aria-label', 'Lecture');
+      playBtn.setAttribute('title', 'Lecture');
+    };
+    const startPlayback = () => {
+      if (state.monthSteps.length < 2) return;
+      // Auto-enable the month filter if it's off
+      if (!state.filters.monthEnabled) {
+        state.filters.monthEnabled = true;
+        monthCheckbox.checked = true;
+        setSliderEnabled(true);
+        applyFilters();
+      }
+      playIcon.textContent = '⏸';
+      playBtn.setAttribute('aria-label', 'Pause');
+      playBtn.setAttribute('title', 'Pause');
+      playTimer = setInterval(() => {
+        const maxIdx = state.monthSteps.length - 1;
+        let idx = parseInt(slider.value, 10);
+        if (idx >= maxIdx) {
+          if (loopCheckbox.checked) {
+            idx = 0;
+          } else {
+            stopPlayback();
+            return;
+          }
+        } else {
+          idx += 1;
+        }
+        slider.value = String(idx);
+        // Reuse the same path as manual input
+        const m = state.monthSteps[idx];
+        state.filters.month = m;
+        sliderValue.textContent = formatMonthFR(m);
+        slider.setAttribute('aria-valuetext', formatMonthFR(m));
+        applyFilters();
+      }, PLAY_INTERVAL_MS);
+    };
+    playBtn.addEventListener('click', () => {
+      if (playTimer) stopPlayback(); else startPlayback();
+    });
+    // Unchecking the month filter should stop playback.
+    monthCheckbox.addEventListener('change', () => {
+      if (!monthCheckbox.checked) stopPlayback();
     });
 
     // reset
@@ -809,30 +952,44 @@
       }
       monthCheckbox.checked = false;
       setSliderEnabled(false);
+      stopPlayback();
+      if (loopCheckbox) loopCheckbox.checked = false;
+      slider.setAttribute('aria-valuetext', formatMonthFR(state.filters.month));
       // reflect in DOM
       searchInput.value = '';
       document.querySelectorAll('input[type="checkbox"][data-filter="regime"]').forEach((cb) => cb.checked = true);
       document.querySelectorAll('input[type="checkbox"][data-filter="seveso"]').forEach((cb) => cb.checked = true);
       document.querySelectorAll('input[type="checkbox"][data-filter="secteur"]').forEach((cb) => cb.checked = false);
-      document.querySelectorAll('[data-filter="priority"]').forEach((b) => b.classList.toggle('is-active', b.dataset.value === 'all'));
-      document.querySelectorAll('[data-filter="ied"]').forEach((b) => b.classList.toggle('is-active', b.dataset.value === 'all'));
+      for (const key of ['priority', 'ied']) {
+        document.querySelectorAll(`[data-filter="${key}"]`).forEach((b) => {
+          const isAll = b.dataset.value === 'all';
+          b.classList.toggle('is-active', isAll);
+          b.setAttribute('aria-checked', isAll ? 'true' : 'false');
+          b.tabIndex = isAll ? 0 : -1;
+        });
+      }
       applyFilters();
     });
 
-    // lazy communes: fetch from static file on first enable
+    // lazy communes: fetch from static file on first enable.
+    // Uses an in-flight flag to avoid a race where rapid toggling while the
+    // fetch is pending would double-add the features.
+    let communesFetchStarted = false;
     map.on('overlayadd', async (e) => {
-      if (e.layer === communesLayer && communesLayer.getLayers().length === 0) {
+      if (e.layer === communesLayer && !communesFetchStarted) {
+        communesFetchStarted = true;
         try {
           const data = await fetchJSON(GIRONDE_COMMUNES_URL);
           communesLayer.addData(data);
         } catch (err) {
+          communesFetchStarted = false; // allow retry on next toggle
           console.error('communes load failed', err);
+          showError('Impossible de charger les communes.');
         }
       }
     });
 
     // legend toggle
-    const legendEl = document.getElementById('legend');
     const legendToggle = document.getElementById('legend-toggle');
     const legendClose = document.getElementById('legend-close');
     const setLegendOpen = (open) => {
