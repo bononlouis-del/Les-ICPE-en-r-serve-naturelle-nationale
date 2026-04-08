@@ -195,31 +195,33 @@
       priority: 'all',
       ied: 'all',
       secteur: new Set(), // empty = no secteur filter; populated = OR of active secteurs
-      // Quarter window filter (disabled by default)
-      // quarterEnabled: when true, only show rows whose cdate_quarter matches state.filters.quarter
-      // quarter: e.g., '2025-Q1' (one of state.quarterSteps)
-      quarterEnabled: false,
-      quarter: null,
+      // Month window filter (disabled by default)
+      // monthEnabled: when true, only show rows whose cdate_month matches state.filters.month
+      // month: e.g., '2025-02' (one of state.monthSteps)
+      monthEnabled: false,
+      month: null,
     },
     mdateMax: null,
-    // quarter keys derived from the dataset — set after CSV load
-    quarterSteps: [],
+    // month keys derived from the dataset — set after CSV load
+    monthSteps: [],
   };
 
-  function quarterKey(isoDate) {
-    // isoDate like "2025-02-10T..." → "2025-Q1"
+  function monthKey(isoDate) {
+    // isoDate like "2025-02-10T..." → "2025-02"
     if (!isoDate || isoDate.length < 7) return '';
-    const y = isoDate.substring(0, 4);
-    const m = parseInt(isoDate.substring(5, 7), 10);
-    if (!m) return '';
-    const q = Math.ceil(m / 3);
-    return `${y}-Q${q}`;
+    return isoDate.substring(0, 7);
   }
-  function formatQuarterFR(qkey) {
-    // qkey like "2025-Q1" → "T1 2025"
-    if (!qkey) return '—';
-    const [y, q] = qkey.split('-Q');
-    return `T${q} ${y}`;
+  const MONTHS_FR = [
+    'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+  ];
+  function formatMonthFR(ymkey) {
+    // ymkey like "2025-02" → "févr. 2025"
+    if (!ymkey) return '—';
+    const [y, m] = ymkey.split('-');
+    const idx = parseInt(m, 10) - 1;
+    if (idx < 0 || idx > 11) return ymkey;
+    return `${MONTHS_FR[idx]} ${y}`;
   }
 
   // ---------- utilities ----------
@@ -306,8 +308,8 @@
       const mdate = cdate;
       if (mdate && (!mdateMax || mdate > mdateMax)) mdateMax = mdate;
 
-      // cdate → quarter key for the time slider
-      const cdate_quarter = quarterKey(cdate);
+      // cdate → month key for the time slider
+      const cdate_month = monthKey(cdate);
 
       rows.push({
         lat, lon,
@@ -322,7 +324,7 @@
         ied,
         industrie,
         carriere,
-        cdate_quarter,
+        cdate_month,
         fiche: r.url_fiche_georisques || '',
         siret: r.siret || '',
         insee: r.code_insee_commune || '',
@@ -343,7 +345,7 @@
     const search = f.search.trim().toLowerCase();
     const hasSearch = search.length > 0;
     const hasSecteur = f.secteur.size > 0;
-    const quarterActive = f.quarterEnabled && f.quarter;
+    const monthActive = f.monthEnabled && f.month;
 
     return function (row) {
       if (!f.regime.has(row.regime)) return false;
@@ -359,8 +361,8 @@
         if (!any) return false;
       }
       if (hasSearch && row.search_index.indexOf(search) === -1) return false;
-      // Quarter window — only show rows whose cdate falls in the selected quarter
-      if (quarterActive && row.cdate_quarter !== f.quarter) return false;
+      // Month window — only show rows whose cdate falls in the selected month
+      if (monthActive && row.cdate_month !== f.month) return false;
       return true;
     };
   }
@@ -616,26 +618,26 @@
     siteMdateEl.setAttribute('datetime', state.mdateMax || '');
     counterTotal.textContent = formatCount(state.rows.length);
 
-    // derive quarter keys from the data (unique YYYY-QN values, sorted)
-    const qSet = new Set();
+    // derive month keys from the data (unique YYYY-MM values, sorted)
+    const mSet = new Set();
     for (const row of state.rows) {
-      if (row.cdate_quarter) qSet.add(row.cdate_quarter);
+      if (row.cdate_month) mSet.add(row.cdate_month);
     }
-    state.quarterSteps = Array.from(qSet).sort();
-    // default quarter selection = most recent (useful when user enables the toggle)
-    state.filters.quarter = state.quarterSteps.length
-      ? state.quarterSteps[state.quarterSteps.length - 1]
+    state.monthSteps = Array.from(mSet).sort();
+    // default month selection = most recent (useful when user enables the toggle)
+    state.filters.month = state.monthSteps.length
+      ? state.monthSteps[state.monthSteps.length - 1]
       : null;
 
     // configure the slider (starts disabled; checkbox enables it)
     const slider = document.getElementById('time-slider');
     const sliderValue = document.getElementById('time-slider-value');
-    if (state.quarterSteps.length >= 2) {
+    if (state.monthSteps.length >= 2) {
       slider.min = '0';
-      slider.max = String(state.quarterSteps.length - 1);
+      slider.max = String(state.monthSteps.length - 1);
       slider.step = '1';
       slider.value = slider.max;
-      sliderValue.textContent = formatQuarterFR(state.filters.quarter);
+      sliderValue.textContent = formatMonthFR(state.filters.month);
     } else {
       slider.disabled = true;
     }
@@ -664,12 +666,12 @@
     // the total number of rows matching the selected quarter for preview
     const sliderCount = document.getElementById('time-slider-count');
     if (sliderCount) {
-      if (state.filters.quarterEnabled) {
+      if (state.filters.monthEnabled) {
         sliderCount.textContent = formatCount(visible.length);
-      } else if (state.filters.quarter) {
-        const q = state.filters.quarter;
+      } else if (state.filters.month) {
+        const m = state.filters.month;
         let n = 0;
-        for (const r of state.rows) if (r.cdate_quarter === q) n++;
+        for (const r of state.rows) if (r.cdate_month === m) n++;
         sliderCount.textContent = formatCount(n);
       } else {
         sliderCount.textContent = '—';
@@ -767,10 +769,10 @@
       }, 150);
     });
 
-    // quarter filter — checkbox toggles it on/off, slider picks the quarter
+    // month filter — checkbox toggles it on/off, slider picks the month
     const slider = document.getElementById('time-slider');
     const sliderValue = document.getElementById('time-slider-value');
-    const quarterCheckbox = document.getElementById('quarter-enabled');
+    const monthCheckbox = document.getElementById('quarter-enabled');
     const timebar = document.getElementById('timebar');
     const setSliderEnabled = (on) => {
       slider.disabled = !on;
@@ -778,17 +780,17 @@
     };
     setSliderEnabled(false);
 
-    quarterCheckbox.addEventListener('change', () => {
-      state.filters.quarterEnabled = quarterCheckbox.checked;
-      setSliderEnabled(quarterCheckbox.checked);
+    monthCheckbox.addEventListener('change', () => {
+      state.filters.monthEnabled = monthCheckbox.checked;
+      setSliderEnabled(monthCheckbox.checked);
       applyFilters();
     });
     slider.addEventListener('input', () => {
       const idx = parseInt(slider.value, 10);
-      const q = state.quarterSteps[idx];
-      state.filters.quarter = q;
-      sliderValue.textContent = formatQuarterFR(q);
-      if (state.filters.quarterEnabled) applyFilters();
+      const m = state.monthSteps[idx];
+      state.filters.month = m;
+      sliderValue.textContent = formatMonthFR(m);
+      if (state.filters.monthEnabled) applyFilters();
     });
 
     // reset
@@ -799,13 +801,13 @@
       state.filters.priority = 'all';
       state.filters.ied = 'all';
       state.filters.secteur = new Set();
-      state.filters.quarterEnabled = false;
-      if (state.quarterSteps.length) {
-        state.filters.quarter = state.quarterSteps[state.quarterSteps.length - 1];
+      state.filters.monthEnabled = false;
+      if (state.monthSteps.length) {
+        state.filters.month = state.monthSteps[state.monthSteps.length - 1];
         slider.value = slider.max;
-        sliderValue.textContent = formatQuarterFR(state.filters.quarter);
+        sliderValue.textContent = formatMonthFR(state.filters.month);
       }
-      quarterCheckbox.checked = false;
+      monthCheckbox.checked = false;
       setSliderEnabled(false);
       // reflect in DOM
       searchInput.value = '';
