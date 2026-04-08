@@ -1,0 +1,16 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Python caches (from scripts/)
+__pycache__/
+*.pyc
+*.pyo
+
+# Raw data staging from the prep scripts
+carte-interactive/tmp/
+
+# Editor files
+.vscode/
+.idea/
+*.swp

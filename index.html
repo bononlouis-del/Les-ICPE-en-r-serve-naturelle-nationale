@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICPE en Gironde — cahier d'enquête</title>
+<meta name="description" content="Carte d'exploration des Installations Classées pour la Protection de l'Environnement en Gironde, avec superposition des réserves naturelles nationales.">
+
+<!-- Preconnect to cut handshake RTT on first load -->
+<link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+<link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://geo.api.gouv.fr" crossorigin>
+
+<!-- Leaflet core + marker clustering -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+
+<!-- Our styles (carries @font-face, the design system, and layout) -->
+<link rel="stylesheet" href="carte-interactive/style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__label">Cahier d'enquête</div>
+  <h1 class="masthead__title">ICPE en Gironde</h1>
+  <div class="masthead__rule" aria-hidden="true"></div>
+  <p class="masthead__meta">
+    <span id="site-count" class="meta-count">…</span>
+    <span class="meta-sep">·</span>
+    <span>source : <a href="https://www.georisques.gouv.fr/" target="_blank" rel="noopener">Géorisques</a></span>
+    <span class="meta-sep">·</span>
+    <span>mis à jour <time id="site-mdate">…</time></span>
+  </p>
+</header>
+
+<main class="workspace">
+  <div id="map" aria-label="Carte interactive des ICPE en Gironde"></div>
+
+  <aside class="filters" aria-label="Filtres">
+
+    <div class="filters__section">
+      <label class="filters__section-label" for="search-input">Recherche</label>
+      <input id="search-input" type="search" placeholder="Nom de l'établissement…" autocomplete="off">
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Colorer par</div>
+      <div class="segmented" role="radiogroup" aria-label="Dimension de couleur">
+        <button type="button" role="radio" class="segmented__option is-active" data-color-dim="regime">Régime</button>
+        <button type="button" role="radio" class="segmented__option" data-color-dim="seveso">Seveso</button>
+        <button type="button" role="radio" class="segmented__option" data-color-dim="priority">Priorité</button>
+        <button type="button" role="radio" class="segmented__option" data-color-dim="ied">IED</button>
+        <button type="button" role="radio" class="segmented__option" data-color-dim="secteur">Secteur</button>
+      </div>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Régime</div>
+      <label class="check"><input type="checkbox" data-filter="regime" value="AUTORISATION" checked><span class="swatch" style="background:var(--rust)"></span>Autorisation</label>
+      <label class="check"><input type="checkbox" data-filter="regime" value="ENREGISTREMENT" checked><span class="swatch" style="background:var(--ochre)"></span>Enregistrement</label>
+      <label class="check"><input type="checkbox" data-filter="regime" value="NON_ICPE" checked><span class="swatch" style="background:var(--lead)"></span>Non-ICPE</label>
+      <label class="check"><input type="checkbox" data-filter="regime" value="AUTRE" checked><span class="swatch" style="background:var(--fog)"></span>Autre</label>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Seveso</div>
+      <label class="check"><input type="checkbox" data-filter="seveso" value="SEUIL_HAUT" checked><span class="swatch" style="background:var(--rust-deep)"></span>Seuil haut</label>
+      <label class="check"><input type="checkbox" data-filter="seveso" value="SEUIL_BAS" checked><span class="swatch" style="background:var(--rust-mid)"></span>Seuil bas</label>
+      <label class="check"><input type="checkbox" data-filter="seveso" value="NON_SEVESO" checked><span class="swatch" style="background:var(--lead)"></span>Non Seveso</label>
+      <label class="check"><input type="checkbox" data-filter="seveso" value="" checked><span class="swatch" style="background:var(--fog)"></span>Non classé</label>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Priorité nationale</div>
+      <div class="segmented segmented--small" role="radiogroup">
+        <button type="button" role="radio" class="segmented__option is-active" data-filter="priority" data-value="all">Tous</button>
+        <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="yes">Oui</button>
+        <button type="button" role="radio" class="segmented__option" data-filter="priority" data-value="no">Non</button>
+      </div>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">IED</div>
+      <div class="segmented segmented--small" role="radiogroup">
+        <button type="button" role="radio" class="segmented__option is-active" data-filter="ied" data-value="all">Tous</button>
+        <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="yes">Oui</button>
+        <button type="button" role="radio" class="segmented__option" data-filter="ied" data-value="no">Non</button>
+      </div>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Secteur</div>
+      <label class="check"><input type="checkbox" data-filter="secteur" value="industrie"><span class="swatch" style="background:var(--ink)"></span>Industrie</label>
+      <label class="check"><input type="checkbox" data-filter="secteur" value="carriere"><span class="swatch" style="background:var(--ochre)"></span>Carrière</label>
+    </div>
+
+    <div class="filters__section">
+      <div class="filters__section-label">Instantané temporel</div>
+      <div class="time-slider">
+        <input type="range" id="time-slider" min="0" max="0" step="1" value="0">
+        <div class="time-slider__readout">
+          Dossiers actifs jusqu'au <strong id="time-slider-value">—</strong>
+          <span class="time-slider__count"><span id="time-slider-count">—</span> sites</span>
+        </div>
+      </div>
+      <p class="filters__hint">Chaque position ajoute les ICPE dont le dossier a été touché jusqu'à ce mois. Glisser à gauche pour remonter dans le temps.</p>
+    </div>
+
+    <div class="filters__footer">
+      <div class="counter"><span id="counter-shown">0</span> <span class="counter__of">sur</span> <span id="counter-total">0</span> <span class="counter__label">sites</span></div>
+      <button type="button" id="reset-button" class="reset">Réinitialiser</button>
+    </div>
+  </aside>
+</main>
+
+<div id="legend" class="legend" aria-label="Légende">
+  <div class="legend__title">Légende — <span id="legend-dim">Régime</span></div>
+  <ul id="legend-items" class="legend__items"></ul>
+  <div class="legend__seveso" id="legend-seveso">
+    <span class="legend__seveso-mark" aria-hidden="true"></span>
+    Seveso (contour)
+  </div>
+</div>
+
+<!-- JS libraries -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/@turf/simplify@6.5.0/dist/turf-simplify.min.js"></script>
+
+<!-- Our app -->
+<script src="carte-interactive/app.js"></script>
+</body>
+</html>
