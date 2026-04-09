@@ -111,29 +111,28 @@ async function runSearch() {
     return;
   }
 
-  const pattern = buildSqlLikePattern(term);
+  // Escape single quotes for safe SQL interpolation, then wrap in %...%
+  const safeTerm = term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
+  const pattern = `%${safeTerm}%`;
   const fullText = document.getElementById('fulltext-toggle')?.checked ?? false;
   try {
     // Default: search on lightweight columns only (~0.5 MB via HTTP range).
-    // Full-text: adds body column (~13 MB on first use, cached after).
-    const bodyClause = fullText
-      ? "OR LOWER(body) LIKE LOWER(?) ESCAPE '\\\\'"
+    // Full-text: adds body + constats_body (~18 MB on first use, cached).
+    const bodyWhere = fullText
+      ? `OR LOWER(body) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(COALESCE(constats_body, '')) LIKE LOWER('${pattern}') ESCAPE '\\'`
       : '';
-    const params = fullText
-      ? [pattern, pattern, pattern, pattern, pattern, pattern, MAX_RESULTS]
-      : [pattern, pattern, pattern, pattern, MAX_RESULTS];
     const result = await con.query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
       FROM 'fiches.parquet'
-      WHERE LOWER(COALESCE(titre, '')) LIKE LOWER(?) ESCAPE '\\'
-         OR LOWER(nom_complet) LIKE LOWER(?) ESCAPE '\\'
-         OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER(?) ESCAPE '\\'
-         OR LOWER(COALESCE(theme, '')) LIKE LOWER(?) ESCAPE '\\'
-         ${bodyClause}
-         ${fullText ? "OR LOWER(COALESCE(constats_body, '')) LIKE LOWER(?) ESCAPE '\\\\'" : ''}
-      LIMIT ?
-    `, params);
+      WHERE LOWER(COALESCE(titre, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(nom_complet) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(COALESCE(theme, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         ${bodyWhere}
+      LIMIT ${MAX_RESULTS}
+    `);
 
     const rows = result.toArray();
     renderResults(rows);
@@ -205,9 +204,10 @@ async function loadFiche(ficheId) {
   });
 
   try {
+    const safeId = ficheId.replace(/'/g, "''");
     const result = await con.query(`
-      SELECT * FROM 'fiches.parquet' WHERE fiche_id = ?
-    `, [ficheId]);
+      SELECT * FROM 'fiches.parquet' WHERE fiche_id = '${safeId}'
+    `);
     const rows = result.toArray();
     if (rows.length === 0) {
       detailEl.innerHTML = '<p class="detail__empty">Fiche introuvable.</p>';
