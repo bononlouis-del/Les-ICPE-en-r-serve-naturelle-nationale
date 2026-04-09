@@ -550,3 +550,49 @@ Chaque étape vérifie ses prérequis (présence du fichier d'entrée,
 colonnes attendues) et écrit ses sorties de façon atomique (écriture
 dans un fichier temporaire puis remplacement, via `os.replace`) pour
 éviter les états intermédiaires en cas d'interruption.
+
+---
+
+## 7. Application des corrections
+
+### 7.1 Principe : le sidecar de corrections
+
+Une fois qu'un nombre suffisant de buckets ont été revus et commités
+dans `données-georisques/audit/coordonnees-audit-reviews/`, le script
+`scripts/apply_corrections.py` lit l'ensemble des fichiers JSON de
+revue et produit un sidecar de corrections :
+`données-georisques/audit/coordonnees-corrections.csv`.
+
+Ce fichier contient **toutes les décisions prises par les enquêteurs**,
+pas uniquement celles qui modifient les coordonnées. Un enregistrement
+complet facilite l'audit journalistique a posteriori : on peut retrouver
+qui a décidé quoi, quand, et pourquoi (via la colonne `note`).
+
+### 7.2 Idempotence
+
+Le script est entièrement idempotent : le relancer avec les mêmes
+fichiers de revue en entrée produit exactement le même CSV en sortie.
+L'option `--dry-run` permet de prévisualiser le résultat sans écrire
+sur le disque.
+
+### 7.3 Intégration avec l'enrichisseur
+
+Le script `scripts/enrichir_libelles.py` lit automatiquement le sidecar
+de corrections (s'il existe) et applique les coordonnées corrigées lors
+de la production du CSV de la carte. Le flux complet de bout en bout :
+
+1. **Audit** — `scripts/audit_coordinates.py` produit `flagged.json`
+2. **Revue** — les enquêteurs utilisent `/audit/` pour examiner chaque
+   site et enregistrer un verdict
+3. **Export** — chaque enquêteur exporte son bucket en JSON et le
+   commite dans le dépôt
+4. **Compilation** — `scripts/apply_corrections.py` lit les JSON de
+   revue et produit `coordonnees-corrections.csv`
+5. **Application** — `scripts/enrichir_libelles.py` lit le sidecar et
+   met à jour les coordonnées dans le CSV de la carte
+6. **Publication** — commit + push → la carte interactive affiche
+   désormais les coordonnées corrigées
+
+Ce flux peut être relancé autant de fois que nécessaire au fur et à
+mesure que de nouveaux buckets sont revus. Chaque itération intègre les
+nouvelles décisions sans perdre les précédentes.

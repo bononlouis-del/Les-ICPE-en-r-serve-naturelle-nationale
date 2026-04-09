@@ -218,6 +218,7 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   ├── extract_rapports_markdown.py        # extraction markdown des PDFs (pymupdf + ocrmypdf)
 │   ├── audit_coordinates.py                # audit des écarts coords/adresses (BAN+OpenCage+Nominatim cascade)
 │   ├── build_metadata_samples.py           # sidecar d'échantillons pour /donnees/
+│   ├── apply_corrections.py               # compile les revues d'audit → sidecar de corrections
 │   ├── construire_fiches.py                # construit fiches.parquet depuis les sidecars
 │   ├── build_angles_index.py              # scanne rapports/angles/*.md → index.json
 │   ├── schemas/
@@ -274,8 +275,10 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   └── scripts/                   # prep_reserves.py, build_epci_outlines.py, fetch_fonts.sh
 ├── audit/                         # outil 2 : revue d'audit des coordonnées
 │   ├── index.html
+│   ├── table.html                 # vue tabulaire des décisions (filtrable, exportable)
 │   ├── app.js                     # state machine + Contents API + mini-map
 │   ├── lib.js                     # fonctions pures (testées dans test.html)
+│   ├── table.js                   # chargement + rendu du tableau des décisions
 │   ├── style.css
 │   └── test.html                  # tests JS dans le navigateur (~30 console.assert)
 ├── rapports/                      # outil 4 : rapports d'inspection
@@ -326,6 +329,13 @@ OPENCAGE_API_KEY=... uv run scripts/audit_coordinates.py
 
 # 6. Régénère le sidecar d'échantillons pour /donnees/
 python3 scripts/build_metadata_samples.py
+
+# 7. Compile les décisions de revue en un sidecar de corrections
+python3 scripts/apply_corrections.py
+# Prévisualisation sans écriture : python3 scripts/apply_corrections.py --dry-run
+
+# 8. Relance l'enrichisseur pour appliquer les corrections à la carte
+python3 scripts/enrichir_libelles.py
 
 # Flags utiles du script 3 :
 #   --limit 5   : test progressif sur 5 PDFs
