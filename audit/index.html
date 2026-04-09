@@ -40,7 +40,10 @@
       <div class="masthead__label">Cahier d'enquête</div>
       <h1 class="masthead__title">Audit des coordonnées ICPE</h1>
     </div>
-    <a class="masthead__home" href="../">← retour à l'accueil</a>
+    <div>
+      <a class="masthead__home" href="../">← retour à l'accueil</a>
+      <a class="masthead__table-link" href="table.html">Tableau des décisions</a>
+    </div>
   </div>
   <p class="status-strip" id="status-strip">Chargement…</p>
 </header>
@@ -214,6 +217,25 @@
       <li>Commit et push : <code>git add … &amp;&amp; git commit -m "review bucket-…" &amp;&amp; git push</code></li>
       <li>Actualise cette page : le bucket apparaît avec une coche ✓ et tes initiales.</li>
     </ol>
+
+    <h3>Après l'audit : appliquer les corrections</h3>
+    <p>Une fois que suffisamment de buckets ont été revus et commités :</p>
+    <ol>
+      <li>Lance <code>python3 scripts/apply_corrections.py</code> — ce script
+          lit les fichiers JSON de revue commités et produit
+          <code>coordonnees-corrections.csv</code>, un tableau complet des
+          décisions prises par les enquêteurs.</li>
+      <li>Vérifie les décisions dans le
+          <a href="table.html">tableau des décisions</a> avant de les appliquer.</li>
+      <li>Relance <code>python3 scripts/enrichir_libelles.py</code> — le script
+          lit automatiquement le sidecar de corrections et met à jour les
+          coordonnées dans le CSV de la carte.</li>
+      <li>Commit et push — la carte interactive affiche désormais les
+          coordonnées corrigées.</li>
+    </ol>
+    <p>Le script est idempotent : le relancer avec les mêmes revues produit
+    le même résultat. Pour prévisualiser sans écrire :
+    <code>python3 scripts/apply_corrections.py --dry-run</code>.</p>
 
     <h3>Travailler en équipe</h3>
     <p>
