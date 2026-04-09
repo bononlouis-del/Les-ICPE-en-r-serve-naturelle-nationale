@@ -106,6 +106,56 @@ export function formatSearchResult(row) {
 }
 
 /**
+ * Reflow text extracted from PDFs: join lines that were broken by
+ * page layout (justified text, columns) into continuous paragraphs.
+ *
+ * Rules:
+ * - A line ending with a lowercase letter/comma/semicolon followed by
+ *   a line starting with a lowercase letter → join with space (layout break)
+ * - A line ending with a hyphen followed by a lowercase letter → join
+ *   without space (word hyphenation)
+ * - Double newlines (blank lines) are preserved as paragraph separators
+ * - Lines starting with • or - are preserved as list items
+ *
+ * @param {string} text - Raw extracted text with layout line breaks
+ * @returns {string} Reflowed text with natural paragraphs
+ */
+export function reflowText(text) {
+  if (!text) return '';
+  // Preserve double newlines as paragraph markers
+  const paragraphs = text.split(/\n\s*\n/);
+  return paragraphs.map((para) => {
+    const lines = para.split('\n');
+    if (lines.length <= 1) return para;
+    let result = lines[0];
+    for (let i = 1; i < lines.length; i++) {
+      const prev = result;
+      const next = lines[i];
+      if (!next.trim()) continue;
+      // Preserve list items
+      if (/^\s*[•\-–—]\s/.test(next)) {
+        result += '\n' + next;
+        continue;
+      }
+      // Hyphenated word break: join without space
+      if (/[a-zàâéèêëïîôùûüç]-$/.test(prev.trimEnd())) {
+        result = prev.trimEnd().slice(0, -1) + next.trimStart();
+        continue;
+      }
+      // Layout line break: lowercase/punctuation end → lowercase start
+      if (/[a-zàâéèêëïîôùûüç,;:)]$/.test(prev.trimEnd()) &&
+          /^[a-zàâéèêëïîôùûüçl'(«]/.test(next.trimStart())) {
+        result += ' ' + next.trimStart();
+        continue;
+      }
+      // Default: keep the line break
+      result += '\n' + next;
+    }
+    return result;
+  }).join('\n\n');
+}
+
+/**
  * Check if current viewport is mobile (<720px).
  * @returns {boolean}
  */

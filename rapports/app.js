@@ -13,6 +13,7 @@ import {
   canvasCoordinatesFromBbox,
   formatSearchResult,
   isMobileViewport,
+  reflowText,
 } from './lib.js';
 
 // --- Configuration -------------------------------------------------------
@@ -307,11 +308,11 @@ function renderDetail(row) {
       f.appendChild(fl);
       const fv = document.createElement('div');
       fv.className = 'field__value';
-      fv.textContent = value;
+      fv.textContent = reflowText(value);
       f.appendChild(fv);
       fields.appendChild(f);
     }
-    // Constats (full width)
+    // Constats (full width, reflowed to remove layout line breaks)
     if (row.constats_body) {
       const f = document.createElement('div');
       f.className = 'field field--full';
@@ -321,9 +322,10 @@ function renderDetail(row) {
       f.appendChild(fl);
       const fv = document.createElement('div');
       fv.className = 'field__value';
-      fv.textContent = row.constats_body.length > 2000
-        ? row.constats_body.slice(0, 2000) + '…'
-        : row.constats_body;
+      const reflowed = reflowText(row.constats_body);
+      fv.textContent = reflowed.length > 2000
+        ? reflowed.slice(0, 2000) + '…'
+        : reflowed;
       fv.style.whiteSpace = 'pre-wrap';
       f.appendChild(fv);
       fields.appendChild(f);

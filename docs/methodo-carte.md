@@ -8,15 +8,15 @@ avant l'enquête.
 
 ## 1. Données sources
 
-### 1.1 Export officiel Géorisques (source canonique)
+### 1.1 Export officiel Géorisques (source principale)
 
-La source principale est l'**export bulk CSV** publié par l'API
-Géorisques V1 du Ministère de la Transition Écologique :
+La source principale est l'**export officiel** publié par l'API
+Géorisques du Ministère de la Transition Écologique :
 
-- **Point d'accès** : `GET /api/v1/csv/installations_classees?departement=33`
+- **Adresse** : `GET /api/v1/csv/installations_classees?departement=33`
 - **Date de téléchargement** : 8 avril 2026
-- **Format** : archive ZIP contenant 5 fichiers CSV (encodage ISO-8859-1,
-  séparateur `;`), convertis en UTF-8 à l'extraction
+- **Format** : archive ZIP contenant 5 fichiers (encodage converti en
+  UTF-8 à l'extraction)
 - **Contenu** :
   - `InstallationClassee.csv` — 2 890 installations (table principale)
   - `inspection.csv` — historique d'inspection
@@ -25,12 +25,12 @@ Géorisques V1 du Ministère de la Transition Écologique :
   - `metadataFichierHorsInspection.csv` — métadonnées des documents non publiables
 
 Le script `scripts/fetch_georisques.py` automatise le téléchargement,
-l'archivage horodaté dans `données-georisques/raw/`, la conversion en
-UTF-8, et la comparaison avec la source historique.
+l'archivage dans `données-georisques/raw/`, la conversion en UTF-8, et
+la comparaison avec la source historique.
 
 ### 1.2 Snapshot historique data.gouv.fr (référence secondaire)
 
-Un export CSV plus ancien (février 2025) est conservé dans
+Un export plus ancien (février 2025) est conservé dans
 `carte/liste-icpe-gironde.csv` à titre de comparaison temporelle. Il
 liste 2 888 installations.
 
@@ -38,8 +38,8 @@ La comparaison entre les deux sources montre :
 
 | Source | Installations |
 |---|---:|
-| Bulk Géorisques (avril 2026) | 2 890 |
-| CSV historique (février 2025) | 2 888 |
+| Export officiel (avril 2026) | 2 890 |
+| Snapshot historique (février 2025) | 2 888 |
 | En commun | 2 886 |
 | Ajoutées depuis février 2025 | 4 |
 | Retirées depuis février 2025 | 2 |
@@ -54,64 +54,59 @@ purement temporelle et attendue.
 Les polygones des réserves naturelles sont téléchargés via le service
 WFS de la Géoplateforme de l'IGN :
 
-- **RNN** (Réserves Naturelles Nationales) : couche `patrinat_rnn:rnn`
-  — 9 réserves en Gironde
-- **RNR** (Réserves Naturelles Régionales) : couche `patrinat_rnr:rnr`
-  — 0 réserve en Gironde
-
-L'emprise de filtrage couvre la Gironde : longitude −1,3° à 0,3°,
-latitude 44,2° à 45,6°.
+- **RNN** (Réserves Naturelles Nationales) : 9 réserves en Gironde
+- **RNR** (Réserves Naturelles Régionales) : 0 réserve en Gironde
 
 ### 1.4 Communes et EPCI (geo.api.gouv.fr)
 
-Les contours communaux et les rattachements EPCI proviennent de l'API
-géographique d'Etalab (géo-découpage administratif) :
+Les contours communaux et les rattachements aux intercommunalités
+proviennent de l'API géographique d'Etalab :
 
-- Communes : `https://geo.api.gouv.fr/departements/33/communes?fields=nom,code,codeEpci`
-- EPCI : `https://geo.api.gouv.fr/epcis?fields=nom,code`
+- Communes : nom, code INSEE, code EPCI
+- EPCI : nom, code SIREN
 
-Le résultat est mis en cache localement (48 Ko, JSON compact) pour
-permettre les exécutions hors-ligne.
+Le résultat est mis en cache localement pour permettre les exécutions
+sans connexion internet.
 
 ### 1.5 Rapports d'inspection (Géorisques)
 
-Les rapports d'inspection publiables sont téléchargés depuis l'endpoint
-Géorisques dédié par le script `scripts/telecharger_rapports_inspection.py`.
-Le téléchargement est idempotent (les fichiers déjà présents ne sont pas
-retéléchargés) et les erreurs HTTP 404 sont mémorisées pour ne pas
-relancer de requêtes inutiles aux lancements suivants.
+Les rapports d'inspection publiables sont téléchargés depuis Géorisques
+par le script `scripts/telecharger_rapports_inspection.py`.
+Le téléchargement est progressif (les fichiers déjà présents ne sont pas
+retéléchargés) et les erreurs définitives (rapport supprimé côté
+Géorisques) sont mémorisées pour ne pas relancer de requêtes inutiles.
 
 ---
 
 ## 2. Enrichissement des données
 
-Le script `scripts/enrichir_libelles.py` transforme l'export brut en un
-CSV exploitable par la carte. Il produit deux fichiers :
+Le script `scripts/enrichir_libelles.py` transforme l'export brut en
+un fichier CSV exploitable par la carte. Il produit deux fichiers :
 
-1. **`données-georisques/InstallationClassee_enrichi.csv`** — le bulk
-   enrichi (2 890 lignes, séparateur `;`)
-2. **`carte/data/liste-icpe-gironde_enrichi.csv`** — la projection vers
-   le format de la carte (2 890 lignes, séparateur `,`)
+1. **`données-georisques/InstallationClassee_enrichi.csv`** — l'export
+   enrichi (2 890 lignes)
+2. **`carte/data/liste-icpe-gironde_enrichi.csv`** — le fichier final
+   consommé par la carte (2 890 lignes)
 
-### 2.1 Architecture « Scope Y' » (bulk-canonique)
+### 2.1 Source de référence
 
-La carte est produite **à partir du bulk officiel** (2 890 lignes),
-avec un left-join sur le snapshot historique uniquement pour récupérer
-deux champs absents du bulk : la date de création (`cdate`) et
-l'identifiant historique (`gid`). Les 4 installations présentes
-seulement dans le bulk reçoivent des valeurs vides pour ces champs.
+La carte est construite à partir de l'**export officiel** (2 890 lignes).
+Pour chaque installation, deux informations sont récupérées depuis le
+snapshot historique quand elles existent : la date de création et
+l'identifiant historique. Le croisement se fait par l'identifiant ICPE,
+commun aux deux fichiers.
 
-La jointure se fait par la clé `codeAiot` (bulk) ↔ `ident` (historique),
-normalisée en supprimant les zéros à gauche.
+Les 4 installations présentes uniquement dans l'export officiel (pas
+dans le snapshot) reçoivent des valeurs vides pour ces deux champs.
 
-### 2.2 Normalisation catégorielle
+### 2.2 Standardisation des catégories
 
-Les valeurs textuelles du bulk sont normalisées pour correspondre aux
-catégories attendues par les filtres de la carte :
+Les valeurs textuelles de l'export Géorisques sont standardisées pour
+correspondre aux filtres de la carte :
 
 **Régime ICPE :**
 
-| Valeur Géorisques | Valeur normalisée |
+| Dans Géorisques | Dans la carte |
 |---|---|
 | Autorisation | AUTORISATION |
 | Enregistrement | ENREGISTREMENT |
@@ -120,59 +115,51 @@ catégories attendues par les filtres de la carte :
 
 **Statut Seveso :**
 
-| Valeur Géorisques | Valeur normalisée |
+| Dans Géorisques | Dans la carte |
 |---|---|
 | Non Seveso | NON_SEVESO |
 | Seveso seuil bas | SEUIL_BAS |
 | Seveso seuil haut | SEUIL_HAUT |
 | *(vide)* | *(vide)* |
 
-**Colonnes booléennes** (`bovins`, `porcs`, `volailles`, `carriere`,
-`eolienne`, `industrie`, `prioriteNationale`, `ied`) : les valeurs
-`"true"`/`"false"` du bulk sont converties en `"TRUE"`/`"FALSE"`.
+Les colonnes oui/non (`prioriteNationale`, `ied`, etc.) sont converties
+de `"true"`/`"false"` en `"TRUE"`/`"FALSE"`.
 
-Si une valeur catégorielle inconnue apparaît dans un futur export (par
-exemple un nouveau régime ICPE), le script émet un avertissement et
-applique un fallback (`AUTRE` pour le régime, `NON_SEVESO` pour Seveso)
-au lieu de laisser la valeur brute corrompre silencieusement le CSV.
+Si une valeur inconnue apparaît dans un futur export (par exemple un
+nouveau régime ICPE), le script émet un avertissement plutôt que de
+laisser passer la valeur brute silencieusement.
 
-### 2.3 Désambiguïsation des libellés
+### 2.3 Désambiguïsation des noms
 
-L'export Géorisques contient des libellés non uniques (une même raison
-sociale peut désigner plusieurs établissements). Le script produit un
-**libellé complet unique** (`libelle_complet`) par installation en
-deux passes :
+L'export Géorisques contient des noms en doublon : par exemple, 22
+entrées s'appellent « BORDEAUX METROPOLE » pour des sites différents.
+Le script produit un **nom complet unique** pour chaque installation
+en deux étapes :
 
-1. **Classification** : les libellés contenant un séparateur ` - ` ou
-   ` – ` sont décomposés en `structure` (avant le séparateur) et
-   `etablissement` (après). Les libellés sans séparateur sont marqués
-   comme potentiellement ambigus si le même texte apparaît plus d'une
-   fois.
+1. **Séparation** : quand un nom contient un tiret long (ex. « SAFRAN —
+   Saint-Médard-en-Jalles »), il est décomposé en nom de structure
+   (« SAFRAN ») et nom d'établissement (« Saint-Médard-en-Jalles »).
 
-2. **Désambiguïsation progressive** : pour chaque groupe de libellés
-   identiques, la commune puis l'adresse sont ajoutées au nom de
-   l'établissement jusqu'à ce que chaque ligne soit unique. En dernier
-   recours, un suffixe numérique `(#1, #2, …)` est ajouté dans l'ordre
-   du code AIOT.
+2. **Désambiguïsation progressive** : pour les noms encore identiques,
+   la commune puis l'adresse sont ajoutées au nom jusqu'à ce que chaque
+   ligne soit unique. En dernier recours, un numéro est ajouté
+   (« #1, #2, … »).
 
-### 2.4 Enrichissement communal et EPCI
+### 2.4 Ajout de la commune et de l'intercommunalité
 
-Pour chaque installation, le code INSEE est utilisé pour récupérer :
+Pour chaque installation, le code INSEE est utilisé pour ajouter :
 
-- le nom normalisé de la commune (source : IGN / Admin Express via
-  geo.api.gouv.fr)
-- le code SIREN et le nom de l'EPCI de rattachement
+- le nom normalisé de la commune (source : IGN via geo.api.gouv.fr)
+- le nom et le code SIREN de l'intercommunalité (EPCI)
 
-Ce lookup est mis en cache pour permettre les exécutions sans connexion.
+### 2.5 Coordonnées géographiques
 
-### 2.5 Synthèse des coordonnées géographiques
+Les colonnes `longitude` et `latitude` de l'export sont combinées en
+deux formats utilisés par la carte :
 
-Les colonnes `longitude` et `latitude` du bulk sont combinées en deux
-colonnes GeoJSON utilisées par la carte :
-
-- `Geo Point` : `"lat, lon"` (ordre latitude-longitude pour compatibilité
-  avec les conventions cartographiques)
-- `Geo Shape` : objet GeoJSON Point `{"type": "Point", "coordinates": [lon, lat]}`
+- `coordonnees_lat_lon` : texte `"latitude, longitude"`
+- `geometrie_geojson` : format GeoJSON Point
+  `{"type": "Point", "coordinates": [longitude, latitude]}`
 
 ---
 
@@ -190,164 +177,141 @@ L'audit vérifie systématiquement la cohérence entre adresse et
 coordonnées pour les 2 890 installations, en croisant cinq signaux
 complémentaires.
 
-### 3.2 Les cinq passes de signaux
+### 3.2 Les cinq vérifications
 
-Le script `scripts/audit_coordinates.py` exécute cinq passes
-séquentielles. Chaque passe enrichit la ligne avec de nouvelles colonnes
-de signaux, que la passe de classification finale agrège.
+Le script `scripts/audit_coordinates.py` exécute cinq vérifications
+dans l'ordre. Chaque vérification ajoute de nouvelles colonnes
+d'information à chaque installation.
 
-#### Passe 1 — Sentinelles (hors-ligne)
+#### Vérification 1 — Anomalies évidentes (sans internet)
 
-Détecte les anomalies structurelles sans appel réseau :
+Détecte les problèmes structurels sans aucun appel réseau :
 
-| Signal | Condition | Signification |
+| Signal | Ce qu'on vérifie | Ce que ça signifie |
 |---|---|---|
-| `null_island` | Les deux coordonnées sont à (0, 0) ou manquantes | Coordonnées invalides ou absentes |
-| `outside_gironde` | Le point stocké est hors du contour départemental | Site probablement mal géolocalisé dans Géorisques |
-| `commune_centroid` | Le point stocké est à moins de 50 m du centroïde de sa commune | Signature typique d'un géocodeur qui n'a pas trouvé l'adresse et a placé le point au centre de la commune |
-| `duplicate_coords` | 3 sites ou plus partagent les mêmes coordonnées arrondies à 5 décimales | Coordonnées copiées ou attribution par défaut |
+| Coordonnées à (0, 0) | Les deux coordonnées sont nulles ou manquantes | Données invalides |
+| Hors Gironde | Le point est en dehors du département | Géolocalisation fausse |
+| Au centre de la commune | Le point est à moins de 50 m du centre géographique de la commune | Signe qu'un outil a placé le point au centre faute de trouver l'adresse |
+| Coordonnées en double | 3 sites ou plus partagent les mêmes coordonnées | Coordonnées copiées ou attribuées par défaut |
 
-#### Passe 2 — Point-in-polygon communal
+#### Vérification 2 — Le point est-il dans la bonne commune ?
 
-Teste si le point stocké est géométriquement à l'intérieur du polygone
-de sa commune déclarée, en utilisant les contours communaux de l'IGN :
+On teste si le point de l'installation tombe géographiquement à
+l'intérieur du contour de la commune qu'elle déclare, en utilisant les
+contours communaux de l'IGN :
 
 | Résultat | Signification |
 |---|---|
-| `true` | Le point est dans la bonne commune |
-| `false` | Le point est en Gironde mais dans une autre commune que celle déclarée |
-| `null` | Le polygone de la commune n'est pas disponible (ne peut pas vérifier) |
+| Oui | Le point est bien dans la bonne commune |
+| Non | Le point est en Gironde mais dans une autre commune |
+| Inconnu | Le contour de la commune n'est pas disponible |
 
-#### Passe 3 — Géocodage direct (forward geocoding)
+#### Vérification 3 — Géocodage de l'adresse (adresse → coordonnées)
 
-**Principe** : à partir de l'adresse postale de chaque installation,
-interroger un géocodeur pour obtenir des coordonnées indépendantes, puis
-mesurer la distance par rapport aux coordonnées stockées dans
-Géorisques. Si la distance est grande, c'est un signal que les
-coordonnées stockées sont probablement fausses.
+**Principe** : on envoie l'adresse postale de chaque installation à un
+service de géocodage pour obtenir des coordonnées indépendantes, puis on
+mesure la distance entre ces coordonnées et celles de Géorisques. Si
+la distance est grande, les coordonnées de Géorisques sont probablement
+fausses.
 
-Le géocodage utilise une **cascade à trois couches** pour maximiser le
-taux de résolution :
+Le géocodage utilise trois services en cascade (si le premier ne trouve
+pas, on essaie le suivant) :
 
-**Couche 1 — BAN** (Base Adresse Nationale, api-adresse.data.gouv.fr) :
+**Service 1 — BAN** (Base Adresse Nationale, service public français) :
 
-L'adresse est soumise en trois stratégies successives. Chaque stratégie
-est une construction différente de la chaîne envoyée au géocodeur :
+L'adresse est soumise sous trois formes successives pour maximiser les
+chances de résolution :
 
-| Stratégie | Chaîne envoyée | Logique |
-|---|---|---|
-| adresse1 seule | Contenu du champ `adresse1` | La plupart des sites ont leur rue dans ce champ |
-| adresse2 seule | Contenu du champ `adresse2` | Certains sites mettent le nom du lieu-dit en adresse1 et la rue en adresse2 |
-| combinée | `adresse1` + `adresse2` concaténées | Dernier recours si les deux champs seuls échouent |
+| Forme | Exemple |
+|---|---|
+| Champ adresse1 seul | « 71 chemin Bord Eau » |
+| Champ adresse2 seul | « Zone Industrielle Nord » |
+| Les deux combinés | « 71 chemin Bord Eau Zone Industrielle Nord » |
 
-La première stratégie qui produit un résultat avec un score ≥ 0,4
-l'emporte. Chaque stratégie est mise en cache séparément : une
-ré-exécution du script ne refait que les appels réseau nécessaires.
+La première forme qui donne un résultat suffisamment fiable l'emporte.
 
-**Résultat** : sur les 2 890 sites, la BAN a résolu **2 175 adresses**
-(75,3 %).
+**Résultat** : la BAN a résolu **2 175 adresses** (75,3 %).
 
-**Couche 2 — OpenCage** (opencagedata.com) :
+**Service 2 — OpenCage** (agrégateur mondial) :
 
-Pour les 715 adresses que la BAN n'a pas pu résoudre, le géocodeur
-OpenCage est interrogé. OpenCage agrège les données d'OpenStreetMap,
-GeoNames et d'autres sources.
+Pour les 715 adresses que la BAN n'a pas résolues, le service OpenCage
+(qui s'appuie sur OpenStreetMap et d'autres sources) est interrogé.
 
-- Limite : 2 500 requêtes/jour, 1 requête/seconde (palier gratuit)
-- Clé API requise (variable d'environnement `OPENCAGE_API_KEY`)
-- Résultats mis en cache localement pour ne pas re-consommer le quota
+**Résultat** : OpenCage a résolu **714 adresses** supplémentaires.
 
-**Résultat** : OpenCage a résolu **714 adresses** supplémentaires (24,7 %).
+**Service 3 — Nominatim** (OpenStreetMap) :
 
-**Couche 3 — Nominatim** (OpenStreetMap) :
+Dernière tentative pour les résultats encore imprécis d'OpenCage
+(résolution au niveau de la commune seulement, pas de la rue).
 
-Dernière couche, utilisée uniquement pour les résultats faibles
-d'OpenCage (résolution au niveau commune/localité seulement). Les
-correspondances OpenCage de type `locality` ou `municipality` sont
-re-soumises à Nominatim pour tenter d'obtenir une résolution plus
-précise (rue ou numéro de rue).
+**Résultat** : Nominatim a amélioré **1 résolution**.
 
-- Limite : 1 requête/seconde, identification par User-Agent obligatoire
-- Résultats mis en cache localement
+**Bilan du géocodage** : 100 % de couverture (2 890 / 2 890), avec
+des niveaux de précision variables :
 
-**Résultat** : Nominatim a amélioré **1 résolution** sur les cas resoumis.
-
-**Bilan du géocodage forward** : 100 % de couverture (2 890 / 2 890),
-répartis par précision :
-
-| Précision du résultat | Nombre | Part |
+| Précision | Nombre | Part |
 |---|---:|---:|
-| Numéro de rue (`housenumber`) | 842 | 29,1 % |
-| Rue (`street`) | 1 531 | 53,0 % |
-| Localité (`locality`) | 332 | 11,5 % |
-| Commune (`municipality`) | 185 | 6,4 % |
+| Numéro de rue | 842 | 29,1 % |
+| Rue (sans numéro) | 1 531 | 53,0 % |
+| Quartier / lieu-dit | 332 | 11,5 % |
+| Commune (centre) | 185 | 6,4 % |
 
-#### Passe 4 — Géocodage inverse (reverse geocoding)
+#### Vérification 4 — Géocodage inverse (coordonnées → adresse)
 
-**Principe** : à partir des coordonnées stockées dans Géorisques,
-interroger la BAN pour obtenir l'adresse correspondante. L'objectif est
-de vérifier la cohérence dans l'autre sens : « quelle adresse se trouve
-au point enregistré ? ».
+**Principe** : on envoie les coordonnées de Géorisques à la BAN pour
+obtenir l'adresse qui se trouve à cet endroit. L'objectif est de
+vérifier la cohérence dans l'autre sens : « qu'y a-t-il au point
+enregistré ? ».
 
-Ce signal est utilisé de deux façons :
+Ce résultat sert à deux choses :
 
-1. **Détection de commune erronée** : si le code INSEE retourné par le
-   géocodage inverse ne correspond pas au code INSEE déclaré par le
-   site, c'est un signal fort que les coordonnées stockées sont dans la
-   mauvaise commune.
+1. **Détection d'erreur de commune** : si l'adresse retournée est dans
+   une autre commune que celle déclarée, c'est un signal fort que les
+   coordonnées sont fausses.
 
-2. **Confirmation communale** : quand le géocodage direct a échoué (pas
-   d'adresse résolue), si le géocodage inverse confirme que le point
-   stocké est dans la bonne commune, c'est un signal faible mais positif
+2. **Confirmation** : quand le géocodage de l'adresse a échoué, si le
+   géocodage inverse confirme la bonne commune, c'est un signal positif
    que les coordonnées sont au moins dans le bon secteur.
 
-**Taux de couverture** : la BAN inverse a retourné un résultat pour
-**2 544 sites** (88 %). Les 346 échecs correspondent à des points dans
-des zones non couvertes par la BAN (champs, zones industrielles non
-cartographiées, zones rurales à faible couverture).
+**Couverture** : résultat obtenu pour **2 544 sites** (88 %).
 
-#### Passe 5 — Appartenance aux réserves naturelles
+#### Vérification 5 — Proximité des réserves naturelles
 
-Pour chaque site, le script teste si le point stocké ET le point géocodé
-sont à l'intérieur d'une réserve naturelle (test point-in-polygon contre
-les 9 polygones RNN).
+Pour chaque site, le script teste si le point de Géorisques ET le point
+géocodé sont à l'intérieur d'une réserve naturelle.
 
 Quatre signaux sont produits :
 
 | Signal | Signification |
 |---|---|
-| `stored_in_reserve` | Nom de la réserve contenant le point stocké, ou `"none"` |
-| `geocoded_in_reserve` | Nom de la réserve contenant le point géocodé, ou `"none"` |
-| `reserve_ambiguous` | `true` si les deux points ne sont pas d'accord sur l'appartenance |
-| `reserve_boundary_proximity` | `true` si l'un des deux points est à moins de 200 m d'une limite de réserve |
+| Point Géorisques dans une réserve | Nom de la réserve, ou « aucune » |
+| Point géocodé dans une réserve | Nom de la réserve, ou « aucune » |
+| Désaccord | Les deux points ne sont pas d'accord sur l'appartenance |
+| Proximité de limite | Un des deux points est à moins de 200 m d'une limite de réserve |
 
-Le cas le plus critique est `reserve_ambiguous` : le point stocké dit
-que le site est dans une réserve mais le géocodage dit le contraire (ou
+Le cas critique est le **désaccord** : le point Géorisques dit que le
+site est dans une réserve mais le géocodage dit le contraire (ou
 inversement). Ces cas nécessitent une vérification humaine prioritaire.
 
 ### 3.3 Classification
 
-Après les cinq passes, chaque site reçoit une **classe d'audit**
-attribuée par une échelle de priorité (la première condition vérifiée
-l'emporte) :
+Après les cinq vérifications, chaque site reçoit une **classe** :
 
-| Classe | Condition | Signification |
-|---|---|---|
-| `null_island` | Coordonnées à (0, 0) ou manquantes | Données structurellement invalides |
-| `outside_gironde` | Le point est hors du département | Géolocalisation manifestement fausse |
-| `wrong_commune` | Le point n'est pas dans la commune déclarée (PIP ou reverse) | Erreur de commune |
-| `address_unresolvable_isolated` | Géocodage direct échoué ET le reverse n'a pas confirmé la commune | Aucun signal exploitable |
-| `address_unresolvable_commune_ok` | Géocodage direct échoué MAIS le reverse confirme la bonne commune | Adresse introuvable mais coordonnées probablement dans le bon secteur |
-| `address_imprecise` | Géocodage résolu au niveau commune ou localité (pas rue ni numéro) | Résolution trop grossière pour conclure |
-| `very_severe` | Distance stocké ↔ géocodé ≥ 2 000 m | Écart très important |
-| `severe` | Distance ≥ 500 m | Écart important |
-| `suspicious` | Distance ≥ 100 m | Écart à vérifier |
-| `minor` | Distance ≥ 25 m | Écart mineur |
-| `ok` | Distance < 25 m | Coordonnées cohérentes |
+| Classe | Signification |
+|---|---|
+| `ok` | Coordonnées cohérentes avec l'adresse (distance < 25 m) |
+| `minor` | Petit écart (25 à 100 m) |
+| `suspicious` | Écart à vérifier (100 à 500 m) |
+| `severe` | Écart important (500 m à 2 km) |
+| `very_severe` | Écart très important (> 2 km) |
+| `wrong_commune` | Le point est dans la mauvaise commune |
+| `outside_gironde` | Le point est hors du département |
+| `address_imprecise` | L'adresse n'a été résolue qu'au niveau de la commune |
+| `address_unresolvable_commune_ok` | Adresse non trouvée mais commune confirmée |
+| `address_unresolvable_isolated` | Aucun signal exploitable |
+| `null_island` | Coordonnées à (0, 0) |
 
 ### 3.4 Résultats de l'audit (8 avril 2026)
-
-**Répartition par classe :**
 
 | Classe | Effectif |
 |---|---:|
@@ -366,15 +330,13 @@ l'emporte) :
 
 **Interprétation** : seuls 169 sites (5,8 %) ont des coordonnées
 parfaitement cohérentes avec leur adresse. Pour la majorité des sites,
-un écart mesurable existe entre l'adresse postale et la position
-géographique enregistrée dans Géorisques.
+un écart mesurable existe entre l'adresse et la position enregistrée.
 
 Cela ne signifie pas nécessairement que les coordonnées sont fausses :
 un écart de quelques centaines de mètres peut refléter le fait que le
-géocodeur a trouvé la rue mais pas le numéro précis, ou que
-l'installation est effectivement éloignée du front de rue (cas fréquent
-pour les carrières, les éoliennes, et les installations en zone
-industrielle).
+service de géocodage a trouvé la rue mais pas le numéro, ou que
+l'installation est éloignée de la rue (cas fréquent pour les carrières,
+les éoliennes et les installations en zone industrielle).
 
 ### 3.5 Groupes de revue
 
@@ -382,10 +344,10 @@ Les sites sont répartis en trois groupes pour la revue collaborative :
 
 | Groupe | Critère | Effectif | Priorité |
 |---|---|---:|---|
-| **Réserves** | L'appartenance à une réserve diffère entre le point stocké et le point géocodé, ou un point est à moins de 200 m d'une limite | 1 | Critique |
-| **Grands écarts** | Classe `very_severe`, `severe`, `outside_gironde`, `wrong_commune`, `address_imprecise`, ou `address_unresolvable_isolated` | 1 552 | Haute |
-| **Petits écarts** | Classe `suspicious`, `minor`, ou `address_unresolvable_commune_ok` | 1 168 | Basse |
-| *(non flagué)* | Classe `ok`, pas de signal réserve | 169 | — |
+| **Réserves** | Désaccord sur l'appartenance à une réserve, ou point à moins de 200 m d'une limite | 1 | Critique |
+| **Grands écarts** | Classes `very_severe`, `severe`, `outside_gironde`, `wrong_commune`, `address_imprecise`, `address_unresolvable_isolated` | 1 552 | Haute |
+| **Petits écarts** | Classes `suspicious`, `minor`, `address_unresolvable_commune_ok` | 1 168 | Basse |
+| *(non signalé)* | Classe `ok`, pas de signal réserve | 169 | — |
 
 ---
 
@@ -394,9 +356,9 @@ Les sites sont répartis en trois groupes pour la revue collaborative :
 ### 4.1 Principe
 
 L'outil de revue (`/audit/`) permet à plusieurs enquêteurs de vérifier
-les écarts en parallèle sans conflit d'écriture. Les sites à vérifier
-sont découpés en **buckets** de 25 sites chacun. Chaque enquêteur prend
-un bucket, examine chaque site, et enregistre son verdict.
+les écarts en parallèle. Les sites à vérifier sont découpés en
+**paquets de 25 sites**. Chaque enquêteur prend un paquet, examine
+chaque site, et enregistre son verdict.
 
 ### 4.2 Ce que voit l'enquêteur
 
@@ -406,94 +368,76 @@ Pour chaque site, l'outil affiche :
    vers la fiche Géorisques
 2. **Coordonnées enregistrées** : l'adresse et les coordonnées telles
    qu'elles figurent dans Géorisques
-3. **Adresse géocodée** : le résultat du géocodage direct (BAN /
-   OpenCage / Nominatim), avec le niveau de précision (numéro, rue,
-   localité…) et la distance par rapport aux coordonnées enregistrées
-4. **Adresse au point enregistré (reverse)** : ce que la BAN retourne
-   quand on lui soumet les coordonnées stockées — « quelle adresse se
-   trouve à cet endroit ? ». Si le résultat indique une commune
-   différente de celle déclarée, c'est un signal fort d'erreur.
-5. **Signaux d'audit** : la classe attribuée par le pipeline, et les
-   éventuels signaux de réserve naturelle
+3. **Adresse géocodée** : le résultat de la vérification 3 (adresse →
+   coordonnées), avec le niveau de précision et la distance par rapport
+   aux coordonnées enregistrées
+4. **Adresse au point enregistré** : le résultat de la vérification 4
+   (coordonnées → adresse) — « qu'y a-t-il à cet endroit ? »
+5. **Signaux d'audit** : la classe attribuée et les éventuels signaux
+   de réserve naturelle
 
-Une **mini-carte** affiche les deux points (coordonnées stockées en
+Une **mini-carte** affiche les deux points (coordonnées Géorisques en
 rouge, coordonnées géocodées en bleu) avec un trait matérialisant la
-distance entre les deux. Deux fonds de carte sont disponibles : plan
-(CartoDB Voyager) et orthophotographie (IGN).
+distance. Deux fonds de carte sont disponibles : plan et
+orthophotographie (IGN).
 
-### 4.3 Scénarios de revue
+### 4.3 Cas de figure
 
-#### Cas 1 — Géocodage direct et inverse ont fonctionné, écart significatif
+#### Cas 1 — Écart significatif, les deux géocodages ont fonctionné
 
-C'est le cas le plus fréquent. L'enquêteur voit les deux points sur la
-carte et la distance entre eux. L'adresse inverse lui dit « ce qui se
-trouve réellement à l'emplacement enregistré ». Il décide quel point
-est correct.
+L'enquêteur voit les deux points sur la carte et la distance entre eux.
+L'adresse inverse lui dit « ce qui se trouve réellement à l'emplacement
+enregistré ». Il décide quel point est correct.
 
-#### Cas 2 — Géocodage direct trop imprécis (468 sites `address_imprecise`)
+#### Cas 2 — Géocodage trop imprécis (468 sites)
 
-Le géocodeur n'a résolu l'adresse qu'au niveau de la commune ou du
-quartier, pas de la rue. Le point géocodé est donc le centroïde de la
-commune — la distance affichée n'est pas significative.
+Le service de géocodage n'a résolu l'adresse qu'au niveau de la commune,
+pas de la rue. Le point géocodé est donc le centre de la commune — la
+distance affichée n'est pas significative.
 
-L'enquêteur doit s'appuyer sur l'adresse inverse (si disponible) et
-sur la fiche Géorisques pour évaluer si les coordonnées stockées sont
+L'enquêteur doit s'appuyer sur l'adresse inverse et sur la fiche
+Géorisques pour évaluer si les coordonnées enregistrées sont
 vraisemblables.
 
-#### Cas 3 — Géocodage direct échoué, reverse confirme la commune (315 sites)
+#### Cas 3 — Géocodage échoué, commune confirmée (315 sites)
 
-Aucun géocodeur (BAN, OpenCage, Nominatim) n'a pu résoudre l'adresse.
-En revanche, le géocodage inverse confirme que les coordonnées stockées
-sont dans la bonne commune. C'est un signal faible mais positif : les
-coordonnées sont probablement dans le bon secteur.
+Aucun service de géocodage n'a résolu l'adresse. En revanche, le
+géocodage inverse confirme que les coordonnées enregistrées sont dans
+la bonne commune. C'est un signal faible mais positif.
 
-L'enquêteur voit « *(non géocodé)* » dans la section géocodage, et
-l'adresse inverse dans la section correspondante. Il peut généralement
-faire confiance aux coordonnées stockées pour ces sites.
+#### Cas 4 — Aucun signal automatique (57 sites)
 
-#### Cas 4 — Géocodage direct ET inverse échoués (57 sites)
+Ni le géocodage de l'adresse ni le géocodage inverse n'ont produit
+de résultat. L'enquêteur voit « *(non disponible)* » et doit investiguer
+manuellement : consulter la fiche Géorisques, vérifier sur un moteur de
+recherche cartographique, ou marquer le site pour une visite terrain.
 
-Le pipeline n'a trouvé aucun signal automatique. Ni le géocodage direct
-(adresse → point) ni le géocodage inverse (point → adresse) n'ont
-produit de résultat exploitable.
+#### Cas 5 — Mauvaise commune (59 sites)
 
-L'enquêteur voit « *(non géocodé)* » et « *(non disponible)* ». Il doit
-investiguer manuellement : consulter la fiche Géorisques, vérifier sur
-un moteur de recherche cartographique, ou marquer le site pour une
-visite terrain.
-
-#### Cas 5 — Commune erronée (59 sites `wrong_commune`)
-
-Le test point-in-polygon ou le géocodage inverse indique que les
-coordonnées stockées pointent vers une commune différente de celle
-déclarée par le site. L'enquêteur doit déterminer si c'est la commune
+Les coordonnées enregistrées pointent vers une commune différente de
+celle déclarée. L'enquêteur doit déterminer si c'est la commune
 déclarée qui est fausse, les coordonnées qui sont fausses, ou un
 problème de limites communales (site en bordure).
 
 ### 4.4 Verdicts disponibles
 
-Pour chaque site, l'enquêteur choisit parmi quatre verdicts :
-
 | Verdict | Action | Quand l'utiliser |
 |---|---|---|
-| **Garder les coordonnées enregistrées** | Aucune correction | Les coordonnées Géorisques sont correctes ; l'écart vient du géocodeur |
-| **Utiliser l'adresse géocodée** | Remplacer par les coordonnées BAN/OpenCage | L'adresse géocodée pointe au bon endroit, les coordonnées Géorisques sont fausses |
-| **Placer manuellement** | L'enquêteur place un point sur la carte (clic ou mode clavier) | Ni les coordonnées stockées ni le géocodage ne sont satisfaisants |
-| **Visite terrain** | Reporter la décision | Le cas nécessite une vérification physique |
+| **Garder les coordonnées enregistrées** | Aucune correction | Les coordonnées Géorisques sont correctes |
+| **Utiliser l'adresse géocodée** | Remplacer les coordonnées | L'adresse géocodée pointe au bon endroit |
+| **Placer manuellement** | L'enquêteur place un point sur la carte | Ni les coordonnées ni le géocodage ne sont satisfaisants |
+| **Visite terrain** | Reporter la décision | Vérification physique nécessaire |
 
-L'enquêteur peut aussi cocher « Pertinent pour l'enquête » pour marquer
-les sites qui présentent un intérêt journalistique particulier (par
-exemple un site Seveso seuil haut dont les coordonnées sont fausses et
-le placent dans une réserve naturelle).
+L'enquêteur peut aussi cocher « Pertinent pour l'enquête » pour signaler
+les cas d'intérêt journalistique particulier (par exemple un site Seveso
+seuil haut dont les coordonnées le placent dans une réserve naturelle).
 
 ### 4.5 Collaboration
 
-Les verdicts sont exportés sous forme de fichiers JSON par bucket et
-commités dans le dépôt GitHub. L'outil de revue découvre
-automatiquement les fichiers commités par les autres enquêteurs via
-l'API GitHub Contents et met à jour l'affichage de progression. Un
-système de backoff adaptatif évite d'épuiser le quota de l'API GitHub
-(60 requêtes/heure sans authentification).
+Les verdicts sont exportés sous forme de fichiers par paquet et
+enregistrés dans le dépôt GitHub. L'outil découvre automatiquement les
+fichiers enregistrés par les autres enquêteurs et met à jour la
+progression.
 
 ---
 
@@ -501,10 +445,8 @@ système de backoff adaptatif évite d'épuiser le quota de l'API GitHub
 
 ### 5.1 Données affichées
 
-La carte (`/carte/`) consomme le CSV enrichi
-`carte/data/liste-icpe-gironde_enrichi.csv` (2 890 sites) et affiche
-chaque site comme un marqueur ponctuel, regroupé en clusters aux
-niveaux de zoom faibles.
+La carte (`/carte/`) affiche les 2 890 installations comme des points
+sur une carte, regroupés automatiquement quand on dézoome.
 
 ### 5.2 Filtres disponibles
 
@@ -516,83 +458,31 @@ niveaux de zoom faibles.
 | Directive IED | oui / non |
 | Secteur d'activité | industrie, carrière, autre |
 | Commune / EPCI | recherche textuelle |
-| Période de création | filtre mensuel via `cdate` |
+| Période de création | filtre mensuel |
 
 ### 5.3 Couches cartographiques
 
-- **Fond plan** : CartoDB Voyager (tuiles raster)
-- **Orthophotographie** : IGN HR.ORTHOIMAGERY.ORTHOPHOTOS (WMTS)
-- **Contour départemental** : GeoJSON Gironde
-- **Communes** : polygones GeoJSON avec opacité réglable
-- **EPCI** : contours calculés depuis les communes (script
-  `carte/scripts/build_epci_outlines.py`)
-- **Réserves naturelles** : polygones GeoJSON (RNN + RNR)
+- **Fond plan** : CartoDB Voyager
+- **Orthophotographie** : IGN
+- **Contour du département** : Gironde
+- **Communes** : polygones avec opacité réglable
+- **Intercommunalités (EPCI)** : contours calculés depuis les communes
+- **Réserves naturelles** : polygones RNN + RNR
 
 ---
 
 ## 6. Reproductibilité
 
-L'ensemble du pipeline est reproductible et idempotent :
+L'ensemble de la chaîne est reproductible et rejouable :
 
-1. `python3 scripts/fetch_georisques.py` — télécharge l'export bulk,
-   l'archive dans `données-georisques/raw/`, compare avec le snapshot
-   historique
-2. `python3 scripts/enrichir_libelles.py` — enrichit le bulk et produit
-   le CSV de la carte
-3. `OPENCAGE_API_KEY=… uv run scripts/audit_coordinates.py` — exécute
-   les 5 passes d'audit. Les résultats des appels réseau (BAN, OpenCage,
-   Nominatim) sont mis en cache : une ré-exécution ne refait que les
-   appels nécessaires.
-4. `python3 scripts/telecharger_rapports_inspection.py` — télécharge
-   les rapports d'inspection publiables
+1. `scripts/fetch_georisques.py` — télécharge l'export officiel
+2. `scripts/enrichir_libelles.py` — enrichit les données et produit le
+   fichier de la carte
+3. `scripts/audit_coordinates.py` — exécute les 5 vérifications de
+   coordonnées (nécessite une clé API OpenCage pour le service 2)
+4. `scripts/telecharger_rapports_inspection.py` — télécharge les
+   rapports PDF
 
-Chaque étape vérifie ses prérequis (présence du fichier d'entrée,
-colonnes attendues) et écrit ses sorties de façon atomique (écriture
-dans un fichier temporaire puis remplacement, via `os.replace`) pour
+Chaque étape vérifie ses prérequis et écrit ses résultats de façon
+sécurisée (écriture dans un fichier temporaire puis remplacement) pour
 éviter les états intermédiaires en cas d'interruption.
-
----
-
-## 7. Application des corrections
-
-### 7.1 Principe : le sidecar de corrections
-
-Une fois qu'un nombre suffisant de buckets ont été revus et commités
-dans `données-georisques/audit/coordonnees-audit-reviews/`, le script
-`scripts/apply_corrections.py` lit l'ensemble des fichiers JSON de
-revue et produit un sidecar de corrections :
-`données-georisques/audit/coordonnees-corrections.csv`.
-
-Ce fichier contient **toutes les décisions prises par les enquêteurs**,
-pas uniquement celles qui modifient les coordonnées. Un enregistrement
-complet facilite l'audit journalistique a posteriori : on peut retrouver
-qui a décidé quoi, quand, et pourquoi (via la colonne `note`).
-
-### 7.2 Idempotence
-
-Le script est entièrement idempotent : le relancer avec les mêmes
-fichiers de revue en entrée produit exactement le même CSV en sortie.
-L'option `--dry-run` permet de prévisualiser le résultat sans écrire
-sur le disque.
-
-### 7.3 Intégration avec l'enrichisseur
-
-Le script `scripts/enrichir_libelles.py` lit automatiquement le sidecar
-de corrections (s'il existe) et applique les coordonnées corrigées lors
-de la production du CSV de la carte. Le flux complet de bout en bout :
-
-1. **Audit** — `scripts/audit_coordinates.py` produit `flagged.json`
-2. **Revue** — les enquêteurs utilisent `/audit/` pour examiner chaque
-   site et enregistrer un verdict
-3. **Export** — chaque enquêteur exporte son bucket en JSON et le
-   commite dans le dépôt
-4. **Compilation** — `scripts/apply_corrections.py` lit les JSON de
-   revue et produit `coordonnees-corrections.csv`
-5. **Application** — `scripts/enrichir_libelles.py` lit le sidecar et
-   met à jour les coordonnées dans le CSV de la carte
-6. **Publication** — commit + push → la carte interactive affiche
-   désormais les coordonnées corrigées
-
-Ce flux peut être relancé autant de fois que nécessaire au fur et à
-mesure que de nouveaux buckets sont revus. Chaque itération intègre les
-nouvelles décisions sans perdre les précédentes.
