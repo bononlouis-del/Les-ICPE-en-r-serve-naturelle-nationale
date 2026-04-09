@@ -21,7 +21,7 @@
 /* ---------- reset ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-html { color-scheme: light; }
+html { color-scheme: light; overflow: hidden; /* iOS Safari ignores body overflow:hidden for bounce scroll */ }
 body {
   font-family: var(--font-body);
   font-size: 14px;
