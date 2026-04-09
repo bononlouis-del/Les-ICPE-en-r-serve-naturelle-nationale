@@ -15,24 +15,57 @@ let con = null;
 
 // --- Init ----------------------------------------------------------------
 
+/**
+ * Fetch a URL with real download progress via ReadableStream.
+ */
+async function fetchWithProgress(url, onProgress) {
+  const resp = await fetch(url);
+  const total = +resp.headers.get('Content-Length');
+  if (!total || !resp.body) return new Uint8Array(await resp.arrayBuffer());
+  const reader = resp.body.getReader();
+  const chunks = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress(received, total);
+  }
+  const result = new Uint8Array(received);
+  let pos = 0;
+  for (const chunk of chunks) { result.set(chunk, pos); pos += chunk.length; }
+  return result;
+}
+
 async function init() {
   const loadingEl = document.getElementById('loading');
+  const loadingText = loadingEl.querySelector('span');
   const container = document.getElementById('angles-container');
 
   try {
-    // Load DuckDB WASM
+    loadingText.textContent = 'Chargement du module…';
     const duckdb = await import(DUCKDB_CDN);
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
-    // Cross-origin Workers blocked — fetch as blob.
+
+    // Fetch WASM with progress
+    const wasmBytes = await fetchWithProgress(bundle.mainModule, (received, total) => {
+      const mb = (received / 1024 / 1024).toFixed(1);
+      const totalMb = (total / 1024 / 1024).toFixed(0);
+      loadingText.textContent = `Téléchargement du moteur… ${mb} / ${totalMb} Mo`;
+    });
+    const wasmBlob = new Blob([wasmBytes], { type: 'application/wasm' });
+    const wasmUrl = URL.createObjectURL(wasmBlob);
+
+    loadingText.textContent = 'Compilation du moteur…';
     const workerScript = await fetch(bundle.mainWorker);
     const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
-    const workerUrl = URL.createObjectURL(workerBlob);
-    const worker = new Worker(workerUrl);
+    const worker = new Worker(URL.createObjectURL(workerBlob));
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
-    // Single-threaded only: GitHub Pages lacks COOP/COEP headers for SharedArrayBuffer.
-    await db.instantiate(bundle.mainModule);
+    await db.instantiate(wasmUrl);
+    URL.revokeObjectURL(wasmUrl);
     con = await db.connect();
     await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
     loadingEl.hidden = true;
@@ -135,7 +168,7 @@ function renderAngle(container, angle, sql, explanation) {
   const previewBtn = document.createElement('button');
   previewBtn.style.cssText = 'font-family:var(--font-body);font-size:13px;padding:8px 16px;border:1px solid var(--rule);background:transparent;color:var(--ink-soft);border-radius:4px;cursor:pointer;';
   previewBtn.textContent = 'Aperçu (10 lignes)';
-  previewBtn.addEventListener('click', () => runPreview(sql, previewEl));
+  previewBtn.addEventListener('click', () => runPreview(sql, previewEl, previewBtn));
   bar.appendChild(previewBtn);
 
   section.appendChild(bar);
@@ -173,7 +206,7 @@ async function runAngle(sql, filename, btn, previewEl) {
   }
 }
 
-async function runPreview(sql, previewEl) {
+async function runPreview(sql, previewEl, previewBtn) {
   if (!con) return;
   try {
     // Add LIMIT 10 if not already present
@@ -185,8 +218,10 @@ async function runPreview(sql, previewEl) {
     const rows = result.toArray();
     if (rows.length === 0) {
       previewEl.innerHTML = '<p style="font-size:13px;color:var(--ink-soft)">Aucun résultat.</p>';
+      if (previewBtn) previewBtn.textContent = 'Aucun résultat';
       return;
     }
+    if (previewBtn) previewBtn.textContent = `Aperçu (${rows.length} ligne${rows.length > 1 ? 's' : ''})`;
     previewEl.innerHTML = renderTable(rows);
   } catch (err) {
     const errP = document.createElement('p');

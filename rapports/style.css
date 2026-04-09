@@ -356,6 +356,9 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* hidden attribute must win over display: flex/block in component classes */
+[hidden] { display: none !important; }
+
 /* Init loading with progress bar */
 .init-loading {
   display: flex;
