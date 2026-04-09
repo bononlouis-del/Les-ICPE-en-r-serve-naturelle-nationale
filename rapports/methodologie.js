@@ -8,8 +8,8 @@
 const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked@14.1.3/+esm';
 
 const DOCS = [
-  { url: 'methodologie.md', label: 'Rapports d\'inspection' },
   { url: '../docs/methodo-carte.md', label: 'Carte interactive et audit des coordonnées' },
+  { url: 'methodologie.md', label: 'Rapports d\'inspection' },
 ];
 
 async function init() {

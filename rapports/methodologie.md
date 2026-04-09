@@ -1,115 +1,175 @@
-# Méthodologie d'extraction des rapports d'inspection
+# Méthodologie — Rapports d'inspection
 
-Ce document décrit comment les 10 599 fiches de constat exploitables dans cet outil ont été produites à partir des rapports d'inspection publiés sur Géorisques. Il sert de référence pour évaluer la fiabilité des données et comprendre leurs limites.
+Cette section décrit le pipeline qui transforme les rapports
+d'inspection PDF en fiches de constat structurées exploitables dans
+l'outil `/rapports/`. Elle fait suite à la méthodologie de la carte
+et de l'audit des coordonnées documentée ci-dessous : les sources de
+données (section 1), l'enrichissement (section 2) et le téléchargement
+des rapports (section 1.5) y sont déjà couverts.
 
-## Origine du corpus
+## 7. Téléchargement des rapports PDF
 
-**Source** : [Géorisques](https://www.georisques.gouv.fr/) — API V1, export bulk département 33 (Gironde).
+Le script `scripts/telecharger_rapports_inspection.py` télécharge les
+rapports d'inspection publiables depuis l'endpoint Géorisques, les
+renomme de façon déterministe et les stocke dans `rapports-inspection/`.
 
-**Date d'export** : avril 2026. Le ZIP archivé avec son SHA-256 est dans `données-georisques/raw/` et `PROVENANCE.txt`.
+- **Nommage** : `{slug}_{id_icpe}_{date}_{siret}.pdf`, avec fallbacks
+  `nosiret` / `nodate`
+- **Concurrence** : 3 workers, 0,5 s entre batches
+- **Erreurs durables** : les identifiants en 404 définitif sont
+  mémorisés dans `_404.txt` et skippés aux runs suivants
+- **Idempotence** : un fichier déjà présent sur disque n'est pas
+  retéléchargé
 
-**Périmètre** : tous les rapports d'inspection publiables référencés dans `metadataFichierInspection.csv` pour les installations classées de Gironde. Cela exclut les rapports non publiables, les arrêtés préfectoraux et les mises en demeure (qui sont dans `metadataFichierHorsInspection.csv`).
+**Volume** : 1 784 rapports listés, 1 782 téléchargés (1 en 404
+définitif — COREP), 2 échoués à l'extraction (PDFs vides de 1 Ko
+et 3 Ko).
 
-**Volume** : 1 784 rapports listés, 1 782 téléchargés (1 en 404 définitif — COREP), 1 780 extraits, 2 échoués (PDFs vides de 1 KB et 3 KB).
+## 8. Extraction en markdown
 
-## Les 5 étapes du pipeline
+Le script `scripts/extract_rapports_markdown.py` (v0.2.0) convertit
+chaque PDF en fichier markdown avec un front matter YAML strict, validé
+contre un JSON Schema (`scripts/schemas/markdown_frontmatter.json`).
 
-### 1. Téléchargement bulk Géorisques (`fetch_georisques.py`)
+### 8.1 Classification et routage
 
-Télécharge le ZIP officiel de l'API Géorisques V1, l'archive horodaté, l'éclate en 5 CSV normalisés. Compare avec le CSV manuel data.gouv.fr et documente les écarts dans `diff_report.txt`.
+Chaque PDF est classifié d'après son texte natif (lu via PyMuPDF), puis
+routé vers le chemin d'extraction approprié :
 
-**Déterministe** : le ZIP est identique à contenu identique. SHA-256 archivé.
+| Chemin | Part du corpus | Méthode |
+|---|---:|---|
+| `dreal_parser` | 91,3 % (1 627) | Gabarit DREAL reconnu par 4 marqueurs. Parsé en sections (Contexte, Constats, sous-sections 2-1 à 2-4, fiches N° X). |
+| `pymupdf4llm_generic` | 8,6 % (153) | Gabarit non reconnu. Conversion via `pymupdf4llm` — préserve titres et tables, pas de structure sémantique. |
+| `failed` | 0,1 % (2) | PDFs source effectivement vides. Le markdown contient le front matter et la raison d'échec. |
 
-### 2. Enrichissement des libellés (`enrichir_libelles.py`)
+### 8.2 Traitement des scans
 
-Désambiguïse les libellés ICPE en doublon via 3 colonnes calculées (`structure`, `etablissement`, `nom_complet`), enrichit avec commune et EPCI via geo.api.gouv.fr. Depuis avril 2026, le script est bulk-canonical (Scope Y') : il drive depuis les 2 890 lignes du bulk.
+Les ~60 PDFs sans couche texte ont été OCRisés en place via
+`ocrmypdf --force-ocr --language fra+eng` avant la classification.
+L'OCR est **permanent** : les PDFs dans `rapports-inspection/`
+contiennent désormais la couche texte et n'ont pas besoin d'être
+ré-OCRisés.
 
-**Déterministe** : les colonnes ajoutées sont des transformations textuelles reproductibles + un cache local des appels API.
+### 8.3 Sidecar structuré (`_fiches.jsonl`)
 
-### 3. Téléchargement des PDFs (`telecharger_rapports_inspection.py`)
+Pour chaque PDF, l'extracteur écrit une ligne dans le sidecar
+`rapports-inspection-markdown/_fiches.jsonl` contenant :
 
-Télécharge les 1 784 rapports PDF depuis l'endpoint Géorisques, les renomme de façon déterministe (`{slug}_{id_icpe}_{date}_{siret}.pdf`), gère les erreurs durables (404) et transitoires (5xx, timeout). 3 workers concurrents, 0.5 s entre batches.
+- La liste des fiches de constat structurées (numéro, titre, body
+  complet, sous-section d'origine)
+- Les **régions visuelles** de chaque fiche dans le PDF : numéro de
+  page (1-based) et bounding box en points PDF `[x0, y0, x1, y1]`,
+  calculés via `page.search_for()` avec découpe du titre au titre
+  suivant
+- Les PDFs non-DREAL reçoivent une entrée sidecar avec `fiches: []`
 
-**Déterministe** : un PDF déjà présent sur disque n'est pas retéléchargé.
+**Couverture bbox** : 98,9 % des fiches (10 483 / 10 599) ont des
+régions visuelles exploitables. Les 1,1 % restantes (titre non trouvé
+par `search_for`, typiquement OCR dégradé) ont `regions: []` — le
+client affiche le PDF à la page 1 en fallback.
 
-### 4. Extraction en markdown (`extract_rapports_markdown.py`)
+### 8.4 Idempotence
 
-Convertit chaque PDF en un fichier markdown avec un front matter YAML strict, validé contre un JSON Schema. Chaque PDF est classifié :
+Le manifeste append-only `_manifest.jsonl` trace chaque extraction
+(SHA-256 du PDF source + version de l'extracteur). Au re-run, un PDF
+déjà extrait au bon SHA et à la bonne version est skippé. Un bump de
+version invalide automatiquement toutes les entrées précédentes.
 
-| Chemin | % du corpus | Méthode |
-|--------|-------------|---------|
-| `dreal_parser` | 91,3 % (1 627 rapports) | Texte lu via PyMuPDF, gabarit DREAL reconnu par 4 marqueurs, parsé en sections (Contexte, Constats, sous-sections 2-1 à 2-4, fiches N° X) |
-| `pymupdf4llm_generic` | 8,6 % (153 rapports) | Texte lu via pymupdf4llm (préserve les titres et tables mais pas de structure DREAL) |
-| `failed` | 0,1 % (2 rapports) | PDFs source effectivement vides (1 KB et 3 KB) — le markdown contient le front matter + la raison d'échec |
+## 9. Construction du pivot (`fiches.parquet`)
 
-Les scans sans couche texte (~60 PDFs) ont été OCRisés en place via `ocrmypdf --force-ocr --language fra+eng` avant la classification. L'OCR est permanent : les PDFs source dans `rapports-inspection/` contiennent désormais la couche texte.
+Le script `scripts/construire_fiches.py` lit le sidecar et produit le
+pivot unique consommé par l'outil `/rapports/`.
 
-Le sidecar `_fiches.jsonl` contient pour chaque PDF la liste des fiches structurées (numéro, titre, body complet, sous-section) et leurs régions visuelles (page 1-based + bounding box en points PDF) pour l'affichage des snippets.
+### 9.1 Parsing des champs labélisés
 
-**Déterministe** : le `_manifest.jsonl` trace chaque extraction (SHA-256 source + version extracteur). Un PDF déjà extrait au bon SHA est skippé.
+Pour chaque fiche DREAL, le body est parsé par regex pour extraire les
+7 champs du gabarit :
 
-### 5. Construction du pivot (`construire_fiches.py`)
+| Champ | Label recherché | Couverture |
+|---|---|---:|
+| `reference_reglementaire` | `Référence réglementaire :` | 99,7 % |
+| `theme` | `Thème(s) :` | 99,8 % |
+| `deja_controle` | `Point de contrôle déjà contrôlé :` | 99,6 % |
+| `prescription` | `Prescription contrôlée :` | 99,5 % |
+| `constats_body` | `Constats :` | 99,7 % |
+| `type_suite` | `Type de suites proposées :` | 99,8 % |
+| `proposition_suite` | `Proposition de suites :` | 99,4 % |
 
-Lit le sidecar `_fiches.jsonl`, parse les 7 champs labélisés DREAL (Référence réglementaire, Thème(s), Point de contrôle déjà contrôlé, Prescription contrôlée, Constats, Type de suites proposées, Proposition de suites), joint les métadonnées depuis `rapports-inspection.csv` et `liste-icpe-gironde_enrichi.csv`, et écrit `fiches.parquet`.
+Les regex utilisent `\s+` entre les mots des labels pour absorber les
+espaces doubles du gabarit DREAL. Les artefacts de fin de champ
+(numéros de page, barres de tableaux) sont retirés automatiquement.
 
-Les 153 rapports `pymupdf4llm_generic` et les 2 `failed` sont inclus comme « prose rows » (1 ligne par rapport, `fiche_num = null`, `body = texte complet du markdown`). Ils sont trouvables par recherche textuelle mais n'ont pas de champs structurés.
+### 9.2 Jointures
 
-**Résultat final** : 10 599 fiches structurées + 393 prose rows = 10 992 lignes.
+Le pivot joint deux CSV pour enrichir chaque fiche :
 
-**Coverage des champs** :
-- `type_suite` parsé sur 99,8 % des fiches
-- `theme` parsé sur 99,8 %
-- `constats_body` parsé sur 99,7 %
-- Bounding box présente sur 98,9 % des fiches (1,1 % non trouvées par search_for, fallback page 1)
+- `carte/data/rapports-inspection.csv` via `nom_fichier_local` →
+  récupère `url_markdown`, `url_pages`, `identifiant_fichier`
+- `carte/data/liste-icpe-gironde_enrichi.csv` via `id_icpe` normalisé →
+  récupère `nom_commune`, `code_insee_commune`, `regime_icpe`,
+  `categorie_seveso`, `epci_nom`, `epci_siren`
 
-**Déterministe** : validation par ligne contre un JSON Schema strict, halt au premier échec. Manifest de provenance append-only.
+### 9.3 Inclusion des rapports non structurés
 
-## Ce que ces données NE permettent PAS de dire
+Les 153 rapports `pymupdf4llm_generic` et les 2 `failed` sont inclus
+comme **prose rows** : 1 ligne par rapport, `fiche_num = null`,
+`body = texte complet du markdown` (sans front matter). Ils sont
+trouvables par recherche textuelle dans l'outil mais n'ont pas de
+champs structurés (thème, type de suites, etc.).
 
-1. **Exhaustivité des inspections** : seuls les rapports *publiables* sont sur Géorisques. Des inspections ont lieu sans rapport public (suivi informel, contrôles inopinés non documentés, sanctions pénales confidentielles).
+### 9.4 Validation et provenance
 
-2. **Comparaison inter-régions** : le gabarit DREAL Nouvelle-Aquitaine est spécifique. Les rapports d'autres régions ont un format différent. Le parser DREAL ne fonctionne pas sur d'autres gabarits.
+- Chaque ligne est validée contre `scripts/schemas/fiche.json`
+  (`additionalProperties: false`, halt au premier échec)
+- Unicité des `fiche_id` vérifiée (index séquentiel 0-padded par
+  PDF : `{source_pdf_stem}_f01`, `_f02`, … ou `_prose`)
+- Manifeste de provenance `fiches-manifest.jsonl` (SHA-256 des
+  3 fichiers d'entrée + des 3 fichiers de sortie)
 
-3. **Gravité réelle** : le champ « Type de suites proposées » est un indicateur formel. « Sans suite » ne signifie pas « pas de problème » — l'inspecteur peut avoir observé des manquements mineurs en dessous du seuil de sanction. À l'inverse, « Mise en demeure » ne signifie pas « danger immédiat ».
+### 9.5 Résultat final
 
-4. **Qualité de l'OCR** : les ~60 rapports scannés ont été OCRisés avec Tesseract (modèle français). La qualité dépend du scan original. Les fiches extraites de ces rapports peuvent contenir des erreurs de reconnaissance.
+| Métrique | Valeur |
+|---|---:|
+| Fiches structurées | 10 599 |
+| Prose rows | 393 |
+| **Total lignes** | **10 992** |
+| Rapports avec fiches | 1 389 |
+| Rapports sans fiches | 393 |
+| Taille parquet | 25 Mo |
 
-5. **Complétude des champs labélisés** : le parsing des champs (Thème, Type de suites, etc.) dépend de la conformité du rapport au gabarit DREAL. Les rapports avec des espaces doubles, des sauts de ligne inattendus, ou des fautes de frappe dans les labels ont un taux de parsing légèrement inférieur.
+## 10. Limites des données extraites
 
-## Reproduction
+1. **Exhaustivité** : seuls les rapports *publiables* sont sur
+   Géorisques. Des inspections ont lieu sans rapport public (suivi
+   informel, contrôles inopinés non documentés, sanctions pénales
+   confidentielles).
 
-```bash
-# Pré-requis : Python 3.11+, uv, tesseract + pack français
-# brew install tesseract tesseract-lang  # macOS
+2. **Gabarit régional** : le parser DREAL Nouvelle-Aquitaine est
+   spécifique à cette région. Les rapports d'autres DREAL ont un
+   format différent. Comparaison inter-régions impossible avec ce
+   pipeline.
 
-# 1. Télécharger le bulk officiel
-python3 scripts/fetch_georisques.py
+3. **Gravité formelle vs. réelle** : « Sans suite » ne signifie pas
+   « pas de problème » — l'inspecteur peut avoir observé des
+   manquements mineurs. « Mise en demeure » ne signifie pas
+   « danger immédiat ». Le champ `type_suite` est un indicateur
+   administratif, pas un score de risque.
 
-# 2. Enrichir les libellés
-python3 scripts/enrichir_libelles.py
+4. **Qualité de l'OCR** : les ~60 rapports scannés ont été OCRisés
+   avec Tesseract (modèle français). La qualité dépend du scan
+   original et peut produire des erreurs dans les champs parsés.
 
-# 3. Télécharger les PDFs
-python3 scripts/telecharger_rapports_inspection.py
+5. **Robustesse du parsing** : les rapports avec espaces doubles,
+   sauts de ligne inattendus, ou fautes de frappe dans les labels ont
+   un taux de parsing légèrement inférieur (~0,2 % de champs manqués).
 
-# 4. Extraire en markdown + sidecar
-uv run scripts/extract_rapports_markdown.py
+## 11. Versions
 
-# 5. Construire le pivot
-uv run scripts/construire_fiches.py
-
-# 6. (Optionnel) Reconstruire l'index des angles
-python3 scripts/build_angles_index.py
-```
-
-Chaque étape est idempotente. Un re-run ne retélécharge / ré-extrait que ce qui a changé.
-
-## Versioning
-
-| Artefact | Version | Commit |
-|----------|---------|--------|
-| extract_rapports_markdown.py | 0.2.0 | Sidecar _fiches.jsonl + bbox |
-| construire_fiches.py | 0.1.0 | Pivot initial |
-| Corpus Géorisques | Avril 2026 | SHA dans PROVENANCE.txt |
+| Artefact | Version | Description |
+|---|---|---|
+| `extract_rapports_markdown.py` | 0.2.0 | Sidecar `_fiches.jsonl` + bbox par fiche |
+| `construire_fiches.py` | 0.1.0 | Pivot initial avec prose rows |
+| Corpus Géorisques | Avril 2026 | SHA dans `PROVENANCE.txt` |
 
 ---
 
