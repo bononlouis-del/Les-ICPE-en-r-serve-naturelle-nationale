@@ -1935,6 +1935,18 @@
     // mobile sidebar toggle (FAB-driven slide-in)
     wireMobileSidebar();
 
+    // recenter button — snap back to Gironde bounds
+    const recenterBtn = document.getElementById('recenter-btn');
+    if (recenterBtn) {
+      recenterBtn.addEventListener('click', () => {
+        if (girondeLayer && map.hasLayer(girondeLayer)) {
+          map.fitBounds(girondeLayer.getBounds(), { padding: [20, 20] });
+        } else {
+          map.setView([44.85, -0.55], 9);
+        }
+      });
+    }
+
     // legend toggle
     const legendToggle = document.getElementById('legend-toggle');
     const legendClose = document.getElementById('legend-close');

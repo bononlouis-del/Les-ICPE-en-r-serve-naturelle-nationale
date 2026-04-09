@@ -23,8 +23,13 @@
 <body>
 
 <header class="masthead" aria-label="En-tête du cahier d'enquête">
-  <div class="masthead__label">Cahier d'enquête</div>
-  <h1 class="masthead__title">ICPE en Gironde</h1>
+  <div class="masthead__topline">
+    <div>
+      <div class="masthead__label">Cahier d'enquête</div>
+      <h1 class="masthead__title">ICPE en Gironde</h1>
+    </div>
+    <a class="masthead__home" href="../">← accueil</a>
+  </div>
   <p class="masthead__meta">
     <span id="site-count" class="meta-count">…</span>
     <span class="meta-sep">·</span>
@@ -36,6 +41,8 @@
 
 <main class="workspace">
   <div id="map" role="application" aria-label="Carte interactive des ICPE en Gironde"></div>
+
+  <button type="button" id="recenter-btn" class="recenter-btn" aria-label="Recentrer sur la Gironde" title="Recentrer sur la Gironde">⌖</button>
 
   <!-- Playback HUD: big month label that appears only during auto-play -->
   <div id="playback-hud" class="playback-hud" aria-hidden="true">
