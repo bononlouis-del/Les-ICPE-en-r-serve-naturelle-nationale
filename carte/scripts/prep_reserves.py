@@ -9,7 +9,7 @@ Gironde bbox, normalize properties, and write the two committed output files.
 
 Run from the repo root:
 
-    uv run carte-interactive/scripts/prep_reserves.py
+    uv run carte/scripts/prep_reserves.py
 
 No external dependencies — standard library only. Bbox intersection is done
 via coordinate iteration (sufficient for keeping/dropping whole features).
@@ -43,7 +43,7 @@ SOURCES = [
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUT_DIR = REPO_ROOT / "carte-interactive" / "data"
+OUT_DIR = REPO_ROOT / "carte" / "data"
 
 
 def iter_coords(geom: dict):

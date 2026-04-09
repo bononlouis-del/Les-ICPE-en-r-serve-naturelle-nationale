@@ -8,7 +8,10 @@ __pycache__/
 *.pyo
 
 # Raw data staging from the prep scripts
-carte-interactive/tmp/
+carte/tmp/
+
+# Audit pipeline cache (BAN responses, regeneratable)
+données-georisques/audit/.cache/
 
 # Editor files
 .vscode/

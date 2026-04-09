@@ -3,13 +3,13 @@
 # Sources WOFF2 files from the Google Fonts CSS API (subset: latin-ext) so
 # there is no runtime dependency on fonts.googleapis.com.
 #
-# Run from the repo root: bash carte-interactive/scripts/fetch_fonts.sh
+# Run from the repo root: bash carte/scripts/fetch_fonts.sh
 #
-# Output: carte-interactive/fonts/*.woff2
+# Output: carte/fonts/*.woff2
 
 set -euo pipefail
 
-OUT_DIR="carte-interactive/fonts"
+OUT_DIR="carte/fonts"
 mkdir -p "$OUT_DIR"
 
 # Modern UA required for Google Fonts to return WOFF2 URLs instead of WOFF/TTF.

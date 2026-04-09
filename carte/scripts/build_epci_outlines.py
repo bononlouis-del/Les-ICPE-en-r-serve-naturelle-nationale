@@ -6,10 +6,10 @@
 """
 Fetch EPCI contours for every EPCI present in Gironde and write them as a
 single GeoJSON FeatureCollection at
-``carte-interactive/data/gironde-epci-outlines.geojson``.
+``carte/data/gironde-epci-outlines.geojson``.
 
 The list of SIREN codes is read from
-``carte-interactive/data/gironde-commune-epci.json`` (produced by
+``carte/data/gironde-commune-epci.json`` (produced by
 scripts/enrichir_libelles.py), so this script only needs to run when the
 set of EPCIs changes.
 
@@ -19,7 +19,7 @@ are only 28 EPCIs in Gironde and the total stays well under 500 KB.
 
 Run from the repo root:
 
-    uv run carte-interactive/scripts/build_epci_outlines.py
+    uv run carte/scripts/build_epci_outlines.py
 """
 
 from __future__ import annotations
@@ -30,8 +30,8 @@ import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-LOOKUP_PATH = REPO_ROOT / "carte-interactive" / "data" / "gironde-commune-epci.json"
-OUT_PATH = REPO_ROOT / "carte-interactive" / "data" / "gironde-epci-outlines.geojson"
+LOOKUP_PATH = REPO_ROOT / "carte" / "data" / "gironde-commune-epci.json"
+OUT_PATH = REPO_ROOT / "carte" / "data" / "gironde-epci-outlines.geojson"
 
 EPCI_URL = (
     "https://geo.api.gouv.fr/epcis/{code}"
