@@ -1,9 +1,9 @@
 # ICPE en Gironde — cahier d'enquête
 
-Trois outils d'enquête sur les **Installations Classées pour la
+Quatre outils d'enquête sur les **Installations Classées pour la
 Protection de l'Environnement** (ICPE) en Gironde :
-**carte interactive**, **audit des coordonnées**, et
-**catalogue des données**.
+**carte interactive**, **audit des coordonnées**,
+**catalogue des données**, et **rapports d'inspection**.
 
 **Page d'accueil :** <https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/>
 
@@ -13,6 +13,8 @@ Protection de l'Environnement** (ICPE) en Gironde :
   adresses et coordonnées via une revue collaborative bucket par bucket
 - **Catalogue des données** → `/donnees/` — comprendre les fichiers
   et les colonnes (sample values inclus)
+- **Rapports d'inspection** → `/rapports/` — rechercher, vérifier et
+  analyser les 10 599 fiches de constat extraites de 1 782 rapports PDF
 
 ## Ce que la carte permet
 
@@ -91,6 +93,40 @@ données :
 python3 scripts/build_metadata_samples.py
 ```
 
+## Rapports d'inspection
+
+L'outil `/rapports/` offre 3 sous-pages pour exploiter les rapports
+d'inspection ICPE extraits de Géorisques :
+
+- **Vérifier** (`/rapports/`) — recherche plein texte via DuckDB WASM
+  sur les 10 992 lignes du pivot `fiches.parquet` (10 599 fiches
+  structurées + 393 prose rows), avec snippet PDF cropé à la bbox de
+  chaque fiche via PDF.js (desktop) ou lien direct (mobile)
+- **Analyser par angle** (`/rapports/angles.html`) — 5 requêtes SQL
+  prédéfinies avec export CSV en un clic. Contributions via PR (1
+  fichier `.md` par angle dans `rapports/angles/`)
+- **Méthodologie** (`/rapports/methodologie.html`) — documentation
+  complète du pipeline d'extraction (5 étapes, statistiques de
+  couverture, limitations connues, instructions de reproduction)
+
+Le pivot est construit par `scripts/construire_fiches.py` qui lit le
+sidecar `_fiches.jsonl` (produit par `extract_rapports_markdown.py`
+v0.2.0), parse les 7 champs labélisés DREAL (Thème, Type de suites,
+Référence réglementaire, Prescription, Constats, Proposition de suites,
+Déjà contrôlé) et joint les métadonnées installation. Validation
+per-row contre un JSON Schema strict.
+
+```bash
+# Extraire les markdowns + sidecar
+uv run scripts/extract_rapports_markdown.py
+
+# Construire le pivot
+uv run scripts/construire_fiches.py
+
+# Reconstruire l'index des angles (si ajout/édition d'un angle .md)
+python3 scripts/build_angles_index.py
+```
+
 ## Sources de données
 
 | Donnée | Source |
@@ -142,7 +178,7 @@ fichiers markdown déterministes dans `rapports-inspection-markdown/`,
 avec un front matter YAML strict validé par JSON Schema. Chaque
 markdown est classifié vers l'un des chemins suivants :
 
-- **`dreal_parser`** (≈ 88 %) — PDF reconnu comme gabarit DREAL
+- **`dreal_parser`** (≈ 91 %) — PDF reconnu comme gabarit DREAL
   Nouvelle-Aquitaine, parsé en sections sémantiques (Contexte,
   Constats, Fiches de constat N° X comme H4 indexables).
 - **`pymupdf4llm_generic`** (≈ 9 %) — PDF texte au gabarit non DREAL
@@ -182,8 +218,12 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   ├── extract_rapports_markdown.py        # extraction markdown des PDFs (pymupdf + ocrmypdf)
 │   ├── audit_coordinates.py                # audit des écarts coords/adresses (BAN+OpenCage+Nominatim cascade)
 │   ├── build_metadata_samples.py           # sidecar d'échantillons pour /donnees/
+│   ├── construire_fiches.py                # construit fiches.parquet depuis les sidecars
+│   ├── build_angles_index.py              # scanne rapports/angles/*.md → index.json
 │   ├── schemas/
-│   │   └── markdown_frontmatter.json       # JSON Schema draft-07 du front matter YAML
+│   │   ├── markdown_frontmatter.json       # JSON Schema draft-07 du front matter YAML
+│   │   ├── fiches_sidecar.json             # JSON Schema du sidecar _fiches.jsonl
+│   │   └── fiche.json                      # JSON Schema d'une ligne du pivot parquet
 │   └── tests/                              # tests stdlib + uv (unittest discover)
 ├── données-georisques/            # source canonique API Géorisques V1
 │   ├── raw/                       # archives ZIP datées (traçabilité sha256)
@@ -208,9 +248,10 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   └── _erreurs.log               # rapport du dernier run (durables + transitoires)
 ├── rapports-inspection-markdown/  # versions markdown des PDFs (1 .md par PDF)
 │   ├── *.md                       # front matter YAML + corps sémantique
+│   ├── _fiches.jsonl              # sidecar structuré (fiches + page + bbox par PDF)
 │   ├── _manifest.jsonl            # provenance append-only (sha256, version, timestamp)
 │   └── _erreurs.log               # rapport des extractions failed du dernier run
-├── index.html                     # page d'accueil — 3 cards
+├── index.html                     # page d'accueil — 4 cards
 ├── style.css                      # styles de la page d'accueil
 ├── shared/                        # design system partagé
 │   ├── tokens.css                 # @font-face + design tokens (palette, typographie)
@@ -225,6 +266,9 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   │   ├── rapports-inspection.csv         # 1 ligne par rapport, URL Pages + statut téléchargement
 │   │   ├── metadonnees_colonnes.csv        # dictionnaire multi-fichiers (fichier, nom_original, alias, definition)
 │   │   ├── metadonnees_samples.json        # sidecar d'échantillons pour /donnees/
+│   │   ├── fiches.parquet                 # pivot fiches de constat (10 992 lignes)
+│   │   ├── fiches-meta.json              # count + versions + sha (<1 KB)
+│   │   ├── fiches-manifest.jsonl         # provenance du pivot (append-only)
 │   │   ├── reserves-naturelles-nationales.geojson
 │   │   └── reserves-naturelles-regionales.geojson
 │   └── scripts/                   # prep_reserves.py, build_epci_outlines.py, fetch_fonts.sh
@@ -234,6 +278,21 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   ├── lib.js                     # fonctions pures (testées dans test.html)
 │   ├── style.css
 │   └── test.html                  # tests JS dans le navigateur (~30 console.assert)
+├── rapports/                      # outil 4 : rapports d'inspection
+│   ├── index.html                 # page de vérification (DuckDB WASM + PDF.js snippet)
+│   ├── app.js                     # search + hash routing + PDF crop
+│   ├── lib.js                     # fonctions pures (testées dans test.html)
+│   ├── style.css
+│   ├── test.html                  # tests JS (~20 console.assert)
+│   ├── angles.html                # recipe book SQL + export CSV
+│   ├── angles.js
+│   ├── angles/                    # 1 fichier .md par angle d'analyse
+│   │   ├── 01-top-mises-en-demeure.md
+│   │   ├── ...
+│   │   └── index.json             # produit par build_angles_index.py
+│   ├── methodologie.html          # doc méthodologie (rendu depuis .md via marked.js)
+│   ├── methodologie.md            # source markdown de la méthodologie
+│   └── methodologie.js
 └── donnees/                       # outil 3 : catalogue des données
     ├── index.html
     ├── app.js
