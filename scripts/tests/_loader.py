@@ -18,6 +18,9 @@ from types import ModuleType
 _MODULE_NAME = "extract_rapports_markdown"
 _SCRIPT_PATH = Path(__file__).resolve().parent.parent / "extract_rapports_markdown.py"
 
+_AUDIT_MODULE_NAME = "audit_coordinates"
+_AUDIT_SCRIPT_PATH = Path(__file__).resolve().parent.parent / "audit_coordinates.py"
+
 
 def load_extractor() -> ModuleType:
     """Charge (ou retourne depuis le cache) le module extracteur."""
@@ -34,5 +37,27 @@ def load_extractor() -> ModuleType:
     # ``sys.modules[cls.__module__]`` pendant le traitement et plante
     # avec un AttributeError si le module n'y est pas encore.
     sys.modules[_MODULE_NAME] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_audit_coordinates() -> ModuleType:
+    """Charge (ou retourne depuis le cache) le module audit_coordinates.
+
+    L'import de ``requests`` dans audit_coordinates.py est lazy
+    (à l'intérieur de ``post_with_retry``), ce qui permet aux tests
+    d'exercer les fonctions pures sans installer requests dans le
+    Python système — voir la docstring de audit_coordinates.py.
+    """
+    if _AUDIT_MODULE_NAME in sys.modules:
+        return sys.modules[_AUDIT_MODULE_NAME]
+    spec = importlib.util.spec_from_file_location(_AUDIT_MODULE_NAME, _AUDIT_SCRIPT_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(
+            f"impossible de charger le module {_AUDIT_MODULE_NAME} "
+            f"depuis {_AUDIT_SCRIPT_PATH}"
+        )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_AUDIT_MODULE_NAME] = module
     spec.loader.exec_module(module)
     return module

@@ -1,6 +1,6 @@
 # Origine de la différence bulk vs CSV manuel
 
-**Contexte** — Le CSV manuel (`carte-interactive/liste-icpe-gironde.csv`, daté
+**Contexte** — Le CSV manuel (`carte/liste-icpe-gironde.csv`, daté
 `cdate=2025-02-10`) a été téléchargé depuis une source ICPE en février 2025.
 L'export bulk officiel (`InstallationClassee.csv`) a été récupéré aujourd'hui
 (2026-04-08) via l'API Géorisques V1 (`/api/v1/csv/installations_classees?departement=33`).
