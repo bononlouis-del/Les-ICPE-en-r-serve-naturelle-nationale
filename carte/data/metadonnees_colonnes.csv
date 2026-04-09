@@ -60,3 +60,34 @@ coordonnees-audit-full.csv,(calculé),geocoded_reserve_distance_m,Distance en m�
 coordonnees-audit-full.csv,(calculé),reserve_ambiguous,TRUE si stored_in_reserve != geocoded_in_reserve. Cas critique : la réponse à 'ce site est-il dans une réserve ?' dépend de quel point on regarde.
 coordonnees-audit-full.csv,(calculé),reserve_boundary_proximity,TRUE si l'un des deux points (enregistré ou géocodé) est à moins de 200m d'une limite de réserve. Cas frontaliers à inspecter même si reserve_ambiguous = FALSE.
 rapports-inspection.csv,(calculé),url_markdown,URL GitHub Pages de la version markdown du rapport (rapports-inspection-markdown/{basename}.md). Écrite par extract_rapports_markdown.py. Vide si l'extraction a échoué (voir _erreurs.log dans rapports-inspection-markdown/).
+fiches.parquet,(calculé),fiche_id,Identifiant unique de la fiche : {source_pdf_stem}_f{num} ou {source_pdf_stem}_prose.
+fiches.parquet,(calculé),fiche_num,"Numéro de la fiche (1, 2, ...). Null pour les rapports sans fiches structurées."
+fiches.parquet,(calculé),titre,Titre de la fiche de constat. Null pour les prose rows.
+fiches.parquet,(calculé),theme,"Thème(s) de la fiche (vocabulaire semi-fermé DREAL, séparés par virgule). Null si absent."
+fiches.parquet,(calculé),reference_reglementaire,"Référence réglementaire citée dans la fiche (arrêté, article de code)."
+fiches.parquet,(calculé),deja_controle,"Point de contrôle déjà contrôlé lors d'une inspection précédente : Oui, Non, Sans Objet."
+fiches.parquet,(calculé),prescription,"Texte de la prescription contrôlée (souvent multi-ligne, copie de l'article)."
+fiches.parquet,(calculé),constats_body,Corps des constats de la fiche — observations de l'inspecteur sur le terrain.
+fiches.parquet,(calculé),type_suite,"Type de suites proposées (vocabulaire semi-fermé : Sans suite, Observation, Mise en demeure, etc.)."
+fiches.parquet,(calculé),proposition_suite,Texte détaillé de la proposition de suites.
+fiches.parquet,(calculé),sub_section,Heading de la sous-section contenant cette fiche (ex. '2-4) Fiches de constats').
+fiches.parquet,(calculé),body,Corps complet de la fiche (tous champs labélisés) ou texte complet du markdown pour les prose rows.
+fiches.parquet,(calculé),body_chars,Longueur du champ body en caractères.
+fiches.parquet,(calculé),regions,"Régions visuelles (page 1-based + bbox en points PDF). JSON array, null pour prose rows."
+fiches.parquet,(calculé),source_pdf,Nom du fichier PDF source.
+fiches.parquet,(calculé),source_md,Nom du fichier markdown correspondant.
+fiches.parquet,(calculé),extraction_method,"Chemin d'extraction : dreal_parser, pymupdf4llm_generic, ocr_then_*, failed."
+fiches.parquet,(calculé),id_icpe,"Identifiant ICPE (codeAiot normalisé, sans zéros de tête)."
+fiches.parquet,(calculé),siret,SIRET de l'exploitant (14 chiffres) ou chaîne vide.
+fiches.parquet,(calculé),nom_complet,Libellé désambiguïsé de l'installation.
+fiches.parquet,(calculé),date_inspection,Date de l'inspection (YYYY-MM-DD) ou chaîne vide.
+fiches.parquet,(calculé),identifiant_fichier,Identifiant opaque du fichier côté Géorisques.
+fiches.parquet,(calculé),url_source_georisques,URL canonique du PDF côté Géorisques.
+fiches.parquet,(calculé),url_pages,URL GitHub Pages du PDF.
+fiches.parquet,(calculé),url_markdown,URL GitHub Pages du markdown. Null si absent.
+fiches.parquet,(calculé),nom_commune,Nom de la commune de l'installation (jointure enrichi).
+fiches.parquet,(calculé),code_insee_commune,Code INSEE de la commune.
+fiches.parquet,(calculé),epci_nom,Nom de l'EPCI.
+fiches.parquet,(calculé),epci_siren,SIREN de l'EPCI.
+fiches.parquet,(calculé),regime_icpe,"Régime ICPE normalisé (AUTORISATION, ENREGISTREMENT, AUTRE, NON_ICPE)."
+fiches.parquet,(calculé),categorie_seveso,"Catégorie Seveso normalisée (NON_SEVESO, SEUIL_BAS, SEUIL_HAUT, ou vide)."

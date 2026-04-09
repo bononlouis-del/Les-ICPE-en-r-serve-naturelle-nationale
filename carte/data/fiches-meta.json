@@ -1,0 +1,10 @@
+{
+  "total_fiches": 10599,
+  "total_rapports_parsed": 1389,
+  "total_rapports_without_fiches": 393,
+  "total_failed": 2,
+  "construire_version": "0.1.0",
+  "extraction_version": "0.2.0",
+  "extracted_at": "2026-04-09T09:59:44",
+  "parquet_sha256": "d428b0438aae6c25464907c9911efd0f5ca2c9733f7764ee79b4f719c8a586c9"
+}

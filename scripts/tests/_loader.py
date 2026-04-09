@@ -21,6 +21,9 @@ _SCRIPT_PATH = Path(__file__).resolve().parent.parent / "extract_rapports_markdo
 _AUDIT_MODULE_NAME = "audit_coordinates"
 _AUDIT_SCRIPT_PATH = Path(__file__).resolve().parent.parent / "audit_coordinates.py"
 
+_FICHES_MODULE_NAME = "construire_fiches"
+_FICHES_SCRIPT_PATH = Path(__file__).resolve().parent.parent / "construire_fiches.py"
+
 
 def load_extractor() -> ModuleType:
     """Charge (ou retourne depuis le cache) le module extracteur."""
@@ -59,5 +62,28 @@ def load_audit_coordinates() -> ModuleType:
         )
     module = importlib.util.module_from_spec(spec)
     sys.modules[_AUDIT_MODULE_NAME] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_construire_fiches() -> ModuleType:
+    """Charge (ou retourne depuis le cache) le module construire_fiches.
+
+    L'import de ``duckdb`` et ``jsonschema`` est lazy (à l'intérieur
+    de ``write_parquet`` et ``validate_rows``), ce qui permet aux tests
+    d'exercer les fonctions pures sans installer ces deps.
+    """
+    if _FICHES_MODULE_NAME in sys.modules:
+        return sys.modules[_FICHES_MODULE_NAME]
+    spec = importlib.util.spec_from_file_location(
+        _FICHES_MODULE_NAME, _FICHES_SCRIPT_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(
+            f"impossible de charger le module {_FICHES_MODULE_NAME} "
+            f"depuis {_FICHES_SCRIPT_PATH}"
+        )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_FICHES_MODULE_NAME] = module
     spec.loader.exec_module(module)
     return module
