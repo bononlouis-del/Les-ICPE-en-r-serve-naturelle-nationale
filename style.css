@@ -84,6 +84,7 @@ a:hover { text-decoration: underline; }
 .card--rust { border-left-color: var(--rust); }
 .card--ochre { border-left-color: var(--ochre); }
 .card--lead { border-left-color: var(--lead); }
+.card--moss { border-left-color: var(--moss); }
 
 .card__title {
   font-family: var(--font-display);
@@ -125,7 +126,13 @@ a:hover { text-decoration: underline; }
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
   .masthead { padding: 24px 20px 16px; }
-  .hub { padding: 32px 20px; gap: 20px; }
+  .hub {
+    padding: 32px 20px;
+    gap: 20px;
+    /* Force single-column on mobile. The auto-fit minmax(280px, 1fr)
+       tries to squeeze two 280px columns into 335px and overflows. */
+    grid-template-columns: 1fr;
+  }
   .card { padding: 24px 20px; min-height: 180px; }
   .footer { padding: 20px 20px 28px; }
 }
