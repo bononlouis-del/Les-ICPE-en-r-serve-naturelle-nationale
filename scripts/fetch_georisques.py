@@ -6,7 +6,7 @@ Télécharge l'archive ZIP publiée par l'API Géorisques V1 pour le départemen
 archive la version datée dans ``données-georisques/raw/``, extrait les 5 CSV
 normalisés (encodage ISO-8859-1, séparateur ``;``), les convertit en UTF-8
 dans ``données-georisques/``, et compare la liste des installations avec le
-CSV manuel ``carte-interactive/liste-icpe-gironde.csv`` (colonne ``ident``)
+CSV manuel ``carte/liste-icpe-gironde.csv`` (colonne ``ident``)
 pour tracer les installations qui diffèrent entre les deux sources.
 
 Source : https://www.georisques.gouv.fr/doc-api
@@ -41,9 +41,15 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-# Le helper _metadonnees_util est au même niveau que ce script.
+# Le helper _metadonnees_util et le module _paths sont au même niveau que ce script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _metadonnees_util import atomic_write, normalize_aiot, require_columns  # noqa: E402
+from _paths import (  # noqa: E402
+    PROJECT_ROOT,
+    DONNEES_DIR,
+    DONNEES_RAW_DIR,
+    CARTE_MANUAL_CSV,
+)
 
 # --- Configuration ---------------------------------------------------------
 
@@ -55,11 +61,10 @@ SOURCE_ENCODING = "iso-8859-1"
 USER_AGENT = "projet-icpe-ijba/1.0 (journalism education)"
 REQUEST_TIMEOUT = 60  # seconds
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "données-georisques"
-RAW_DIR = DATA_DIR / "raw"
+DATA_DIR = DONNEES_DIR
+RAW_DIR = DONNEES_RAW_DIR
 EXTRACT_STAGING_DIR = DATA_DIR / ".extract_tmp"
-MANUAL_CSV = PROJECT_ROOT / "carte-interactive" / "liste-icpe-gironde.csv"
+MANUAL_CSV = CARTE_MANUAL_CSV
 DIFF_REPORT = DATA_DIR / "diff_report.txt"
 PROVENANCE_FILE = DATA_DIR / "PROVENANCE.txt"
 

@@ -14,7 +14,7 @@ Sources (read-only) :
   - données-georisques/inspection.csv
     Historique des inspections, joignable via identifiantFichier pour
     récupérer la dateInspection (absente de metadataFichierInspection).
-  - carte-interactive/data/liste-icpe-gironde_enrichi.csv
+  - carte/data/liste-icpe-gironde_enrichi.csv
     Fournit nom_complet (libellé désambiguïsé) et siret pour chaque
     installation, via id_icpe ↔ codeAiot.
 
@@ -30,13 +30,13 @@ Produits (écrits) :
   - rapports-inspection/_erreurs.log
     Rapport lisible du dernier run : transitoires + durables, avec
     raison et identifiants. Écrasé à chaque exécution.
-  - carte-interactive/data/rapports-inspection.csv
+  - carte/data/rapports-inspection.csv
     1 ligne par rapport source (incl. les doublons d'identifiant qui
     partagent le même fichier PDF local). Colonnes aliasées lisibles.
-  - carte-interactive/data/liste-icpe-gironde_enrichi.csv (modifié)
+  - carte/data/liste-icpe-gironde_enrichi.csv (modifié)
     Ajoute/remplace la colonne nb_rapports_inspection comptant les
     rapports téléchargés avec succès par installation.
-  - carte-interactive/data/metadonnees_colonnes.csv (mis à jour)
+  - carte/data/metadonnees_colonnes.csv (mis à jour)
     Ajoute/remplace les lignes décrivant les colonnes de
     rapports-inspection.csv et nb_rapports_inspection dans l'enrichi,
     via le helper _metadonnees_util partagé avec enrichir_libelles.py.
@@ -76,7 +76,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-# Le helper _metadonnees_util est au même niveau que ce script.
+# Le helper _metadonnees_util et le module _paths sont au même niveau que ce script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _metadonnees_util import (  # noqa: E402
     atomic_write,
@@ -84,30 +84,28 @@ from _metadonnees_util import (  # noqa: E402
     normalize_aiot,
     require_columns,
 )
+from _paths import (  # noqa: E402
+    PROJECT_ROOT,
+    DONNEES_DIR,
+    CARTE_ENRICHI_CSV,
+    CARTE_RAPPORTS_CSV,
+    CARTE_METADATA_CSV,
+    RAPPORTS_INSPECTION_DIR,
+)
 
 # --- Configuration ---------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
 # Sources
-METADATA_FICHIER_INSPECTION = (
-    PROJECT_ROOT / "données-georisques" / "metadataFichierInspection.csv"
-)
-INSPECTION_CSV = PROJECT_ROOT / "données-georisques" / "inspection.csv"
-MANUAL_ENRICHI = (
-    PROJECT_ROOT / "carte-interactive" / "data" / "liste-icpe-gironde_enrichi.csv"
-)
+METADATA_FICHIER_INSPECTION = DONNEES_DIR / "metadataFichierInspection.csv"
+INSPECTION_CSV = DONNEES_DIR / "inspection.csv"
+MANUAL_ENRICHI = CARTE_ENRICHI_CSV
 
 # Sorties
-PDF_DIR = PROJECT_ROOT / "rapports-inspection"
+PDF_DIR = RAPPORTS_INSPECTION_DIR
 ERREURS_LOG = PDF_DIR / "_erreurs.log"
 LOG_404 = PDF_DIR / "_404.txt"
-RAPPORTS_CSV = (
-    PROJECT_ROOT / "carte-interactive" / "data" / "rapports-inspection.csv"
-)
-METADATA_CSV = (
-    PROJECT_ROOT / "carte-interactive" / "data" / "metadonnees_colonnes.csv"
-)
+RAPPORTS_CSV = CARTE_RAPPORTS_CSV
+METADATA_CSV = CARTE_METADATA_CSV
 
 # URLs
 SOURCE_URL_TEMPLATE = (
@@ -745,7 +743,7 @@ def execute_downloads(
 
 
 def write_rapports_csv(rapports: list[dict[str, str]]) -> None:
-    """Écrit carte-interactive/data/rapports-inspection.csv atomiquement."""
+    """Écrit carte/data/rapports-inspection.csv atomiquement."""
     alias_fields = [alias for _src, alias, _orig, _def in REPORTS_COLUMN_SPEC]
     with atomic_write(RAPPORTS_CSV) as handle:
         writer = csv.DictWriter(

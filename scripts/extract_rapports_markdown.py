@@ -45,7 +45,7 @@ Sources (read-only)
 -------------------
 
   - ``rapports-inspection/*.pdf`` : les PDFs eux-mêmes
-  - ``carte-interactive/data/rapports-inspection.csv`` : métadonnées
+  - ``carte/data/rapports-inspection.csv`` : métadonnées
     joignables via ``nom_fichier_local`` (1 ligne par ligne de CSV,
     plusieurs lignes pouvant partager le même PDF dans le cas de
     l'identifiant partagé).
@@ -62,10 +62,10 @@ Produits (écrits)
     d'auditer la chaîne de provenance et de détecter un PDF modifié.
   - ``rapports-inspection-markdown/_erreurs.log`` : rapport lisible du
     dernier run (PDFs échoués, raisons).
-  - ``carte-interactive/data/rapports-inspection.csv`` (modifié) :
+  - ``carte/data/rapports-inspection.csv`` (modifié) :
     ajoute/remplace la colonne ``url_markdown`` pointant vers la
     version markdown GitHub Pages.
-  - ``carte-interactive/data/metadonnees_colonnes.csv`` (mis à jour) :
+  - ``carte/data/metadonnees_colonnes.csv`` (mis à jour) :
     ajoute/remplace la ligne décrivant ``url_markdown``.
 
 Idempotence
@@ -109,27 +109,28 @@ from typing import TypedDict
 # (atomic_write, merge_metadata, require_columns depuis
 # _metadonnees_util) au point où ils sont utilisés.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import (  # noqa: E402
+    PROJECT_ROOT,
+    CARTE_RAPPORTS_CSV,
+    CARTE_METADATA_CSV,
+    RAPPORTS_INSPECTION_DIR,
+    RAPPORTS_MARKDOWN_DIR,
+)
 
 # --- Configuration ---------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
 # Sources (read-only)
-PDF_DIR = PROJECT_ROOT / "rapports-inspection"
-RAPPORTS_CSV = (
-    PROJECT_ROOT / "carte-interactive" / "data" / "rapports-inspection.csv"
-)
+PDF_DIR = RAPPORTS_INSPECTION_DIR
+RAPPORTS_CSV = CARTE_RAPPORTS_CSV
 SCHEMA_PATH = (
     Path(__file__).resolve().parent / "schemas" / "markdown_frontmatter.json"
 )
 
 # Sorties
-MARKDOWN_DIR = PROJECT_ROOT / "rapports-inspection-markdown"
+MARKDOWN_DIR = RAPPORTS_MARKDOWN_DIR
 MANIFEST_PATH = MARKDOWN_DIR / "_manifest.jsonl"
 ERREURS_LOG = MARKDOWN_DIR / "_erreurs.log"
-METADATA_CSV = (
-    PROJECT_ROOT / "carte-interactive" / "data" / "metadonnees_colonnes.csv"
-)
+METADATA_CSV = CARTE_METADATA_CSV
 
 # URL GitHub Pages pour la version markdown rendue. Même base path que
 # les PDFs ; GitHub Pages sert les .md comme texte brut ou les rend en

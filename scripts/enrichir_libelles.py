@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 """
 enrichir_libelles.py — Désambiguïsation des libellés ICPE + enrichissement
-géographique (commune / EPCI).
+géographique (commune / EPCI) + projection vers le format de la carte.
 
 Ajoute trois colonnes calculées (``structure``, ``etablissement``,
 ``libelle_complet``) via l'algorithme de désambiguïsation, et trois
 colonnes référentielles (``nom_commune``, ``epci_siren``, ``epci_nom``)
 depuis geo.api.gouv.fr en les joignant sur le code INSEE de la commune.
 
+Depuis avril 2026 (Scope Y'), la sortie de la carte est **bulk-canonical** :
+le fichier ``carte/data/liste-icpe-gironde_enrichi.csv`` est dérivé
+directement de l'export bulk Géorisques (2890 lignes), avec un left-join
+des colonnes ``cdate`` et ``gid`` depuis le snapshot manuel data.gouv.fr
+(2888 lignes) — voir ``project_bulk_to_map``. Les 4 lignes nouvelles côté
+bulk (post-Feb 2025) reçoivent ``cdate=""`` ; les 2 lignes manuel-only
+(SEMOCTOM radiée, PESA filtrée des exports) disparaissent automatiquement.
+
 Fichiers produits :
 
 - ``données-georisques/InstallationClassee_enrichi.csv``
-  (conserve les noms de colonnes Géorisques d'origine)
+  (conserve les noms de colonnes Géorisques d'origine, 2890 lignes)
 
-- ``carte-interactive/data/liste-icpe-gironde_enrichi.csv``
-  (colonnes renommées avec des alias lisibles ; les colonnes externes
-  écrites par d'autres scripts — ex. ``nb_rapports_inspection`` ajoutée
-  par ``telecharger_rapports_inspection.py`` — sont préservées verbatim
+- ``carte/data/liste-icpe-gironde_enrichi.csv``
+  (2890 lignes, colonnes renommées avec des alias lisibles ; les
+  colonnes externes écrites par d'autres scripts — ex.
+  ``nb_rapports_inspection`` ajoutée par
+  ``telecharger_rapports_inspection.py`` — sont préservées verbatim
   lors du re-run de ce script, voir ``write_manual``)
-- ``carte-interactive/data/metadonnees_colonnes.csv``
+- ``carte/data/metadonnees_colonnes.csv``
   (dictionnaire multi-fichiers partagé — schéma 4 colonnes
   ``fichier / nom_original / alias / definition``. Ce script possède les
   lignes dont ``fichier == MANUAL_OUTPUT_FILENAME`` ; les lignes
@@ -28,14 +37,14 @@ Fichiers produits :
 Les fichiers originaux ne sont jamais modifiés.
 
 Réseau : lors du premier run (ou quand le cache
-``carte-interactive/data/gironde-commune-epci.json`` est absent), le script
+``carte/data/gironde-commune-epci.json`` est absent), le script
 interroge ``geo.api.gouv.fr`` pour récupérer la correspondance code INSEE
 → nom de commune / EPCI. Le résultat est mis en cache sur disque et
 réutilisé pour les runs suivants. Pour forcer un refresh, supprimer le
 fichier de cache puis relancer.
 
 Algorithme en deux passes (appliqué sur le bulk, qui seul contient
-les adresses ; puis joint au manuel par ``codeAiot`` ↔ ``ident``) :
+les adresses) :
 
 **Passe 1 — classification initiale**
 
@@ -70,9 +79,9 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
-# Le helper _metadonnees_util est au même niveau que ce script.
+# Le helper _metadonnees_util et le module _paths sont au même niveau que ce script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _metadonnees_util import (  # noqa: E402
     atomic_write,
@@ -80,21 +89,30 @@ from _metadonnees_util import (  # noqa: E402
     normalize_aiot,
     require_columns,
 )
+from _paths import (  # noqa: E402
+    PROJECT_ROOT,
+    DONNEES_BULK_CSV,
+    DONNEES_BULK_ENRICHI_CSV,
+    CARTE_MANUAL_CSV,
+    CARTE_DATA_DIR,
+    CARTE_ENRICHI_CSV,
+    CARTE_METADATA_CSV,
+    CARTE_COMMUNE_EPCI_CACHE,
+)
 
 # --- Configuration ---------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BULK_IN = PROJECT_ROOT / "données-georisques" / "InstallationClassee.csv"
-BULK_OUT = PROJECT_ROOT / "données-georisques" / "InstallationClassee_enrichi.csv"
-MANUAL_IN = PROJECT_ROOT / "carte-interactive" / "liste-icpe-gironde.csv"
-MANUAL_OUT_DIR = PROJECT_ROOT / "carte-interactive" / "data"
+BULK_IN = DONNEES_BULK_CSV
+BULK_OUT = DONNEES_BULK_ENRICHI_CSV
+MANUAL_IN = CARTE_MANUAL_CSV
+MANUAL_OUT_DIR = CARTE_DATA_DIR
 MANUAL_OUTPUT_FILENAME = "liste-icpe-gironde_enrichi.csv"
-MANUAL_OUT = MANUAL_OUT_DIR / MANUAL_OUTPUT_FILENAME
-METADATA_OUT = MANUAL_OUT_DIR / "metadonnees_colonnes.csv"
+MANUAL_OUT = CARTE_ENRICHI_CSV
+METADATA_OUT = CARTE_METADATA_CSV
 
 # Cache de la correspondance code INSEE → {nom, epci_siren, epci_nom}.
 # Présent = le script n'appelle pas l'API. Supprimer pour forcer un refresh.
-COMMUNE_EPCI_CACHE = MANUAL_OUT_DIR / "gironde-commune-epci.json"
+COMMUNE_EPCI_CACHE = CARTE_COMMUNE_EPCI_CACHE
 
 # Endpoints geo.api.gouv.fr (Etalab, public, sans auth).
 # Utilisés uniquement quand le cache local est absent.
@@ -107,8 +125,88 @@ DISPLAY_SEP = " — "  # em-dash pour l'affichage, distinct du séparateur sourc
 
 # Colonnes minimales attendues dans chaque CSV qu'on lit en aval.
 # Transforme un KeyError tardif en RuntimeError contextualisé.
-BULK_REQUIRED_COLUMNS = {"codeAiot", "raisonSociale", "commune", "adresse1", "codeInsee"}
-MANUAL_REQUIRED_COLUMNS = {"ident", "libelle", "insee"}
+BULK_REQUIRED_COLUMNS = {
+    "codeAiot", "raisonSociale", "commune", "adresse1", "codeInsee",
+    "longitude", "latitude", "regimeVigueur", "statutSeveso",
+    "prioriteNationale", "ied", "url", "numeroSiret", "codeNaf",
+    "bovins", "porcs", "volailles", "carriere", "eolienne", "industrie",
+}
+MANUAL_REQUIRED_COLUMNS = {"ident", "libelle", "insee", "cdate", "gid"}
+
+# --- Normalisations bulk → format manuel (Scope Y') -----------------------
+#
+# Les valeurs catégorielles côté bulk Géorisques diffèrent des conventions
+# du fichier manuel data.gouv.fr historiquement consommé par la carte.
+# Ces tables fixent l'équivalence pour produire un CSV aliasé identique
+# (à la cdate près) à l'ancien format.
+#
+# Vérifié en REPL sur l'export bulk 2026-04-08 :
+# - regimeVigueur : exactement 4 valeurs distinctes
+# - statutSeveso : exactement 4 valeurs distinctes + chaîne vide
+
+REGIME_NORMALIZATION = {
+    "Autorisation": "AUTORISATION",
+    "Enregistrement": "ENREGISTREMENT",
+    "Autres régimes": "AUTRE",
+    "Non ICPE": "NON_ICPE",
+}
+
+SEVESO_NORMALIZATION = {
+    "": "",  # préservé : certaines installations n'ont pas de classification
+    "Non Seveso": "NON_SEVESO",
+    "Seveso seuil bas": "SEUIL_BAS",
+    "Seveso seuil haut": "SEUIL_HAUT",
+}
+
+
+def _normalize_regime(raw: str, *, _seen: set[str] = set()) -> str:
+    """Map a Géorisques regime value to the carte's categorical alias.
+
+    Géorisques is a living database. If a new regime category appears
+    upstream, the previous ``.get(val, val)`` fallback would silently
+    leak the raw French string into the aliased CSV, breaking the
+    carte's filter logic. This function instead falls back to ``AUTRE``
+    with a one-shot stderr warning per unknown value so the maintainer
+    notices and updates ``REGIME_NORMALIZATION``.
+    """
+    mapped = REGIME_NORMALIZATION.get(raw)
+    if mapped is not None:
+        return mapped
+    if raw not in _seen:
+        _seen.add(raw)
+        print(
+            f"[regime] valeur inconnue {raw!r} — fallback AUTRE. "
+            f"Mettre à jour REGIME_NORMALIZATION dans enrichir_libelles.py.",
+            file=sys.stderr,
+        )
+    return "AUTRE"
+
+
+def _normalize_seveso(raw: str, *, _seen: set[str] = set()) -> str:
+    """Map a Géorisques Seveso status to the carte's categorical alias.
+
+    Same drift-detection contract as ``_normalize_regime``. Empty
+    strings are preserved (legitimate "no classification" sentinel).
+    """
+    mapped = SEVESO_NORMALIZATION.get(raw)
+    if mapped is not None:
+        return mapped
+    if raw not in _seen:
+        _seen.add(raw)
+        print(
+            f"[seveso] valeur inconnue {raw!r} — fallback NON_SEVESO. "
+            f"Mettre à jour SEVESO_NORMALIZATION dans enrichir_libelles.py.",
+            file=sys.stderr,
+        )
+    return "NON_SEVESO"
+
+# Colonnes booléennes du bulk : valeurs "true"/"false" en minuscules.
+# La carte attend "TRUE"/"FALSE" en majuscules — vérifié sur l'enriched manual.
+BULK_BOOLEAN_COLS = (
+    "bovins", "porcs", "volailles",
+    "carriere", "eolienne", "industrie",
+    "prioriteNationale", "ied",
+)
 
 
 # --- Shapes TypedDict pour geo.api.gouv.fr --------------------------------
@@ -382,19 +480,29 @@ def _fetch_json_list(url: str, what: str) -> list[dict[str, object]]:
                 f"geo.api.gouv.fr ({what}): entrée non-dict dans la liste : "
                 f"{type(entry).__name__} {str(entry)[:100]}"
             )
-    return payload  # type: ignore[return-value]  # runtime-checked above
+    return cast("list[dict[str, object]]", payload)
 
 
 def _fetch_communes() -> list[CommuneAPI]:
-    """Appelle l'endpoint communes de geo.api.gouv.fr. Retourne une list[CommuneAPI]."""
+    """Appelle l'endpoint communes de geo.api.gouv.fr. Retourne une list[CommuneAPI].
+
+    `_fetch_json_list` validates the response is a list of dicts at runtime;
+    field-level access in `load_commune_epci_lookup` uses `.get()` with safe
+    defaults, so a missing/renamed field degrades gracefully rather than
+    crashing. The cast is therefore boundary-narrowing, not unchecked.
+    """
     raw = _fetch_json_list(COMMUNES_API, "communes")
-    return raw  # type: ignore[return-value]  # shape validated by caller
+    return cast("list[CommuneAPI]", raw)
 
 
 def _fetch_epcis() -> list[EpciAPI]:
-    """Appelle l'endpoint epcis de geo.api.gouv.fr. Retourne une list[EpciAPI]."""
+    """Appelle l'endpoint epcis de geo.api.gouv.fr. Retourne une list[EpciAPI].
+
+    Same boundary-narrowing contract as `_fetch_communes`: list-of-dicts
+    is verified at runtime, downstream access is `.get()`-guarded.
+    """
     raw = _fetch_json_list(EPCIS_API, "epcis")
-    return raw  # type: ignore[return-value]  # shape validated by caller
+    return cast("list[EpciAPI]", raw)
 
 
 def load_commune_epci_lookup() -> dict[str, CommuneEntry]:
@@ -614,46 +722,136 @@ def read_manual() -> tuple[list[str], list[dict[str, str]]]:
     return fieldnames, rows
 
 
-def join_manual(
-    manual_fields: list[str],
-    manual_rows: list[dict[str, str]],
+def project_bulk_to_map(
     enriched_bulk: list[dict[str, str]],
+    manual_rows: list[dict[str, str]],
 ) -> list[dict[str, str]]:
-    """Joint les colonnes enrichies (désambiguïsation libellés uniquement)
-    au manuel via ident/codeAiot normalisés.
+    """Scope Y' : produit le CSV de la carte depuis l'enriched bulk.
 
-    L'enrichissement commune/EPCI est calculé séparément sur les lignes
-    du manuel (elles portent leur propre colonne ``insee``), ce qui
-    permet d'enrichir correctement même les lignes orphelines.
+    Inverse l'ancienne ``join_manual`` : au lieu de driver depuis le manuel
+    et ajouter 3 colonnes du bulk, on drive depuis l'enriched bulk (2890
+    lignes) et on left-joint depuis le manuel les seules colonnes que le
+    bulk ne possède pas :
+
+    - ``cdate`` : date d'enregistrement (235 valeurs distinctes côté manuel,
+      utilisée par le filtre temporel mensuel de la carte). Le bulk Géorisques
+      n'a aucune colonne de date par site.
+    - ``gid`` : identifiant séquentiel data.gouv.fr (1..2888), conservé pour
+      compatibilité historique avec la colonne aliasée ``id_ligne_export``.
+
+    Les 4 lignes présentes dans le bulk mais absentes du manuel
+    (GARDIER, EUROVIA, VILELA, KAN'MOOV — installations enregistrées
+    après le snapshot data.gouv.fr du 2025-02-10) reçoivent ``cdate=""``
+    et ``gid=""``. ``carte/app.js:740-743`` traite les lignes sans date
+    en les laissant passer sans condition à travers le filtre mensuel —
+    documenté ainsi pour éviter une perte de données silencieuse.
+
+    Les 2 lignes présentes côté manuel mais absentes du bulk (SEMOCTOM
+    fermée et radiée ; PESA filtrée des exports) disparaissent
+    automatiquement de la sortie : on ne les itère jamais.
+
+    Pour chaque ligne du bulk, le dict produit utilise les **clés source
+    de MANUAL_COLUMN_SPEC** (``ident``, ``libelle``, ``insee``, ``Geo Point``,
+    ``Geo Shape``, ``gid``, ``regime``, ``cat_seveso``, etc.) afin que
+    ``write_manual()`` puisse l'écrire sans modification — c'est lui qui
+    applique le mapping source → alias.
+
+    Les normalisations catégorielles (REGIME_NORMALIZATION,
+    SEVESO_NORMALIZATION) et la conversion des booléens en majuscules
+    sont appliquées ici pour produire un fichier byte-stable avec
+    l'ancien format.
+
+    La géométrie ``Geo Point`` et ``Geo Shape`` est synthétisée depuis
+    ``longitude`` et ``latitude`` du bulk, en utilisant ``json.dumps``
+    avec les séparateurs par défaut (espaces) — vérifié byte-pour-byte
+    contre l'ancien format.
     """
-    index = {
-        normalize_aiot(row["codeAiot"]): {
-            "structure": row["structure"],
-            "etablissement": row["etablissement"],
-            "libelle_complet": row["libelle_complet"],
+    # Index manuel pour le left-join (cdate + gid uniquement)
+    manual_index: dict[str, dict[str, str]] = {
+        normalize_aiot(row["ident"]): {
+            "cdate": row.get("cdate", ""),
+            "gid": row.get("gid", ""),
         }
-        for row in enriched_bulk
+        for row in manual_rows
     }
 
-    matched = 0
-    orphan = 0
-    for row in manual_rows:
-        key = normalize_aiot(row.get("ident", ""))
-        if bulk_data := index.get(key):
-            row.update(bulk_data)
-            matched += 1
+    out: list[dict[str, str]] = []
+    bulk_only = 0
+    overlap = 0
+    for bulk_row in enriched_bulk:
+        key = normalize_aiot(bulk_row["codeAiot"])
+        manual_data = manual_index.get(key)
+        if manual_data:
+            cdate = manual_data["cdate"]
+            gid = manual_data["gid"]
+            overlap += 1
         else:
-            # Orphelin : fallback libellé pur.
-            libelle = row.get("libelle", "")
-            row["structure"] = libelle
-            row["etablissement"] = ""
-            row["libelle_complet"] = libelle
-            orphan += 1
+            cdate = ""
+            gid = ""
+            bulk_only += 1
 
-    print(f"[manual] appariés avec le bulk : {matched}")
-    if orphan:
-        print(f"[manual] orphelins (fallback libellé seul) : {orphan}")
-    return manual_rows
+        # Synthèse de Geo Point et Geo Shape depuis longitude/latitude.
+        # NB : json.dumps avec séparateurs par défaut (avec espaces),
+        # pour matcher byte-pour-byte le format historique de la carte.
+        lon_str = bulk_row.get("longitude", "").strip()
+        lat_str = bulk_row.get("latitude", "").strip()
+        geo_point = f"{lat_str}, {lon_str}" if lat_str and lon_str else ""
+        if lat_str and lon_str:
+            try:
+                geom = {
+                    "coordinates": [float(lon_str), float(lat_str)],
+                    "type": "Point",
+                }
+                geo_shape = json.dumps(geom)
+            except ValueError:
+                geo_shape = ""
+        else:
+            geo_shape = ""
+
+        # Construit un dict en clés source de MANUAL_COLUMN_SPEC pour que
+        # write_manual() puisse l'écrire tel quel.
+        out_row = {
+            # Identité
+            "ident": key,  # déjà normalisé
+            "libelle": bulk_row["raisonSociale"],
+            "structure": bulk_row["structure"],
+            "etablissement": bulk_row["etablissement"],
+            "libelle_complet": bulk_row["libelle_complet"],
+            # Localisation
+            "insee": bulk_row["codeInsee"],
+            "nom_commune": bulk_row.get("nom_commune", ""),
+            "epci_siren": bulk_row.get("epci_siren", ""),
+            "epci_nom": bulk_row.get("epci_nom", ""),
+            # Géométrie (synthétisée)
+            "Geo Point": geo_point,
+            "Geo Shape": geo_shape,
+            # Métadonnées dossier
+            "gid": gid,  # left-join from manual; "" for bulk-only rows
+            "siret": bulk_row.get("numeroSiret", ""),
+            "regime": _normalize_regime(bulk_row["regimeVigueur"]),
+            "cat_seveso": _normalize_seveso(bulk_row["statutSeveso"]),
+            "priorite_nationale": bulk_row["prioriteNationale"].upper(),
+            "fiche": bulk_row["url"],
+            # Activités (booléens majuscules)
+            "bovins": bulk_row["bovins"].upper(),
+            "porcs": bulk_row["porcs"].upper(),
+            "volailles": bulk_row["volailles"].upper(),
+            "carriere": bulk_row["carriere"].upper(),
+            "eolienne": bulk_row["eolienne"].upper(),
+            "industrie": bulk_row["industrie"].upper(),
+            "ied": bulk_row["ied"].upper(),
+            "activite_principale": bulk_row.get("codeNaf", ""),
+            # Temporel : left-joint depuis le manuel
+            "cdate": cdate,
+            "année": cdate[:4] if cdate else "",
+        }
+        out.append(out_row)
+
+    print(
+        f"[map] projection bulk → manuel : {overlap} overlap, "
+        f"{bulk_only} bulk-only (cdate vide)"
+    )
+    return out
 
 
 def write_manual(enriched_manual: list[dict[str, str]]) -> None:
@@ -839,28 +1037,54 @@ def main() -> int:
     matched, missing = enrich_with_commune_epci(enriched_bulk, "codeInsee", commune_lookup)
     print(f"[commune] bulk : {matched} appariés, {missing} sans correspondance")
 
-    write_bulk(bulk_fields, enriched_bulk)
-
+    # Scope Y' : projection bulk → carte avec left-join cdate/gid depuis le manuel.
+    # Le manuel reste lu (pour cdate/gid) mais ne drive plus l'output.
     if MANUAL_IN.exists():
         try:
-            manual_fields, manual_rows = read_manual()
+            _manual_fields, manual_rows = read_manual()
         except RuntimeError as exc:
             print(f"[error] {exc}", file=sys.stderr)
             return 2
         print(
             f"[manual] lu {MANUAL_IN.relative_to(PROJECT_ROOT)} "
-            f"({len(manual_rows)} lignes)"
+            f"({len(manual_rows)} lignes — pour left-join cdate/gid uniquement)"
         )
-        enriched_manual = join_manual(manual_fields, manual_rows, enriched_bulk)
-        # Côté manuel, la colonne INSEE s'appelle 'insee' (avant alias).
-        matched_m, missing_m = enrich_with_commune_epci(
-            enriched_manual, "insee", commune_lookup
-        )
-        print(f"[commune] manual : {matched_m} appariés, {missing_m} sans correspondance")
-        write_manual(enriched_manual)
-        write_metadata()
     else:
-        print(f"[manual] introuvable, saut : {MANUAL_IN}")
+        print(
+            f"[manual] introuvable {MANUAL_IN.relative_to(PROJECT_ROOT)} — "
+            "cdate et gid seront vides pour toutes les lignes"
+        )
+        manual_rows = []
+
+    # Compute both outputs in memory BEFORE either write touches disk.
+    # The previous order (write_bulk → project → write_manual) could leave
+    # InstallationClassee_enrichi.csv updated and liste-icpe-gironde_enrichi.csv
+    # stale if anything between the two writes raised — the carte would
+    # then show data that didn't match the audit pipeline's view.
+    map_rows = project_bulk_to_map(enriched_bulk, manual_rows)
+
+    # Both files are individually atomic (tmp + os.replace via atomic_write).
+    # POSIX has no cross-file atomicity, so we take a byte-level backup of
+    # BULK_OUT before the first write and restore it if write_manual fails.
+    # This is the closest approximation to "both succeed or neither does"
+    # available without staging directories.
+    bulk_backup: bytes | None = None
+    if BULK_OUT.exists():
+        bulk_backup = BULK_OUT.read_bytes()
+
+    try:
+        write_bulk(bulk_fields, enriched_bulk)
+        write_manual(map_rows)
+    except Exception:
+        if bulk_backup is not None:
+            BULK_OUT.write_bytes(bulk_backup)
+            print(
+                f"[error] write_manual a échoué — "
+                f"{BULK_OUT.relative_to(PROJECT_ROOT)} restauré depuis backup",
+                file=sys.stderr,
+            )
+        raise
+    write_metadata()
 
     return 0
 

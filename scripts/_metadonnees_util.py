@@ -6,11 +6,11 @@ Géorisques (``fetch_georisques.py``, ``enrichir_libelles.py``,
 ``telecharger_rapports_inspection.py``) :
 
 1. **Dictionnaire multi-fichiers** (``load_metadata``, ``merge_metadata``)
-   — protocole d'ownership coopératif sur
-   ``carte-interactive/data/metadonnees_colonnes.csv``. Chaque script
-   possède les entrées correspondant à son propre fichier de données,
-   les lignes appartenant aux autres scripts sont préservées verbatim
-   lors des réécritures.
+   — protocole d'ownership coopératif sur le fichier
+   ``metadonnees_colonnes.csv`` (chemin canonique défini par
+   ``_paths.CARTE_METADATA_CSV``). Chaque script possède les entrées
+   correspondant à son propre fichier de données, les lignes appartenant
+   aux autres scripts sont préservées verbatim lors des réécritures.
 
 2. **Utilities I/O et parsing** (``atomic_write``, ``require_columns``,
    ``normalize_aiot``) — briques de robustesse partagées : écriture
