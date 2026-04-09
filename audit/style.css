@@ -138,19 +138,20 @@ body.sidebar-collapsed .sidebar-toggle__icon { transform: rotate(180deg); displa
   flex-direction: column;
   transition: transform 0.25s ease;
 }
-.bucket-nav { flex: 1; padding: 16px 20px 16px 24px; }
 .guide-button {
   font-family: var(--font-body);
   font-size: 13px;
   background: var(--paper-2);
   border: none;
-  border-top: 1px solid var(--rule);
-  padding: 14px 24px;
+  border-bottom: 1px solid var(--rule);
+  padding: 12px 24px;
   text-align: left;
   cursor: pointer;
   color: var(--ink);
+  flex-shrink: 0;
 }
 .guide-button:hover { background: var(--paper-3); }
+.bucket-nav { flex: 1; padding: 16px 20px 16px 24px; overflow-y: auto; }
 
 .group { margin-bottom: 24px; }
 .group__title {
@@ -193,6 +194,8 @@ body.sidebar-collapsed .sidebar-toggle__icon { transform: rotate(180deg); displa
 .bucket__link:hover { background: var(--paper-2); }
 .bucket--current .bucket__link { background: var(--paper-3); font-weight: 500; }
 .bucket--done .bucket__icon { color: var(--moss); }
+.bucket--done .bucket__label { color: var(--ink-soft); }
+.bucket--done .bucket__link { opacity: 0.6; }
 .bucket--draft .bucket__icon { color: var(--ochre); }
 .bucket--stale .bucket__icon { color: var(--rust); }
 .bucket__icon { width: 12px; text-align: center; }
@@ -395,60 +398,100 @@ body.sidebar-collapsed .sidebar-toggle__icon { transform: rotate(180deg); displa
 .signal__label { color: var(--ink-soft); margin-right: 4px; }
 
 /* ---------- decision form ---------- */
+/* Lives at the TOP of the info pane so the reviewer sees verdict
+   buttons immediately without scrolling past 5 info blocks. */
 .decision-form {
-  border-top: 2px solid var(--rule);
-  padding-top: 16px;
-  margin-top: 8px;
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
 }
-.decision-form__title {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 16px;
-  margin: 0 0 12px;
-}
+
+/* 2×2 compact color-coded verdict grid. Each button is identifiable
+   by its accent color at a glance — no need to read the text. The
+   full explanation lives in the guide drawer + the title tooltip. */
 .verdict-radios {
   border: none;
   padding: 0;
-  margin: 0 0 16px;
-  display: flex;
-  flex-direction: column;
+  margin: 0 0 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
 .verdict {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 8px 10px;
-  border: 1px solid var(--rule-soft);
+  gap: 6px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 2px solid var(--rule-soft);
+  border-radius: 4px;
   cursor: pointer;
   background: var(--paper);
+  transition: border-color 0.1s ease, background 0.1s ease;
 }
 .verdict:hover { background: var(--paper-2); }
-.verdict input[type="radio"] { margin-top: 3px; }
-.verdict strong { display: block; font-size: 13px; }
-.verdict small { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
-.verdict input[type="radio"]:checked ~ div strong { color: var(--rust); }
+.verdict input[type="radio"] {
+  margin: 0;
+  accent-color: var(--ink);
+  flex-shrink: 0;
+}
+.verdict__label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.verdict__label kbd {
+  display: inline-block;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0 4px;
+  margin-left: 4px;
+  vertical-align: baseline;
+}
+
+/* Color accents per verdict */
+.verdict--keep   { border-color: var(--moss); }
+.verdict--keep   .verdict__label { color: var(--moss); }
+.verdict--geocoded { border-color: var(--azur, #2b5c7e); }
+.verdict--geocoded .verdict__label { color: var(--azur, #2b5c7e); }
+.verdict--manual { border-color: var(--ochre); }
+.verdict--manual .verdict__label { color: var(--ochre); }
+.verdict--terrain { border-color: var(--rust); }
+.verdict--terrain .verdict__label { color: var(--rust); }
+
+/* Selected state: fill the background with a tint of the accent */
+.verdict:has(input:checked) {
+  background: var(--paper-3);
+  border-width: 2px;
+}
+.verdict--keep:has(input:checked)    { border-color: var(--moss); background: rgba(74,107,58,0.08); }
+.verdict--geocoded:has(input:checked) { border-color: var(--azur, #2b5c7e); background: rgba(43,92,126,0.08); }
+.verdict--manual:has(input:checked)  { border-color: var(--ochre); background: rgba(192,135,41,0.08); }
+.verdict--terrain:has(input:checked) { border-color: var(--rust); background: rgba(180,80,46,0.08); }
+
+.decision-form__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
 
 .note-field {
   display: block;
-  margin: 0 0 12px;
-}
-.note-field span {
-  display: block;
-  font-family: var(--font-data);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
-  margin-bottom: 4px;
+  flex: 1;
+  min-width: 0;
 }
 .note-field textarea {
   width: 100%;
   border: 1px solid var(--rule);
   background: var(--paper);
   font-family: var(--font-body);
-  font-size: 13px;
-  padding: 8px;
+  font-size: 12px;
+  padding: 6px 8px;
   resize: vertical;
 }
 
@@ -495,6 +538,10 @@ body.sidebar-collapsed .sidebar-toggle__icon { transform: rotate(180deg); displa
 .btn--close-drawer { position: absolute; top: 12px; right: 12px; }
 
 /* ---------- guide drawer ---------- */
+/* z-index must be above Leaflet's internal layers (400–1000+).
+   The previous z-index:100 was below the Leaflet tile pane, causing
+   the guide to be partially hidden behind the map. 2000 clears
+   everything including Leaflet controls and popups. */
 .guide-drawer {
   position: fixed;
   top: 0;
@@ -505,7 +552,7 @@ body.sidebar-collapsed .sidebar-toggle__icon { transform: rotate(180deg); displa
   background: var(--paper);
   border-left: 1px solid var(--rule);
   box-shadow: -4px 0 24px rgba(0,0,0,0.08);
-  z-index: 100;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);

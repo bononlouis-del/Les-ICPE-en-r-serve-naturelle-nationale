@@ -51,10 +51,10 @@
   </button>
 
   <aside class="sidebar" id="sidebar" aria-label="Navigation des buckets">
-    <nav class="bucket-nav" id="bucket-nav"></nav>
     <button class="guide-button" id="guide-button" type="button">
       📖 Guide de l'audit
     </button>
+    <nav class="bucket-nav" id="bucket-nav"></nav>
   </aside>
 
   <main class="main" id="main">
@@ -83,61 +83,50 @@
         </div>
 
         <div class="review__info-pane">
-          <section class="info-block" id="info-identity"></section>
-          <section class="info-block" id="info-stored"></section>
-          <section class="info-block" id="info-geocoded"></section>
-          <section class="info-block" id="info-reverse"></section>
-          <section class="info-block" id="info-signals"></section>
-
-          <section class="decision-form">
-            <h3 class="decision-form__title">Verdict</h3>
+          <!-- Decision form at the TOP so the reviewer sees the verdict
+               buttons immediately without scrolling past 5 info blocks -->
+          <section class="decision-form" id="decision-form">
             <fieldset class="verdict-radios">
               <legend class="sr-only">Verdict</legend>
-              <label class="verdict">
+              <label class="verdict verdict--keep" title="L'écart est cosmétique (même site, même parcelle)">
                 <input type="radio" name="verdict" value="garder_stored">
-                <div>
-                  <strong>Garder les coordonnées enregistrées</strong>
-                  <small>L'écart est cosmétique (même site, même parcelle)</small>
-                </div>
+                <span class="verdict__label">Garder <kbd>1</kbd></span>
               </label>
-              <label class="verdict">
+              <label class="verdict verdict--geocoded" title="Les coordonnées enregistrées sont fausses">
                 <input type="radio" name="verdict" value="utiliser_geocoded">
-                <div>
-                  <strong>Utiliser l'adresse géocodée</strong>
-                  <small>Les coordonnées enregistrées sont fausses</small>
-                </div>
+                <span class="verdict__label">Géocodé <kbd>2</kbd></span>
               </label>
-              <label class="verdict">
+              <label class="verdict verdict--manual" title="Je place un meilleur point sur la carte (M)">
                 <input type="radio" name="verdict" value="placer_manuellement">
-                <div>
-                  <strong>Placer le point manuellement</strong>
-                  <small>Les deux sont faux ; je place un meilleur point sur la carte</small>
-                </div>
+                <span class="verdict__label">Manuel <kbd>3</kbd></span>
               </label>
-              <label class="verdict">
+              <label class="verdict verdict--terrain" title="Impossible de décider sans vérification terrain">
                 <input type="radio" name="verdict" value="terrain">
-                <div>
-                  <strong>À vérifier sur le terrain</strong>
-                  <small>Impossible de décider depuis la documentation</small>
-                </div>
+                <span class="verdict__label">Terrain <kbd>4</kbd></span>
               </label>
             </fieldset>
 
-            <label class="note-field">
-              <span>Note (optionnelle)</span>
-              <textarea id="note-field" rows="3" placeholder="Précise ce qui te fait douter, ce qu'il faudrait vérifier sur le terrain, etc."></textarea>
-            </label>
-
-            <label class="enquete-checkbox">
-              <input type="checkbox" id="pertinent-enquete">
-              <span>Pertinent pour l'enquête réserves naturelles</span>
-            </label>
+            <div class="decision-form__row">
+              <label class="note-field">
+                <textarea id="note-field" rows="2" placeholder="Note (optionnelle)"></textarea>
+              </label>
+              <label class="enquete-checkbox">
+                <input type="checkbox" id="pertinent-enquete">
+                <span>Pertinent enquête</span>
+              </label>
+            </div>
 
             <div class="form-actions">
               <button class="btn btn--skip" id="btn-skip" type="button">Passer</button>
               <button class="btn btn--save" id="btn-save" type="button">Enregistrer & suivant (Entrée)</button>
             </div>
           </section>
+
+          <section class="info-block" id="info-identity"></section>
+          <section class="info-block" id="info-stored"></section>
+          <section class="info-block" id="info-geocoded"></section>
+          <section class="info-block" id="info-reverse"></section>
+          <section class="info-block" id="info-signals"></section>
         </div>
       </div>
     </article>
