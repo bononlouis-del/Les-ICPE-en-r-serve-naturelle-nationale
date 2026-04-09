@@ -98,6 +98,7 @@ from _paths import (  # noqa: E402
     CARTE_ENRICHI_CSV,
     CARTE_METADATA_CSV,
     CARTE_COMMUNE_EPCI_CACHE,
+    CORRECTIONS_CSV,
 )
 
 # --- Configuration ---------------------------------------------------------
@@ -854,6 +855,53 @@ def project_bulk_to_map(
     return out
 
 
+def apply_corrections_to_map(map_rows: list[dict[str, str]]) -> int:
+    """Apply coordinate corrections from the sidecar CSV to map rows.
+
+    Reads CORRECTIONS_CSV (if it exists). For each row with non-empty
+    new_lat and new_lon, overwrites the Geo Point and Geo Shape of the
+    matching map row.
+
+    Operates on source keys ("Geo Point", "Geo Shape", "ident") since
+    map_rows haven't been aliased to output column names yet.
+
+    Returns the number of corrections applied.
+    """
+    if not CORRECTIONS_CSV.exists():
+        return 0
+
+    corrections: dict[str, tuple[str, str]] = {}
+    with CORRECTIONS_CSV.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            new_lat = row.get("new_lat", "").strip()
+            new_lon = row.get("new_lon", "").strip()
+            if new_lat and new_lon:
+                corrections[row["id_icpe"]] = (new_lat, new_lon)
+
+    if not corrections:
+        return 0
+
+    applied = 0
+    for map_row in map_rows:
+        ident = map_row.get("ident", "")
+        if ident not in corrections:
+            continue
+        new_lat, new_lon = corrections[ident]
+        map_row["Geo Point"] = f"{new_lat}, {new_lon}"
+        try:
+            geom = {
+                "coordinates": [float(new_lon), float(new_lat)],
+                "type": "Point",
+            }
+            map_row["Geo Shape"] = json.dumps(geom)
+        except ValueError:
+            continue
+        applied += 1
+
+    return applied
+
+
 def write_manual(enriched_manual: list[dict[str, str]]) -> None:
     """Écrit le CSV manuel aliasé dans data/ selon MANUAL_COLUMN_SPEC.
 
@@ -1062,6 +1110,9 @@ def main() -> int:
     # stale if anything between the two writes raised — the carte would
     # then show data that didn't match the audit pipeline's view.
     map_rows = project_bulk_to_map(enriched_bulk, manual_rows)
+    n_corrected = apply_corrections_to_map(map_rows)
+    if n_corrected:
+        print(f"[corrections] {n_corrected} coordonnées mises à jour depuis {CORRECTIONS_CSV.name}")
 
     # Both files are individually atomic (tmp + os.replace via atomic_write).
     # POSIX has no cross-file atomicity, so we take a byte-level backup of

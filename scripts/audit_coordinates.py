@@ -88,6 +88,7 @@ from _paths import (  # noqa: E402
     DONNEES_AUDIT_CACHE_DIR,
     DONNEES_AUDIT_DIR,
     DONNEES_BULK_ENRICHI_CSV,
+    FLAGGED_JSON_PATH,
     PROJECT_ROOT,
 )
 
@@ -96,7 +97,6 @@ from _paths import (  # noqa: E402
 OWNER_FICHIER = "coordonnees-audit-full.csv"
 FULL_CSV_PATH = DONNEES_AUDIT_DIR / "coordonnees-audit-full.csv"
 SUMMARY_MD_PATH = DONNEES_AUDIT_DIR / "coordonnees-audit-summary.md"
-FLAGGED_JSON_PATH = DONNEES_AUDIT_DIR / "coordonnees-audit-flagged.json"
 
 BAN_FORWARD_URL = "https://api-adresse.data.gouv.fr/search/csv/"
 BAN_REVERSE_URL = "https://api-adresse.data.gouv.fr/reverse/csv/"

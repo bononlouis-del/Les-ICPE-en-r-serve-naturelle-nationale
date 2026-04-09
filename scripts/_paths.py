@@ -39,6 +39,8 @@ DONNEES_RAW_DIR = DONNEES_DIR / "raw"
 DONNEES_AUDIT_DIR = DONNEES_DIR / "audit"
 DONNEES_AUDIT_CACHE_DIR = DONNEES_AUDIT_DIR / ".cache"
 DONNEES_AUDIT_REVIEWS_DIR = DONNEES_AUDIT_DIR / "coordonnees-audit-reviews"
+FLAGGED_JSON_PATH = DONNEES_AUDIT_DIR / "coordonnees-audit-flagged.json"
+CORRECTIONS_CSV = DONNEES_AUDIT_DIR / "coordonnees-corrections.csv"
 
 # --- Autres répertoires de premier niveau -------------------------------
 RAPPORTS_INSPECTION_DIR = PROJECT_ROOT / "rapports-inspection"
