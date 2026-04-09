@@ -79,12 +79,22 @@ if (window.matchMedia('(max-width: 719px)').matches) {
 
 // --- Init ----------------------------------------------------------------
 
+const initProgress = document.getElementById('init-progress');
+const initStep = document.getElementById('init-step');
+
+function setProgress(step, total, label) {
+  initStatus.textContent = label;
+  initStep.textContent = `${step} / ${total}`;
+  initProgress.style.width = `${Math.round((step / total) * 100)}%`;
+}
+
 async function init() {
+  const STEPS = 3;
   try {
-    initStatus.textContent = 'Téléchargement du moteur…';
+    setProgress(1, STEPS, 'Téléchargement du moteur de recherche…');
     const duckdb = await import(DUCKDB_CDN);
 
-    initStatus.textContent = 'Initialisation…';
+    setProgress(2, STEPS, 'Initialisation du moteur…');
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
     // Cross-origin Workers are blocked by browsers. Fetch the worker
@@ -100,30 +110,28 @@ async function init() {
     await db.instantiate(bundle.mainModule);
     con = await db.connect();
 
-    initStatus.textContent = 'Chargement des données…';
+    setProgress(3, STEPS, 'Connexion aux données…');
     await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
     const countResult = await con.query("SELECT COUNT(*) AS n FROM 'fiches.parquet'");
     const count = countResult.toArray()[0].n;
 
-    // Populate filters (lightweight DISTINCT queries, all metadata columns)
-    await populateFilters();
-
-    // Hide spinner, show interface
+    // Show interface immediately — filters and results load in background
     initLoading.hidden = true;
     layoutEl.hidden = false;
     searchHint.textContent = count.toLocaleString('fr-FR') + ' fiches';
     searchInput.disabled = false;
     searchInput.focus();
 
-    // Check hash for deep link
+    // Non-blocking: populate filters and load initial results in parallel
     const hashId = parseFicheIdFromHash(location.hash);
-    if (hashId) {
-      await loadFiche(hashId);
-    } else {
-      await loadRecentFiches();
-    }
+    await Promise.all([
+      populateFilters(),
+      hashId ? loadFiche(hashId) : loadRecentFiches(),
+    ]);
   } catch (err) {
     initStatus.textContent = 'Erreur de chargement — rechargez la page';
+    initStep.textContent = '';
+    initProgress.style.width = '0%';
     console.error('DuckDB init failed:', err);
   }
 }

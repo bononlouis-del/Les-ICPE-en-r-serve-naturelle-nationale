@@ -356,6 +356,42 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Init loading with progress bar */
+.init-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 32px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.init-loading__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+.init-loading__bar {
+  height: 4px;
+  background: var(--rule-soft);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.init-loading__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--moss);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.init-loading__step {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--lead);
+}
+
 /* --- Mobile ------------------------------------------------------------- */
 
 /* --- Mobile: list → detail navigation ----------------------------------- */
