@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Angles d'analyse — rapports d'inspection ICPE</title>
-<meta name="description" content="Requêtes SQL prédéfinies sur les fiches de constat ICPE en Gironde, avec export CSV en un clic via DuckDB WASM.">
+<meta name="description" content="Requêtes SQL prédéfinies sur les fiches de constat ICPE en Gironde, avec export CSV en un clic.">
 <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
@@ -25,15 +25,14 @@
 
 <main style="max-width:900px;margin:0 auto;padding:32px;">
   <p style="font-family:var(--font-body);font-size:14px;color:var(--ink-soft);margin-bottom:24px;">
-    Chaque angle est une requête SQL exécutée dans le navigateur sur
-    <code>fiches.parquet</code> via DuckDB WASM. Cliquez sur
-    « Télécharger CSV » pour obtenir le résultat. Pour proposer un
+    Chaque angle est une requête SQL pré-calculée sur les fiches de constat.
+    Cliquez sur « Télécharger CSV » pour obtenir le résultat. Pour proposer un
     nouvel angle, créez un fichier <code>.md</code> dans
     <code>rapports/angles/</code> et faites un PR.
   </p>
   <div id="loading" class="loading">
     <div class="loading__spinner"></div>
-    <span>Chargement DuckDB…</span>
+    <span>Chargement…</span>
   </div>
   <div id="angles-container"></div>
 </main>

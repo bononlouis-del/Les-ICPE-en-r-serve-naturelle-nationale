@@ -37,7 +37,7 @@ export function buildPdfUrl(baseUrl, page) {
 // --- SQL building ------------------------------------------------------
 
 /**
- * Build a SQL LIKE clause for DuckDB search.
+ * Build a SQL LIKE clause for search.
  * Escapes % and _ in the user's query, wraps in %...%.
  * @param {string} term - Raw search input
  * @returns {string} The LIKE pattern
@@ -86,7 +86,7 @@ export function canvasCoordinatesFromBbox(bbox, pagePts, canvasPx, padding) {
 
 /**
  * Format a row from the parquet search results for display.
- * @param {object} row - A row from DuckDB query result
+ * @param {object} row - A row from SQL query result
  * @returns {{title: string, subtitle: string, badge: string}}
  */
 export function formatSearchResult(row) {
