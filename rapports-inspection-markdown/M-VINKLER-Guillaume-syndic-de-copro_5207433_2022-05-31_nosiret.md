@@ -10,8 +10,8 @@ identifiant_fichier: "0oifcUOgvnKuQlk9IN6Sa1KaiGkhwqva"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/0oifcUOgvnKuQlk9IN6Sa1KaiGkhwqva"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/M-VINKLER-Guillaume-syndic-de-copro_5207433_2022-05-31_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — M. VINKLER Guillaume (syndic de copro) Syndicat des Copropriétaires 74 rue Georges Bonnac 33000 BORDEAUX

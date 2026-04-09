@@ -10,8 +10,8 @@ identifiant_fichier: "5ki9qIiBuNX1XnHOgvxnYnvUaX6RV75q"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/5ki9qIiBuNX1XnHOgvxnYnvUaX6RV75q"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SEA-INVEST-BORDEAUX-BASSENS-AVENUE-BELLERIVE-DES-MOINES_5200330_2022-11-10_31887184500034.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SEA INVEST BORDEAUX 1 rue Richelieu 33530 BASSENS

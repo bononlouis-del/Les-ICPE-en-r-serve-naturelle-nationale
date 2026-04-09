@@ -10,8 +10,8 @@ identifiant_fichier: "ajgNmiSh3q5m3x8hBnwDTEDsaUknJE4p"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/ajgNmiSh3q5m3x8hBnwDTEDsaUknJE4p"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CAVE-DE-SAUVETERRE-BLASIMON-ESPIET-Blasimon_53314094_2022-02-08_78201165400012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CAVE DE SAUVETERRE BLASIMON ESPIET 5 RUE CABORNE 33540 BLASIMON 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 08/02/2022 dans l'établissement CAVE DE SAUVETERRE BLASIMON ESPIET, implanté 5 RUE CABORNE 33540 BLASIMON. L'inspection a été annoncée le 01/02/2022. Cette partie « Contexte et constats » est publiée sur le site Géorisques (https://www.georisques.gouv.fr/). Les informations relatives à l'établissement sont les suivantes : • CAVE DE SAUVETERRE BLASIMON ESPIET • 5 RUE CABORNE 33540 BLASIMON • Code AIOT dans GUN : 0053314094 • Régime : Enregistrement • Statut Seveso : Non Seveso • Non IED - MTD La société CAVE DE SAUVETERRE BLASIMON ESPIET exploite un établissement de préparation de vins relevant du régime de l’enregistrement au titre de la rubrique 2251 "Préparation, conditionnement de vins". L’exploitation de cet établissement est encadrée par l’arrêté préfectoral d'autorisation d'exploiter 14498 du 24 juillet 2001. Le récépissé 201406108 du 12 juin 2017 a pris acte de la déclaration de changement d’exploitant du site au profit de la société CAVE DE SAUVETERRE BLASIMON ESPIET. Le site est implanté sur les parcelles 90, 135 à 137 et 145 (station d’épuration) de la section cadastrale ZB et la parcelle 41 de la section cadastrale ZA et couvre une surface d’environ 18 000 m². Les thèmes de visite retenus sont les suivants : • Prévention de la pollution des eaux • Prévention des risques 5 boulevard Jacques Chaban-Delmas CS 60074 - 33070 Bruges Cedex Tél : 05 24 73 38 00 – Fax : 05 24 73 38 01 www.gironde.gouv.fr 1/10

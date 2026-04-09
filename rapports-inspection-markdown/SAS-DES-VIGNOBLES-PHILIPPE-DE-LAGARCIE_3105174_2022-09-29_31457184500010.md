@@ -10,8 +10,8 @@ identifiant_fichier: "XoapSga9gOcggM2TzeM5wj9ykpo3QZkq"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/XoapSga9gOcggM2TzeM5wj9ykpo3QZkq"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SAS-DES-VIGNOBLES-PHILIPPE-DE-LAGARCIE_3105174_2022-09-29_31457184500010.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SAS DES VIGNOBLES PHILIPPE DE LAGARCIE LIEU DIT LE CRUSQUET 33390 CARS 1) Contexte Le présent rapport rend compte de l’inspection réalisée le jeudi 29 septembre 2022 de l'établissement de la société SAS DES VIGNOBLES PHILIPPE DE LAGARCIE, implanté « Crusquet » à CARS (33390). Cette partie « Contexte et constats » est publiée sur le site Géorisques ( https://www.georisques.gouv.fr/

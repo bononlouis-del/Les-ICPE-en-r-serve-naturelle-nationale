@@ -10,8 +10,8 @@ identifiant_fichier: "9tkze0FYcTp2cURlNERVtlvgJfa17kyu"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/9tkze0FYcTp2cURlNERVtlvgJfa17kyu"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EURL-BORDEAUX-CASSE-KOULAKIAN-Arsen_5214025_2022-11-09_79211010800026.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EURL BORDEAUX CASSE (KOULAKIAN Arsen) 48 rue Pierre Baour 33300 BORDEAUX

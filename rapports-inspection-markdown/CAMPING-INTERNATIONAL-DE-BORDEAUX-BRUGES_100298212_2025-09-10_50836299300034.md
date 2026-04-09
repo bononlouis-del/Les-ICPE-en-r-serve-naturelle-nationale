@@ -10,8 +10,8 @@ identifiant_fichier: "RUaja7GNzdiaQXeILy5pFiHsqG8QWWmL"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/RUaja7GNzdiaQXeILy5pFiHsqG8QWWmL"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CAMPING-INTERNATIONAL-DE-BORDEAUX-BRUGES_100298212_2025-09-10_50836299300034.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CAMPING INTERNATIONAL DE BORDEAUX BRUGES BOULEVARD JACQUES CHABAN DELMAS BOULEVARD JACQUES CHABAN DELMAS, camping le villag -- camping le village du lac 33520 Bruges

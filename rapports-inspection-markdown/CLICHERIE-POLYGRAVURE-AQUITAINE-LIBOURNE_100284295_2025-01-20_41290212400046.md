@@ -10,8 +10,8 @@ identifiant_fichier: "KPqIHNKv9tLC1eZIrJDXwv76yXgRJvVh"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/KPqIHNKv9tLC1eZIrJDXwv76yXgRJvVh"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CLICHERIE-POLYGRAVURE-AQUITAINE-LIBOURNE_100284295_2025-01-20_41290212400046.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CLICHERIE POLYGRAVURE AQUITAINE 3 T RUE FIRMIN DIDOT 33500 Libourne

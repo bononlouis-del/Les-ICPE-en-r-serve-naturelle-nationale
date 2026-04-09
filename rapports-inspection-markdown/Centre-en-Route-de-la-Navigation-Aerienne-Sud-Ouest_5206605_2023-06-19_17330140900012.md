@@ -10,8 +10,8 @@ identifiant_fichier: "G6tCoA5uaMpxSW3vbAa1Hq8HieeYjuL3"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/G6tCoA5uaMpxSW3vbAa1Hq8HieeYjuL3"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Centre-en-Route-de-la-Navigation-Aerienne-Sud-Ouest_5206605_2023-06-19_17330140900012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Centre en Route de la Navigation Aérienne av de Beaudésert 33700 Mérignac

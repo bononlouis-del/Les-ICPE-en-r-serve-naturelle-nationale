@@ -10,8 +10,8 @@ identifiant_fichier: "QQnYiTUiH3D3KLCz1RK1sajSFupk4HR3"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/QQnYiTUiH3D3KLCz1RK1sajSFupk4HR3"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SCASO-SOC-CENTRALE-APPROVISION-SUD-OUEST_5200699_2025-10-20_59695013900045.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SCASO (SOC CENTRALE APPROVISION SUD OUEST) Avenue du maréchal de Lattre de Tassigny Zone industrielle de Toctoucau 33610 Cestas

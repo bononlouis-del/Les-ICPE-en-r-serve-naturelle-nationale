@@ -10,8 +10,8 @@ identifiant_fichier: "gNmGna08uf5XOeueSp68SqDeWUFxUBrx"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/gNmGna08uf5XOeueSp68SqDeWUFxUBrx"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/REGIE-DE-L-EAU-DE-BORDEAUX-METROPOLE_5209316_2026-02-27_81748866100056.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SOCIETE D'ASSAINISSEMENT DE BORDEAUX METROPOLE (SABOM) Service Eau et Assainissement Esplanade Charles de Gaulle 33000 Bordeaux

@@ -10,8 +10,8 @@ identifiant_fichier: "D84Fd96EtHU4iMWaKKr7hR5H2iTZ6GbH"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/D84Fd96EtHU4iMWaKKr7hR5H2iTZ6GbH"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CENTRE-DE-RECUPERATION-DU-LIBOURNAIS-Coutras_5207752_2024-02-07_34183141000012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CENTRE DE RECUPERATION DU LIBOURNAIS Route de Montpon 124 Les Grand Rois 33230 Coutras

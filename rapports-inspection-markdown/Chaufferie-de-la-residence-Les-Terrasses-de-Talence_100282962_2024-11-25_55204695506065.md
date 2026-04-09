@@ -10,8 +10,8 @@ identifiant_fichier: "V12PbUPinaK7aVIpwRRSOFq15fuvCHk8"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/V12PbUPinaK7aVIpwRRSOFq15fuvCHk8"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Chaufferie-de-la-residence-Les-Terrasses-de-Talence_100282962_2024-11-25_55204695506065.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Chaufferie de la résidence Les Terrasses de Talence 1 PLACE SAMUEL DE CHAMPLAIN FAUBOURG DE L ARCHE 92400 Courbevoie

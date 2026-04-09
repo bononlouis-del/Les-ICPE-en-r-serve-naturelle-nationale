@@ -10,8 +10,8 @@ identifiant_fichier: "7gnuTgAymJeA9AIMSZvVgfhBMX8SrTev"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/7gnuTgAymJeA9AIMSZvVgfhBMX8SrTev"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/LT-competition-Merignac-79C-avenue-du-chateau-d-eau_100008772_2022-11-15_50950011200016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LT compétition 79C avenue du chateau d'eau 33700 Mérignac

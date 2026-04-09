@@ -10,8 +10,8 @@ identifiant_fichier: "lrfac1aPJMAyh9JfL6b1ZMIhGdPNiXLe"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/lrfac1aPJMAyh9JfL6b1ZMIhGdPNiXLe"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/HEIDELBERG-MATERIALS-France-Granulats-Illats_3103627_2025-11-07_57216565201419.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — HEIDELBERG MATERIALS France Granulats 4 place des Saisons 92400 Courbevoie

@@ -10,8 +10,8 @@ identifiant_fichier: "0b43E5hGvNIdPvYkiMQMj7dGVAaCCr3U"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/0b43E5hGvNIdPvYkiMQMj7dGVAaCCr3U"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BERNARD-Raymond_5206704_2023-04-12_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BERNARD Raymond Lieu-dit Lilian Route de Lihan 33590 Talais

@@ -10,8 +10,8 @@ identifiant_fichier: "qVYn4zxXvIxyCzSRs0Au4X8uSkT2Cugi"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/qVYn4zxXvIxyCzSRs0Au4X8uSkT2Cugi"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COBOGAL-COMPAGNIE-BORDELAISE-DES-GAZ-LIQUEFIES_5200263_2023-09-12_45620101100016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COBOGAL Z.I du BEC D'AMBES 33810 Ambès

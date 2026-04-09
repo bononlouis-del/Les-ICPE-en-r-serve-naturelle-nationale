@@ -9,9 +9,9 @@ date_inspection: "2025-04-11"
 identifiant_fichier: "v28ehdaFa7eok6TxAvxWaTOGQUT1nbSo"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/v28ehdaFa7eok6TxAvxWaTOGQUT1nbSo"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CHAPELLE-ALEXANDRE_100289649_2025-04-11_nosiret.pdf"
-extraction_method: "ocr_then_dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_method: "dreal_parser"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — (établissement inconnu)

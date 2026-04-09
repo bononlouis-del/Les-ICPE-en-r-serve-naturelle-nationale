@@ -146,9 +146,10 @@ PAGES_URL_TEMPLATE = (
 #   - nouvelle règle de classification ou de parsing
 #   - nouveau format de front matter
 #   - nouveau routage OCR
-# Un bump de version n'invalide pas mécaniquement tous les markdowns ;
-# la ré-extraction est déclenchée par --force.
-EXTRACTION_VERSION = "0.1.0"
+# Un bump de version invalide toutes les entrées du manifest via
+# ``is_up_to_date``, donc le re-run ré-extrait automatiquement sans
+# ``--force`` nécessaire.
+EXTRACTION_VERSION = "0.2.0"
 
 # Paramètres d'extraction
 SCAN_MIN_CHARS = 32  # en dessous de ce seuil, on considère le PDF comme scan
@@ -286,6 +287,7 @@ class ExtractionResult:
     method: ExtractionMethod
     markdown: str
     front_matter: FrontMatter | None = None
+    fiches: list[Fiche] = field(default_factory=list)
     error: str | None = None
 
 
@@ -305,6 +307,20 @@ class DrealMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class FicheRegion:
+    """Région visuelle d'une fiche sur une page du PDF.
+
+    Utilisée par le sidecar ``_fiches.jsonl`` pour permettre au client
+    web de cropper un snippet du PDF à la bonne zone. Pages en 1-based
+    (convention des viewers PDF), bbox en points PDF (72 pts = 1 inch),
+    origine haut-gauche.
+    """
+
+    page: int
+    bbox: list[float]
+
+
+@dataclass(frozen=True, slots=True)
 class Fiche:
     """Fiche de constat individuelle dans la section 2-4.
 
@@ -319,6 +335,7 @@ class Fiche:
     numero: str
     titre: str
     body: str
+    sub_section: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,7 +357,8 @@ class DrealSections:
 
 # Marqueurs du gabarit DREAL Nouvelle-Aquitaine. Un PDF est considéré
 # comme gabarit standard si les 4 marqueurs sont présents dans le texte
-# natif. Observé sur 1483/1782 PDFs du corpus (83,2 %).
+# natif. Observé sur 1627/1782 PDFs du corpus (91,3 %, incluant les
+# 47 scans récupérés via OCR).
 DREAL_MARKERS: tuple[str, ...] = (
     "Rapport de l'Inspection des installations classées",
     "1) Contexte",
@@ -560,13 +578,14 @@ def _extract_fiches_from_subsections(
     rencontré.
     """
     fiches: list[Fiche] = []
-    for _heading, body in subsections:
+    for heading, body in subsections:
         for match in _RE_FICHE.finditer(body):
             fiches.append(
                 Fiche(
                     numero=match.group(1).strip(),
                     titre=match.group(2).strip(),
                     body=match.group(3).strip(),
+                    sub_section=heading,
                 )
             )
     return fiches
@@ -1061,12 +1080,14 @@ def extract_pdf(
 
     fm = build_front_matter_from_csv(csv_row, pdf_path, method, now=now)
 
+    fiches: list[Fiche] = []
     try:
         if method in (
             ExtractionMethod.DREAL_PARSER,
             ExtractionMethod.OCR_THEN_DREAL_PARSER,
         ):
             sections = parse_dreal_sections(text)
+            fiches = sections.fiches
             md = render_dreal_markdown(sections, fm)
         else:
             md = _render_via_pymupdf4llm(pdf_path, fm)
@@ -1075,7 +1096,9 @@ def extract_pdf(
             pdf_path, csv_row, f"rendu markdown : {exc}", now
         )
 
-    return ExtractionResult(method=method, markdown=md, front_matter=fm)
+    return ExtractionResult(
+        method=method, markdown=md, front_matter=fm, fiches=fiches
+    )
 
 
 def _prefix_ocr(method: ExtractionMethod) -> ExtractionMethod:
@@ -1238,6 +1261,178 @@ def load_schema() -> dict[str, object]:
     """Charge le JSON Schema draft-07 depuis ``scripts/schemas/``."""
     with SCHEMA_PATH.open(encoding="utf-8") as handle:
         return json.load(handle)
+
+
+# --- Sidecar _fiches.jsonl (v0.2.0) ---------------------------------------
+
+FICHES_SIDECAR_SCHEMA_PATH = (
+    Path(__file__).resolve().parent / "schemas" / "fiches_sidecar.json"
+)
+FICHES_SIDECAR_PATH = MARKDOWN_DIR / "_fiches.jsonl"
+
+
+def compute_fiches_sidecar_entry(
+    pdf_path: Path,
+    source_sha256: str,
+    extraction_method: str,
+    fiches: list[Fiche],
+) -> dict[str, object]:
+    """Construit une entrée sidecar pour un PDF, avec page + bbox par fiche.
+
+    Ouvre le PDF via pymupdf pour chercher chaque titre de fiche et
+    calculer la bbox réelle (du titre au titre suivant ou fin de page).
+
+    Pour les PDFs non-DREAL (``fiches=[]``), retourne une entrée sans
+    fiches — le PDF est tout de même tracé dans le sidecar pour que
+    ``construire_fiches.py`` puisse générer un prose row.
+    """
+    import pymupdf  # import local
+
+    with pymupdf.open(pdf_path) as doc:
+        page_count = len(doc)
+        fiche_entries: list[dict[str, object]] = []
+
+        for i, fiche in enumerate(fiches):
+            next_fiche = fiches[i + 1] if i + 1 < len(fiches) else None
+            regions = _find_fiche_regions(
+                doc,
+                fiche.numero,
+                fiche.titre,
+                next_fiche.numero if next_fiche else None,
+                next_fiche.titre if next_fiche else None,
+            )
+            fiche_entries.append({
+                "num": fiche.numero,
+                "titre": fiche.titre,
+                "body": fiche.body,
+                "sub_section": fiche.sub_section,
+                "regions": [
+                    {"page": r.page, "bbox": r.bbox}
+                    for r in regions
+                ],
+            })
+
+    return {
+        "source_pdf": pdf_path.name,
+        "source_sha256": source_sha256,
+        "extraction_version": EXTRACTION_VERSION,
+        "extraction_method": extraction_method,
+        "page_count": page_count,
+        "fiches": fiche_entries,
+    }
+
+
+def _find_fiche_regions(
+    doc: object,
+    fiche_num: str,
+    fiche_titre: str,
+    next_num: str | None,
+    next_titre: str | None,
+) -> list[FicheRegion]:
+    """Trouve les régions visuelles d'une fiche dans le PDF.
+
+    Stratégie : cherche ``N° {num} :`` sur chaque page. La bbox
+    s'étend du haut du titre au haut du titre suivant (ou fin de page
+    si la fiche est la dernière ou si la suivante est sur une autre
+    page). Si la fiche s'étale sur plusieurs pages, une région par
+    page est émise.
+
+    Retourne ``[]`` si le titre n'est pas trouvé (OCR dégradé, PDF
+    corrompu) — le client affiche alors le PDF à la page 1 en
+    fallback.
+    """
+    search_text = f"N° {fiche_num} :"
+    next_search = f"N° {next_num} :" if next_num else None
+
+    # Trouver la page de début
+    start_page_idx: int | None = None
+    title_rect = None
+    for page_idx in range(len(doc)):  # type: ignore[arg-type]
+        page = doc[page_idx]  # type: ignore[index]
+        rects = page.search_for(search_text)
+        if rects:
+            start_page_idx = page_idx
+            title_rect = rects[0]
+            break
+
+    if start_page_idx is None or title_rect is None:
+        return []
+
+    page = doc[start_page_idx]  # type: ignore[index]
+    page_rect = page.rect
+    left_margin = page_rect.x0 + 30
+    right_margin = page_rect.x1 - 30
+
+    # Chercher le titre suivant sur la MÊME page
+    if next_search:
+        next_rects = page.search_for(next_search)
+        same_page_next = [r for r in next_rects if r.y0 > title_rect.y0 + 10]
+        if same_page_next:
+            # La fiche suivante est sur la même page — bbox simple
+            return [FicheRegion(
+                page=start_page_idx + 1,
+                bbox=[
+                    left_margin,
+                    max(0.0, title_rect.y0 - 5),
+                    right_margin,
+                    same_page_next[0].y0 - 5,
+                ],
+            )]
+
+    # La fiche suivante n'est PAS sur la même page (ou pas de fiche suivante)
+    # → la région s'étend jusqu'au bas de cette page
+    regions = [FicheRegion(
+        page=start_page_idx + 1,
+        bbox=[
+            left_margin,
+            max(0.0, title_rect.y0 - 5),
+            right_margin,
+            page_rect.height - 30,
+        ],
+    )]
+
+    # Si fiche suivante existe, chercher sur les pages suivantes
+    if next_search:
+        for next_page_idx in range(start_page_idx + 1, len(doc)):  # type: ignore[arg-type]
+            next_page = doc[next_page_idx]  # type: ignore[index]
+            next_rects = next_page.search_for(next_search)
+            if next_rects:
+                # La fiche suivante commence sur cette page.
+                # Si la zone entre le top margin et le début de la
+                # fiche suivante est trop fine (< 30 pts ≈ 0.4 inch),
+                # on la supprime plutôt que de générer un snippet vide.
+                end_y = next_rects[0].y0 - 5
+                if end_y - 60 >= 30:
+                    regions.append(FicheRegion(
+                        page=next_page_idx + 1,
+                        bbox=[
+                            next_page.rect.x0 + 30,
+                            60,
+                            next_page.rect.x1 - 30,
+                            end_y,
+                        ],
+                    ))
+                break
+            # Page entière appartient à cette fiche
+            regions.append(FicheRegion(
+                page=next_page_idx + 1,
+                bbox=[
+                    next_page.rect.x0 + 30,
+                    60,
+                    next_page.rect.x1 - 30,
+                    next_page.rect.height - 30,
+                ],
+            ))
+
+    return regions
+
+
+def append_fiches_sidecar(path: Path, entry: dict[str, object]) -> None:
+    """Ajoute une ligne JSON au sidecar _fiches.jsonl (append-only)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        json.dump(entry, handle, ensure_ascii=False)
+        handle.write("\n")
 
 
 # --- Phase 5 : orchestrator + CLI + main ----------------------------------
@@ -1529,6 +1724,19 @@ def run_extraction(
             )
             append_manifest(MANIFEST_PATH, entry)
             manifest[filename] = entry
+
+        # Sidecar _fiches.jsonl : 1 entrée par PDF, avec les fiches
+        # structurées + page + bbox. Écrit pour TOUS les PDFs (même
+        # FAILED et generic sans fiches) pour que construire_fiches.py
+        # puisse générer des prose rows.
+        if result.front_matter is not None:
+            sidecar_entry = compute_fiches_sidecar_entry(
+                pdf_path,
+                result.front_matter["source_sha256"],
+                result.method.value,
+                result.fiches,
+            )
+            append_fiches_sidecar(FICHES_SIDECAR_PATH, sidecar_entry)
 
         if result.method in SUCCESS_METHODS:
             summary_ok += 1

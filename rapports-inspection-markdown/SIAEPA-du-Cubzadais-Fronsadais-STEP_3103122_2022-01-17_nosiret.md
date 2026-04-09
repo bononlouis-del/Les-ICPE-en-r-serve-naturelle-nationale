@@ -10,8 +10,8 @@ identifiant_fichier: "8lGfFs011zeuPgWa7amIUyx8iFLl1AVE"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/8lGfFs011zeuPgWa7amIUyx8iFLl1AVE"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SIAEPA-du-Cubzadais-Fronsadais-STEP_3103122_2022-01-17_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SIAEPA du Cubzadais-Fronsadais - STEP STEP de Porto 33240 ST ANDRE DE CUBZAC

@@ -10,8 +10,8 @@ identifiant_fichier: "leE6iyN3tgdcVcyQs5YudrNvKHWXak0U"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/leE6iyN3tgdcVcyQs5YudrNvKHWXak0U"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SEA-INVEST-BORDEAUX-BASSENS-1-RUE-RICHELIEU_5200343_2023-03-14_31887184500059.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SEA INVEST BORDEAUX 1 Rue Richelieu 33530 Bassens

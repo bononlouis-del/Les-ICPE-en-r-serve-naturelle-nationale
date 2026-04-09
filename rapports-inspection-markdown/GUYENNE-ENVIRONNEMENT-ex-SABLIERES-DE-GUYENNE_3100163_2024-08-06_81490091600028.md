@@ -10,8 +10,8 @@ identifiant_fichier: "wHdD1f1iVynaWItaVbHZ4U2MaSxmqNeU"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/wHdD1f1iVynaWItaVbHZ4U2MaSxmqNeU"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/GUYENNE-ENVIRONNEMENT-ex-SABLIERES-DE-GUYENNE_3100163_2024-08-06_81490091600028.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — GUYENNE ENVIRONNEMENT (ex-SABLIERES DE GUYENNE) 27 RUE ALESSANDRO VOLTA B.P 10288 33700 Mérignac

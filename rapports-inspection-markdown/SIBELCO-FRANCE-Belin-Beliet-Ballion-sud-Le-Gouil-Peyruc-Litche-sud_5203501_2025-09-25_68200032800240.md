@@ -10,8 +10,8 @@ identifiant_fichier: "r2YVnVOnpUkaUOteVxLIfJk1a388a1Ua"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/r2YVnVOnpUkaUOteVxLIfJk1a388a1Ua"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SIBELCO-FRANCE-Belin-Beliet-Ballion-sud-Le-Gouil-Peyruc-Litche-sud_5203501_2025-09-25_68200032800240.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SIBELCO FRANCE 2 rue Foljuif 77140 Saint-Pierre-Lès-Nemours

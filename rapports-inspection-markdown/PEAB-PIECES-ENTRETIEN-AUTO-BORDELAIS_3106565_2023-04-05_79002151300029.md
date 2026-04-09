@@ -10,8 +10,8 @@ identifiant_fichier: "Ixn9N6Q5izUwQL5aNapVrthvoaVtQnMS"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Ixn9N6Q5izUwQL5aNapVrthvoaVtQnMS"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/PEAB-PIECES-ENTRETIEN-AUTO-BORDELAIS_3106565_2023-04-05_79002151300029.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — PEAB - PIECES ENTRETIEN AUTO BORDELAIS Zone d'activité du Pot au Pin 5, Chemin Saint Raymond 33611 Cestas

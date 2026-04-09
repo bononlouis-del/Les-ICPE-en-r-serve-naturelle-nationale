@@ -10,8 +10,8 @@ identifiant_fichier: "tpZzkBdvffuNq0PupaXMPa8z0W6DagOV"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/tpZzkBdvffuNq0PupaXMPa8z0W6DagOV"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CHRIFI-Karim-et-Siham-Route-Chapelles_3106609_2022-11-24_52389498800022.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CHRIFI Karim et Siham (Route Chapelles) 298 route des Chappelles 33570 LES ARTIGUES DE LUSSAC

@@ -10,8 +10,8 @@ identifiant_fichier: "i6Z5WgVnaIpfahxyO0RKBxOAqtHrpO8W"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/i6Z5WgVnaIpfahxyO0RKBxOAqtHrpO8W"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/STEF-LOGISTIQUE-CANEJAN-ex-STEF-LOGISTIQUE-PESSAC_5208132_2022-03-17_42439314800020.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SLS PESSAC 8 rue Thomas Edison Zone industrielle Bersol 2 33600 PESSAC

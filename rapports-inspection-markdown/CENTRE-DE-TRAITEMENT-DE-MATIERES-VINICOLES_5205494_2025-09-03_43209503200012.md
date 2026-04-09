@@ -10,8 +10,8 @@ identifiant_fichier: "3U0ucgxe2hHS838UyDH0ca9hajJPMRvH"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/3U0ucgxe2hHS838UyDH0ca9hajJPMRvH"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CENTRE-DE-TRAITEMENT-DE-MATIERES-VINICOLES_5205494_2025-09-03_43209503200012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CENTRE DE TRAITEMENT DE MATIERES VINICOLES 928 route de Moulon 33420 Génissac

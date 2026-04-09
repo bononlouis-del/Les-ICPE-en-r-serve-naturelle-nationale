@@ -9,9 +9,9 @@ date_inspection: "2024-05-03"
 identifiant_fichier: "2soEXxDf4wXxG2SlOQ05GE6MENdKF5ga"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/2soEXxDf4wXxG2SlOQ05GE6MENdKF5ga"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BORDEAUX-METROPOLE-Bordeaux-Quai-Deschamps_5207619_2024-05-03_24330031600029.pdf"
-extraction_method: "ocr_then_pymupdf4llm"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:26:52"
+extraction_method: "pymupdf4llm_generic"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 | PREFET DE LA GIRONDE Liberté Egalité Fraternité 

@@ -10,8 +10,8 @@ identifiant_fichier: "FmL11amtXzCdOBnaYzb57ZxB38WN8ORi"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/FmL11amtXzCdOBnaYzb57ZxB38WN8ORi"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/XEROS-ENVIRONNEMENT-Saint-Jean-d-Illac_5213045_2023-05-16_78868999000018.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — XEROS ENVIRONNEMENT 134, allée de Courbet 33127 Saint-Jean-d'Illac

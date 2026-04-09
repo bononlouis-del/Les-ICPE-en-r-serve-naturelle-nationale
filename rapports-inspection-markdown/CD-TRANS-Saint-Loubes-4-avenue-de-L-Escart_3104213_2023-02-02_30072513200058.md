@@ -10,8 +10,8 @@ identifiant_fichier: "iIphctqZybILaeOzRcTwg1GGNlVs51jX"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/iIphctqZybILaeOzRcTwg1GGNlVs51jX"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CD-TRANS-Saint-Loubes-4-avenue-de-L-Escart_3104213_2023-02-02_30072513200058.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CD TRANS 15 Avenue du Général de Gaulle 33530 Bassens

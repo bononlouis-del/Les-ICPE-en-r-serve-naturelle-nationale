@@ -10,8 +10,8 @@ identifiant_fichier: "fsMSOSNBlx3alE8xaISAKcX2afd7u5zI"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/fsMSOSNBlx3alE8xaISAKcX2afd7u5zI"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/RESIDENCE-SOLESSE_100034958_2023-12-04_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — RESIDENCE SOLESSE 1 avenue André Reinson 33300 Bordeaux

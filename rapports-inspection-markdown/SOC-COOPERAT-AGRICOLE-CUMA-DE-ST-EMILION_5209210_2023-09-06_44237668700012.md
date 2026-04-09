@@ -10,8 +10,8 @@ identifiant_fichier: "uidhhlGzItafU3wtTR0akZnBfIrKRkXo"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/uidhhlGzItafU3wtTR0akZnBfIrKRkXo"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SOC-COOPERAT-AGRICOLE-CUMA-DE-ST-EMILION_5209210_2023-09-06_44237668700012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CUMA DE SAINT-EMILION Rue Guadet - BP 15 33330 Saint-Émilion

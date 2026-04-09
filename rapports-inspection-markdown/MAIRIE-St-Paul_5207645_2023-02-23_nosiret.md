@@ -10,8 +10,8 @@ identifiant_fichier: "4rVW3fOXrxx25aqED2wUV6BQUkZN9Thv"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/4rVW3fOXrxx25aqED2wUV6BQUkZN9Thv"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/MAIRIE-St-Paul_5207645_2023-02-23_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — MAIRIE - St Paul Brandacotte 33390 Saint-Paul

@@ -10,8 +10,8 @@ identifiant_fichier: "DHXa7esEVUWbbo5QsaVfn3cC986EvF4W"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/DHXa7esEVUWbbo5QsaVfn3cC986EvF4W"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SMICVAL-dechetterie-Saint-Gervais_5211843_2023-05-26_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SMICVAL - déchetterie 8 rue de la Pinière 33910 Saint-Denis-de-Pile

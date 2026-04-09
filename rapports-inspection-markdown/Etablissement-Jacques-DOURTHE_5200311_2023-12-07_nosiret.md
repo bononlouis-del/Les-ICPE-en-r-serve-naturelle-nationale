@@ -10,8 +10,8 @@ identifiant_fichier: "HrsoI70ixVRTQSXa6h7h6RUeybVnrVia"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/HrsoI70ixVRTQSXa6h7h6RUeybVnrVia"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Etablissement-Jacques-DOURTHE_5200311_2023-12-07_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — DOURTHE 33730 Balizac Code AIOT : 0005200311 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 07/12/2023 dans l'établissement DOURTHE implanté 33730 Balizac. L'inspection a été annoncée le 28/11/2023. Cette partie 6 Contexte et constats 7 est publiée sur le site internet Géorisques ( https://www.georisques.gouv.fr/

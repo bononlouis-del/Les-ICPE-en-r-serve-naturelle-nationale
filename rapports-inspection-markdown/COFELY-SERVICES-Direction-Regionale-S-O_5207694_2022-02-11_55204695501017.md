@@ -10,8 +10,8 @@ identifiant_fichier: "IsaQWUlv8zf2pIcAJN9JFQn6VEkxSaeV"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/IsaQWUlv8zf2pIcAJN9JFQn6VEkxSaeV"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COFELY-SERVICES-Direction-Regionale-S-O_5207694_2022-02-11_55204695501017.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COFELY SERVICES Direction Régionale S-O Zone d'activités Laséris 15, av. des Sablières 33114 LE BARP

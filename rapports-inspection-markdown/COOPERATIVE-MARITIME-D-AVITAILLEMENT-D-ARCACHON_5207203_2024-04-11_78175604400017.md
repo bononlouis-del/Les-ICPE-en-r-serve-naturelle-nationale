@@ -10,8 +10,8 @@ identifiant_fichier: "GpcV41oTpJr6Us3CzBT2Qtc2OaU7hulA"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/GpcV41oTpJr6Us3CzBT2Qtc2OaU7hulA"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COOPERATIVE-MARITIME-D-AVITAILLEMENT-D-ARCACHON_5207203_2024-04-11_78175604400017.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COOPERATIVE MARITIME D'AVITAILLEMENT 2 Quai Commandant Silhouette 33120 Arcachon

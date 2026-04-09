@@ -10,8 +10,8 @@ identifiant_fichier: "eMvAHmzq6NIdO4QNsvt3gZc4aV77O0Q7"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/eMvAHmzq6NIdO4QNsvt3gZc4aV77O0Q7"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SCA-FAMILLE-BEAUMARTIN-Saint-Christophe-des-Bardes_3100083_2022-09-26_41388496600016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SCA FAMILLE BEAUMARTIN LIEU DIT LAROQUE 33330 ST CHRISTOPHE DES BARDES

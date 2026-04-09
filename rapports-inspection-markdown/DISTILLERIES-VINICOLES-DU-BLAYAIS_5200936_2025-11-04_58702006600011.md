@@ -10,8 +10,8 @@ identifiant_fichier: "nmfTta42oDsX9RzpBZT1XzY69EsFKkq4"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/nmfTta42oDsX9RzpBZT1XzY69EsFKkq4"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DISTILLERIES-VINICOLES-DU-BLAYAIS_5200936_2025-11-04_58702006600011.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — DISTILLERIES VINICOLES DU BLAYAIS ZI Le Bourg MARCILLAC 33860 Val-De-Livenne

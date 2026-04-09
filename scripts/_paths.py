@@ -43,5 +43,11 @@ DONNEES_AUDIT_REVIEWS_DIR = DONNEES_AUDIT_DIR / "coordonnees-audit-reviews"
 # --- Autres répertoires de premier niveau -------------------------------
 RAPPORTS_INSPECTION_DIR = PROJECT_ROOT / "rapports-inspection"
 RAPPORTS_MARKDOWN_DIR = PROJECT_ROOT / "rapports-inspection-markdown"
+FICHES_SIDECAR_PATH = RAPPORTS_MARKDOWN_DIR / "_fiches.jsonl"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 TESTS_DIR = SCRIPTS_DIR / "tests"
+
+# --- Artefacts construire_fiches (ajoutés en Phase B rapports) ----------
+CARTE_FICHES_PARQUET = CARTE_DATA_DIR / "fiches.parquet"
+CARTE_FICHES_META_JSON = CARTE_DATA_DIR / "fiches-meta.json"
+CARTE_FICHES_MANIFEST = CARTE_DATA_DIR / "fiches-manifest.jsonl"

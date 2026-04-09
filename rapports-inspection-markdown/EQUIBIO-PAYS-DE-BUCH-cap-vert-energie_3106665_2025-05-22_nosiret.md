@@ -10,8 +10,8 @@ identifiant_fichier: "XEKwv8Sma8l5m7a0ZXZaBxqJdr0E95Yl"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/XEKwv8Sma8l5m7a0ZXZaBxqJdr0E95Yl"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EQUIBIO-PAYS-DE-BUCH-cap-vert-energie_3106665_2025-05-22_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EQUIBIO PAYS DE BUCH (cap vert énergie) 7 rue de la Paix Marcel Paul 13001 Marseille

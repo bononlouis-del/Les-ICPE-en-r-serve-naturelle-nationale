@@ -10,8 +10,8 @@ identifiant_fichier: "NYQOFfh6oBhdKx8bL9oK2JkDUvaJqipf"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/NYQOFfh6oBhdKx8bL9oK2JkDUvaJqipf"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BORDELAISE-DE-MATERIAUX-ENROBES-BME_5200768_2023-03-23_46720015000010.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BORDELAISE DE MATERIAUX ENROBES (BME) Avenue Aristide Bergès Parc d'activité de la Jacquotte 33270 Floirac

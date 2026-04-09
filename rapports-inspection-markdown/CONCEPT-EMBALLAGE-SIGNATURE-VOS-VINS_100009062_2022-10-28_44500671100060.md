@@ -10,8 +10,8 @@ identifiant_fichier: "hpR1MDX07hk2Ksj0kNQEQcplFMB6jIv0"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/hpR1MDX07hk2Ksj0kNQEQcplFMB6jIv0"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CONCEPT-EMBALLAGE-SIGNATURE-VOS-VINS_100009062_2022-10-28_44500671100060.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CONCEPT EMBALLAGE SIGNATURE VOS VINS 5 RUE DES BRUYERES 33450 SAINT-LOUBES

@@ -10,8 +10,8 @@ identifiant_fichier: "Iph6HlzgtVZoDJt4qEuIpovhRwaVgzJY"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Iph6HlzgtVZoDJt4qEuIpovhRwaVgzJY"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EDYCEM-ex-VM-BETON-Villenave-d-Ornon_5207096_2024-01-26_31452823300237.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EDYCEM (ex VM BETON) RTE DE LA ROCHE SUR YON 85260 L'Herbergement

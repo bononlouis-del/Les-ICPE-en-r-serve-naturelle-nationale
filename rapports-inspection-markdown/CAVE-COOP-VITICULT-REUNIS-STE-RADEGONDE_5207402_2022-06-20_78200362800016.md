@@ -10,8 +10,8 @@ identifiant_fichier: "7A1goYQKqoELbLEm3nZjczh8TCmLN68q"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/7A1goYQKqoELbLEm3nZjczh8TCmLN68q"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CAVE-COOP-VITICULT-REUNIS-STE-RADEGONDE_5207402_2022-06-20_78200362800016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CAVE COOP VITICULT REUNIS STE RADEGONDE ROUTE DE CASTILLON 4 Le Bourg 33350 STE RADEGONDE

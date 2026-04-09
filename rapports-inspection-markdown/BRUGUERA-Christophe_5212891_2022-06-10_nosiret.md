@@ -10,8 +10,8 @@ identifiant_fichier: "jD1WmdOUot04nRmms7KkKBAaAaKN917u"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/jD1WmdOUot04nRmms7KkKBAaAaKN917u"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BRUGUERA-Christophe_5212891_2022-06-10_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BRUGUERA Christophe 2 Chemin de la Conteste 33440 ST VINCENT DE PAUL

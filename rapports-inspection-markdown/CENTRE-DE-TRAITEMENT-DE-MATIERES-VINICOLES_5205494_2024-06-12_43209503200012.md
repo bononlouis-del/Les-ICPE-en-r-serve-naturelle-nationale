@@ -9,9 +9,9 @@ date_inspection: "2024-06-12"
 identifiant_fichier: "X6P8WxgQIEt3iiFNjY5y1Md2ouhOegiM"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/X6P8WxgQIEt3iiFNjY5y1Md2ouhOegiM"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CENTRE-DE-TRAITEMENT-DE-MATIERES-VINICOLES_5205494_2024-06-12_43209503200012.pdf"
-extraction_method: "ocr_then_pymupdf4llm"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_method: "pymupdf4llm_generic"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 Eu Direction Régionale de l'Environnement, de I'Aménagement et du PREFET Logement de Nouvelle-Aquitaine 

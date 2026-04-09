@@ -10,8 +10,8 @@ identifiant_fichier: "ooplha1f36a780N35yMHMTFewE3faWz0"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/ooplha1f36a780N35yMHMTFewE3faWz0"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Societe-Marques-Tonnellerie-des-Graves_100024805_2023-06-30_41312912300019.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Société Marquès Tonnellerie des Graves 20 Chemin de la Grange 33650 Martillac

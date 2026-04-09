@@ -10,8 +10,8 @@ identifiant_fichier: "t5Yn3y2yCSOkhNywShZWQ7tnahuIpDUa"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/t5Yn3y2yCSOkhNywShZWQ7tnahuIpDUa"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SOCIETE-COOPERATIVE-AGRICOLE-UNIVITIS-Les-Leves-et-Thoumeyragues-Village-des-Bouhets-Sud_53320846_2022-07-27_33055838800014.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SOCIETE COOPERATIVE AGRICOLE UNIVITIS Village des Bouhets Sud 33220 LES LEVES ET THOUMEYRAGUES 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 27 juillet 2022 de l'établissement de la SOCIETE COOPERATIVE AGRICOLE UNIVITIS, implanté Village des Bouhets Sud à LES LEVES ET THOUMEYRAGUES (33220). L'inspection a été annoncée le 07 juillet 2022. Cette partie « Contexte et constats » est publiée sur le site Géorisques ( https://www.georisques.gouv.fr/

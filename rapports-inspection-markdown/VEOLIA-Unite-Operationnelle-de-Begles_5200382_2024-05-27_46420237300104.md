@@ -10,8 +10,8 @@ identifiant_fichier: "VVAgMuVbVubcDlaWYJmQ1xb6TnSaHPES"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/VVAgMuVbVubcDlaWYJmQ1xb6TnSaHPES"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/VEOLIA-Unite-Operationnelle-de-Begles_5200382_2024-05-27_46420237300104.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — VEOLIA - Unité Opérationnelle de Bègles Rue Louis Blériot ZI de Tartifume CS 30061 33130 Bègles

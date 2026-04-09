@@ -10,8 +10,8 @@ identifiant_fichier: "GKwqhFGXUXJH6OLkSSeVYhf87VG9L8xu"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/GKwqhFGXUXJH6OLkSSeVYhf87VG9L8xu"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/MERIGNAC-CENTRE-ENERGIES-Chaufferie-Residence-Parc-de-Capeyron_100035111_2024-08-09_89322383400019.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — MERIGNAC CENTRE ENERGIES (ex ERA) - Rés Capeyron 211 Avenue de Labarde 33300 Bordeaux

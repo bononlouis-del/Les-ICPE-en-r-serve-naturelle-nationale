@@ -10,8 +10,8 @@ identifiant_fichier: "yfTeAK7o2DJ6eNA7KIVP3g5IVXkRRERv"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/yfTeAK7o2DJ6eNA7KIVP3g5IVXkRRERv"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Bordelaise-de-renovation_100299373_2025-09-12_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Bordelaise de rénovation 4 chemin du Roy 33290 Ludon-Médoc

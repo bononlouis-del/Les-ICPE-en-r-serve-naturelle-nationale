@@ -10,8 +10,8 @@ identifiant_fichier: "c4rT7lTZbUV9yqRtDg7bmZFxYk7J5ZYs"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/c4rT7lTZbUV9yqRtDg7bmZFxYk7J5ZYs"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CENTRE-DE-RECUPERATION-DU-LIBOURNAIS-Saint-Emilion_5201164_2025-02-27_34183141000012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CENTRE DE RECUPERATION DU LIBOURNAIS 8 Les Vergnes 33330 Saint-Émilion

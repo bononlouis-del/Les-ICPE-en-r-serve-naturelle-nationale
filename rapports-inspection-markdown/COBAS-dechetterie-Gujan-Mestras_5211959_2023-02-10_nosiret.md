@@ -10,8 +10,8 @@ identifiant_fichier: "rHKrUOFa4ifa3xz3zseNHLD253bKt8no"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/rHKrUOFa4ifa3xz3zseNHLD253bKt8no"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COBAS-dechetterie-Gujan-Mestras_5211959_2023-02-10_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COBAS - déchetterie 2 Allée d'Espagne BP 147 33311 Arcachon

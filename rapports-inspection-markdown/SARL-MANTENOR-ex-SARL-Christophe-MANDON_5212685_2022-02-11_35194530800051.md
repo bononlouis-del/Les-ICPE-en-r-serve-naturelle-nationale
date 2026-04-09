@@ -10,8 +10,8 @@ identifiant_fichier: "FgxKjw93yXZuknIaKmW8pOmaiOpdbHEr"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/FgxKjw93yXZuknIaKmW8pOmaiOpdbHEr"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SARL-MANTENOR-ex-SARL-Christophe-MANDON_5212685_2022-02-11_35194530800051.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SARL MANTENOR (ex SARL Christophe MANDON) 40 route de BORDEAUX 33830 BELIN BELIET

@@ -10,8 +10,8 @@ identifiant_fichier: "AxLxlYo5eh2fCpR11l6QFHkIvQqJ43K5"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/AxLxlYo5eh2fCpR11l6QFHkIvQqJ43K5"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SECAPRESS-SA-Bordeaux-19-place-Pey-Berland_5212854_2026-01-22_30801900900122.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SECAPRESS SA 19 place Pey Berland 33000 Bordeaux

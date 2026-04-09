@@ -10,8 +10,8 @@ identifiant_fichier: "LDb9Rr4qiaL2nckfIfomF7xAimPBhvsI"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/LDb9Rr4qiaL2nckfIfomF7xAimPBhvsI"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BOUYER-LEROUX-Gironde-sur-Dropt-1787-route-des-vignerons_5206306_2023-06-27_52910584300070.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BOUYER LEROUX 6 L'établère 49280 La Séguinière

@@ -10,8 +10,8 @@ identifiant_fichier: "8aCr2wyhlgzrxUDPkgqgvC5BktpLScFj"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/8aCr2wyhlgzrxUDPkgqgvC5BktpLScFj"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EHTP-Saint-Jean-d-Illac-Lieu-dit-Les-Cantines_5213861_2023-03-04_43998740500131.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EHTP Lieu-dit Les Cantines 33127 ST JEAN D ILLAC

@@ -10,8 +10,8 @@ identifiant_fichier: "4Ko7MB04Bs2GXa0toUhXAZasrRPdCpxp"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/4Ko7MB04Bs2GXa0toUhXAZasrRPdCpxp"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/FONMARTY-et-Fils-SAS-Groupe-PREMDOR_5200366_2023-11-24_46420121900019.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — FONMARTY et Fils SAS (Groupe PREMDOR) 8 avenue de Verdun 33430 Bazas

@@ -10,8 +10,8 @@ identifiant_fichier: "t2R6YhLWyM1V38tfSm1DtgyQm9t01D3a"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/t2R6YhLWyM1V38tfSm1DtgyQm9t01D3a"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Societe-Petroliere-du-Bec-d-Ambes-SPBA_5200264_2022-03-24_30435072100052.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Société Pétrolière du Bec d'Ambès (SPBA) Chemin Départemental N° 10 33810 AMBES

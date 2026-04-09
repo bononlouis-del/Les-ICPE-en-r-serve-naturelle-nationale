@@ -10,8 +10,8 @@ identifiant_fichier: "E9nHc1DQDaEuTJulbOHbrQVK2aTa3oaC"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/E9nHc1DQDaEuTJulbOHbrQVK2aTa3oaC"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Societe-precedemment-identifiee-sous-le-n-SIRET-439-513-953-00018_100307719_2026-02-02_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Société précédemment identifiée sous le n°SIRET 439 513 953 00018 24, route de Soulac 33590 Grayan-Et-L'hôpital

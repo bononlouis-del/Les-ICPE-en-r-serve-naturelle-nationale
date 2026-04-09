@@ -10,8 +10,8 @@ identifiant_fichier: "Tzaa31eYqq78GXT2D9GioL7cP508dV4z"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Tzaa31eYqq78GXT2D9GioL7cP508dV4z"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ATELIERS-BIGATA-Eysines-10-rue-Jean-Baptiste-Perrin_5209494_2025-06-24_46020040500021.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — ATELIERS BIGATA 10 rue Jean-Baptiste PERRIN 33320 Eysines

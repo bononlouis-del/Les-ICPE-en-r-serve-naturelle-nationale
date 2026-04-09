@@ -10,8 +10,8 @@ identifiant_fichier: "jrA4bVsMbaaZaRT41KaBbT3E7FQEcLLC"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/jrA4bVsMbaaZaRT41KaBbT3E7FQEcLLC"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/AQUILA-HYGIENE-SAS-ex-PAPETERIE-DE-BEGLES_5200391_2024-06-24_53332699700020.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — AQUILA HYGIENE SAS (ex PAPETERIE DE BEGLES) 64, route de Chevigny 21130 Auxonne

@@ -10,8 +10,8 @@ identifiant_fichier: "ervYaCdxSUIjbLTh8lvdYcFneJMYq1Hz"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/ervYaCdxSUIjbLTh8lvdYcFneJMYq1Hz"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DHL-Services-Logistiques-ex-SANOFI-WINTHROP-INDUSTRIE_5201220_2023-10-12_40235013600592.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 - 

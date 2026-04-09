@@ -10,8 +10,8 @@ identifiant_fichier: "fXcuAIlL8IrahxKnUjSMCtjCwcU28KPR"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/fXcuAIlL8IrahxKnUjSMCtjCwcU28KPR"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/TOTAL-MARKETING-FRANCE-Artigues-pres-Bordeaux_5209449_2022-10-04_53168044501451.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — TOTAL MARKETING FRANCE Direction Réseau-Dpt Dével Const Mainten 562 avenue du Parc de l'Ile 92000 NANTERRE

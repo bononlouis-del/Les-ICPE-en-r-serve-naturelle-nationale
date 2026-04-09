@@ -10,8 +10,8 @@ identifiant_fichier: "eE1lSo0Py4JpZUiNUZIlwrmdHxT8BUis"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/eE1lSo0Py4JpZUiNUZIlwrmdHxT8BUis"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/LECLERC-Blaye-Distribution-ancien-site_5211258_2025-09-23_31922755900014.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LECLERC Blaye Distribution (ancien site) 31 La Gruppe 33390 Cars

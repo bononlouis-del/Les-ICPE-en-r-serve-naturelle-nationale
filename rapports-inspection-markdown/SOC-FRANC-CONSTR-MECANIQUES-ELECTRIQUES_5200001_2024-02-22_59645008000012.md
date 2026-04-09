@@ -10,8 +10,8 @@ identifiant_fichier: "sfivrpjaJ5rx8aa5T82SvQtPjb3MJizQ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/sfivrpjaJ5rx8aa5T82SvQtPjb3MJizQ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SOC-FRANC-CONSTR-MECANIQUES-ELECTRIQUES_5200001_2024-02-22_59645008000012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SOC FRANC CONSTR MECANIQUES ELECTRIQUES Z.I. de la Ballastière B.P. N 33500 Libourne

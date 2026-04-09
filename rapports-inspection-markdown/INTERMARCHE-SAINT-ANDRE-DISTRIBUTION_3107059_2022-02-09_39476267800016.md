@@ -10,8 +10,8 @@ identifiant_fichier: "e51nA8Uv0VP2rVd2vpuZiUpDvyjqdHjg"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/e51nA8Uv0VP2rVd2vpuZiUpDvyjqdHjg"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/INTERMARCHE-SAINT-ANDRE-DISTRIBUTION_3107059_2022-02-09_39476267800016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — INTERMACHE SAINT ANDRE DISTRIBUTION 17 rue de la Fontaine 33240 ST ANDRE DE CUBZAC

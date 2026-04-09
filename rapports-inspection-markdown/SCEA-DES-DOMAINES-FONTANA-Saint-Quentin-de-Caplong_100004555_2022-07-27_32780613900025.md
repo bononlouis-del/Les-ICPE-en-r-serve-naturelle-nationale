@@ -10,8 +10,8 @@ identifiant_fichier: "zjHa0VcZZ5NrtgaCZ8l89TyvM7QB5gsH"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/zjHa0VcZZ5NrtgaCZ8l89TyvM7QB5gsH"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SCEA-DES-DOMAINES-FONTANA-Saint-Quentin-de-Caplong_100004555_2022-07-27_32780613900025.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SCEA DES DOMAINES FONTANA BONNETIE BASSE 33220 SAINT-QUENTIN-DE-CAPLONG 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 27 juillet 2022 de l'établissement de la société SCEA DES DOMAINES FONTANA, implanté BONNETIE BASSE 33220 SAINT-QUENTIN-DE- CAPLONG. L'inspection a été annoncée le 19 juillet 2022. Cette partie « Contexte et constats » est publiée sur le site Géorisques ( https://www.georisques.gouv.fr/

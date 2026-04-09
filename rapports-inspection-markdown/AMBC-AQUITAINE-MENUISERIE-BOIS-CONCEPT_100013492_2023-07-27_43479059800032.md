@@ -10,8 +10,8 @@ identifiant_fichier: "kZySKbcwaEBCvLIXYLiZi92FEyrw24Q6"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/kZySKbcwaEBCvLIXYLiZi92FEyrw24Q6"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/AMBC-AQUITAINE-MENUISERIE-BOIS-CONCEPT_100013492_2023-07-27_43479059800032.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — AMBC (AQUITAINE MENUISERIE BOIS CONCEPT) 7 lieu-dit les Bernards ZA Pont de Cotet 33620 Saint-Mariens

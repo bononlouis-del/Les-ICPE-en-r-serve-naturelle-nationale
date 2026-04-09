@@ -10,8 +10,8 @@ identifiant_fichier: "brh5oJkziykp2esdFxyJRKJVlaUf3aQr"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/brh5oJkziykp2esdFxyJRKJVlaUf3aQr"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/TOTALENERGIES-PROXI-SUD-OUEST-Laruscade_100030617_2023-10-12_32495819802962.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 - 

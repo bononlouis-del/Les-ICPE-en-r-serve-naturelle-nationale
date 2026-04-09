@@ -10,8 +10,8 @@ identifiant_fichier: "gZkiLa5rVccVNXa57oWzMu4WwwBJ6yhR"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/gZkiLa5rVccVNXa57oWzMu4WwwBJ6yhR"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Arcelormittal-Construction-France_5205324_2024-06-21_48572062700234.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Arcelormittal Construction France Zone d'activités du Pays de Podensac - BP N 7 33720 Cérons

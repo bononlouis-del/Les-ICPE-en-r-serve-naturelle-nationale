@@ -10,8 +10,8 @@ identifiant_fichier: "RoFeuQgYtWsvMUXVDIvIidb1ameZ4yJ4"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/RoFeuQgYtWsvMUXVDIvIidb1ameZ4yJ4"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/MONSET-Jean-Claude_100023039_2023-05-17_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — MONSET Jean-Claude 149 avenue de la Roudet 33500 Libourne

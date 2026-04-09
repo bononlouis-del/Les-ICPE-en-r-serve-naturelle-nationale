@@ -10,8 +10,8 @@ identifiant_fichier: "8VHzLk01VtI6TVKig9aiammkA5qsvViD"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/8VHzLk01VtI6TVKig9aiammkA5qsvViD"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/MBA-SARL-Materiaux-et-Bois-d-Aquitaine_5206255_2024-12-16_39046115000026.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — MBA (SARL Matériaux et Bois d'Aquitaine) Avenue du Meilleur Ouvrier de France 33700 Mérignac

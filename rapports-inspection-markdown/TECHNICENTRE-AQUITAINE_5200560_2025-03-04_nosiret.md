@@ -10,8 +10,8 @@ identifiant_fichier: "4Iq1LgdGBv0gZWRd7Xr2pnmLUYol3ZXQ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/4Iq1LgdGBv0gZWRd7Xr2pnmLUYol3ZXQ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/TECHNICENTRE-AQUITAINE_5200560_2025-03-04_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — TECHNICENTRE AQUITAINE 54 rue Amédée St Germain 33000 Bordeaux

@@ -10,8 +10,8 @@ identifiant_fichier: "6TUSmBnKehV0tpijiYrZPv1XQCv4c8rF"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/6TUSmBnKehV0tpijiYrZPv1XQCv4c8rF"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/LT-competition-Merignac-18-avenue-de-la-foret_100008768_2022-11-15_50950011200016.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LT compétition 18 avenue de la forêt 33700 Mérignac

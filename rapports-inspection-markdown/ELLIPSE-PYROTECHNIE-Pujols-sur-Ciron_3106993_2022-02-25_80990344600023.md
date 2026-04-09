@@ -10,8 +10,8 @@ identifiant_fichier: "LDk7E4DIrdmlvQqngdcWtnhCzaIniIa4"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/LDk7E4DIrdmlvQqngdcWtnhCzaIniIa4"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ELLIPSE-PYROTECHNIE-Pujols-sur-Ciron_3106993_2022-02-25_80990344600023.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — ELLIPSE PYROTECHNIE 23 allée de migelane 33650 Saucats

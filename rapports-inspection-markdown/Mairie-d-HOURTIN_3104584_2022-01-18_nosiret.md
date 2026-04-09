@@ -10,8 +10,8 @@ identifiant_fichier: "LsV4ULgSM2CToovBPDqCQ9moI07dXeXJ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/LsV4ULgSM2CToovBPDqCQ9moI07dXeXJ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Mairie-d-HOURTIN_3104584_2022-01-18_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Mairie d'HOURTIN Lieu-dit Les Argilats Cabeillan 33990 HOURTIN

@@ -10,8 +10,8 @@ identifiant_fichier: "mV7w5ekm4v1j9HUaNLme7rFCKLNbP4Q6"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/mV7w5ekm4v1j9HUaNLme7rFCKLNbP4Q6"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SARL-Etablissements-A-Gre-et-Compagnie_5200374_2024-12-13_45820576200016.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 - 

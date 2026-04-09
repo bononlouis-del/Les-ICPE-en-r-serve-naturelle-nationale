@@ -10,8 +10,8 @@ identifiant_fichier: "rWlaGGJ3h395LaoT8YOW92jNdO5foBac"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/rWlaGGJ3h395LaoT8YOW92jNdO5foBac"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/NICOLI-Daniel_5208304_2023-04-05_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — NICOLI Daniel 1 route de Castillonnaise 33340 Valeyrac

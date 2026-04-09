@@ -10,8 +10,8 @@ identifiant_fichier: "aUP0PjEvFeNNhgYPka972dUXapR6798w"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/aUP0PjEvFeNNhgYPka972dUXapR6798w"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BORDEAUX-METROPOLE-Le-Taillan-Medoc_5207616_2023-05-11_24330031600011.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BORDEAUX METROPOLE - déchetterie Esplanade Charles de Gaulle 33000 Bordeaux

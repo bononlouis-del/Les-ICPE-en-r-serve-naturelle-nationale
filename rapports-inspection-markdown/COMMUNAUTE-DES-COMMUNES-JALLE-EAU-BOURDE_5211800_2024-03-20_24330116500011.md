@@ -10,8 +10,8 @@ identifiant_fichier: "6kW6aUEhH3jKxZDQIM8YM7wYaaIiEO3Z"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/6kW6aUEhH3jKxZDQIM8YM7wYaaIiEO3Z"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COMMUNAUTE-DES-COMMUNES-JALLE-EAU-BOURDE_5211800_2024-03-20_24330116500011.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COMMUNAUTE DES COMMUNES JALLE EAU BOURDE 2 Avenue du Baron Haussmann BP 9 33610 Cestas

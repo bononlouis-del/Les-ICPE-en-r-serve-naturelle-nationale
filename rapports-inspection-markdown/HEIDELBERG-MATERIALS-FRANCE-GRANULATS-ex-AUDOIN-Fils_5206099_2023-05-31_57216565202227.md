@@ -10,8 +10,8 @@ identifiant_fichier: "tYenKxXXpUeTb0G1YuLy1Q0J6Yap4jQX"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/tYenKxXXpUeTb0G1YuLy1Q0J6Yap4jQX"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/HEIDELBERG-MATERIALS-FRANCE-GRANULATS-ex-AUDOIN-Fils_5206099_2023-05-31_57216565202227.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SAS Carrières AUDOIN et fils 1 route des Galimens 16120 Graves-Saint-Amant

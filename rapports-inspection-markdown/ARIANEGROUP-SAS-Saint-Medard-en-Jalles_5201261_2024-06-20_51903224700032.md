@@ -10,8 +10,8 @@ identifiant_fichier: "Jwa4JePDkbE1uFxdnyMIkwM95e6Vp21h"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Jwa4JePDkbE1uFxdnyMIkwM95e6Vp21h"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ARIANEGROUP-SAS-Saint-Medard-en-Jalles_5201261_2024-06-20_51903224700032.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — ARIANEGROUP SAS Av Gay Lussac 33160 SAINT-MEDARD-EN-JALLES

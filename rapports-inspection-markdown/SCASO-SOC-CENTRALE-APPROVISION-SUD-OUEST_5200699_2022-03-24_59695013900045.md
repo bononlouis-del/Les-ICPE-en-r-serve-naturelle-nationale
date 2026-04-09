@@ -10,8 +10,8 @@ identifiant_fichier: "lNNNJwJTtXRODeL9UkLpAldJPCXZ5vhs"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/lNNNJwJTtXRODeL9UkLpAldJPCXZ5vhs"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SCASO-SOC-CENTRALE-APPROVISION-SUD-OUEST_5200699_2022-03-24_59695013900045.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SCASO - Cestas (Leclerc) Avenue du maréchal de Lattre de Tassigny Zone industrielle de Toctoucau 33610 CESTAS

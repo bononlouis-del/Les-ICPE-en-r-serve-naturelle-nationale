@@ -10,8 +10,8 @@ identifiant_fichier: "ejBpdnkV3So43MErLzI01tiv3dMEuJE5"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/ejBpdnkV3So43MErLzI01tiv3dMEuJE5"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EHTP-Saint-Jean-d-Illac-Allee-des-deux-poteaux_3105110_2023-12-14_43998740500024.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EHTP Direction Générale Aquitaine 160 avenue de la Roudet 33500 Libourne

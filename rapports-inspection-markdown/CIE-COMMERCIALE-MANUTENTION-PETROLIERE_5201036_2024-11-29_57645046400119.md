@@ -10,8 +10,8 @@ identifiant_fichier: "EZeV2HAFD02VaTs1LawAQivHo9u4ATwa"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/EZeV2HAFD02VaTs1LawAQivHo9u4ATwa"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CIE-COMMERCIALE-MANUTENTION-PETROLIERE_5201036_2024-11-29_57645046400119.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CIE COMMERCIALE MANUTENTION PETROLIERE Z.I. de Trompeloup Boulevard Halimbourg 33250 Pauillac

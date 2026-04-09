@@ -10,8 +10,8 @@ identifiant_fichier: "JbET2aEduzCiyJsk0atbdaaEdMC7Suyu"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/JbET2aEduzCiyJsk0atbdaaEdMC7Suyu"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SOCIETE-COOPERATIVE-AGRICOLE-UNIVITIS-Les-Leves-et-Thoumeyragues-AVENUE-DU-MARECHAL-LECLERC_53300718_2022-07-27_33055838800014.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SOCIETE COOPERATIVE AGRICOLE UNIVITIS Avenue du Maréchal Leclerc 33220 LES LEVES ET THOUMEYRAGUES 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 27 juillet 2022 de l'établissement de la SOCIETE COOPERATIVE AGRICOLE UNIVITIS, implanté Avenue du Maréchal Leclerc à 33220 LES LEVES ET THOUMEYRAGUES. L'inspection a été annoncée le 07 juillet 2022. Cette partie « Contexte et constats » est publiée sur le site Géorisques ( https://www.georisques.gouv.fr/

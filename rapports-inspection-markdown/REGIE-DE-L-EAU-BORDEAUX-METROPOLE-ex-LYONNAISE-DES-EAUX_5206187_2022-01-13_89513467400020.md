@@ -10,8 +10,8 @@ identifiant_fichier: "tuNCspQBFNVdSACPcAqBqkbrVoMRSCmn"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/tuNCspQBFNVdSACPcAqBqkbrVoMRSCmn"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/REGIE-DE-L-EAU-BORDEAUX-METROPOLE-ex-LYONNAISE-DES-EAUX_5206187_2022-01-13_89513467400020.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LYONNAISE DES EAUX FRANCE Station Saussette 110 chemin de Saussette 33850 LEOGNAN

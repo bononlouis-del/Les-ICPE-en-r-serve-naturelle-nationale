@@ -10,8 +10,8 @@ identifiant_fichier: "0NdyI3AfrVLD1glbLe91sENjZOzubntS"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/0NdyI3AfrVLD1glbLe91sENjZOzubntS"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CARROSSERIE-LE-GRAAL_5201202_2024-01-11_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CARROSSERIE LE GRAAL 3 rue des Genêts ZI La Lande 33450 Saint-Loubès

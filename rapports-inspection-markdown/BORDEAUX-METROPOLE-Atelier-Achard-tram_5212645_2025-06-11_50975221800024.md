@@ -10,8 +10,8 @@ identifiant_fichier: "VhFl9MBBTduXqEkBRR9tNYpNcYkG9W9n"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/VhFl9MBBTduXqEkBRR9tNYpNcYkG9W9n"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BORDEAUX-METROPOLE-Atelier-Achard-tram_5212645_2025-06-11_50975221800024.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BORDEAUX METROPOLE - Atelier Achard tram Rue Achard 33000 Bordeaux

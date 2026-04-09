@@ -10,8 +10,8 @@ identifiant_fichier: "vttBXbZuSX410RhHVwQ86Kqd4a7RiPba"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/vttBXbZuSX410RhHVwQ86Kqd4a7RiPba"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ECOPOLE-BELLEVUE-exSOGEFI-MATERIAUX_3105227_2022-11-21_89456954000012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — ECOPOLE BELLEVUE (ex-SOGEFI MATERIAUX) 27 rue Alessandro Volta Espace Phare 33700 MERIGNAC

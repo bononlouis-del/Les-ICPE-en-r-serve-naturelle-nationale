@@ -10,8 +10,8 @@ identifiant_fichier: "42F6BthS8b73A0bOEITVGyvBdPA8vljO"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/42F6BthS8b73A0bOEITVGyvBdPA8vljO"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BRANGEON-RECYCLAGE-ex-SX-ENVIRONNEMENT-Sainte-Eulalie_5213380_2022-01-06_39943571800065.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SX ENVIRONNEMENT 4, Avenue d'Aquitaine Lieu dit Argenteyre 33560 STE EULALIE

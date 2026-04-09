@@ -10,8 +10,8 @@ identifiant_fichier: "jZWepTLcrWBOM1ahxnBRoAIpHnMiuKp8"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/jZWepTLcrWBOM1ahxnBRoAIpHnMiuKp8"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SAFRAN-ADDITIVE-MANUFACTURING-CAMPUS_3105140_2023-05-15_81525577300021.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SAFRAN ADDITIVE MANUFACTURING CAMPUS Rue de Touban 33185 Le Haillan

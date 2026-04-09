@@ -10,8 +10,8 @@ identifiant_fichier: "d78opryRcsKaylYG7PoZYDd6Yr4fDWsk"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/d78opryRcsKaylYG7PoZYDd6Yr4fDWsk"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CASTEL-FRERES-Blanquefort-24-rue-Georges-Guynemer_5205965_2025-09-25_48228369400024.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 ## **Direction départementale de la protection des populations** 

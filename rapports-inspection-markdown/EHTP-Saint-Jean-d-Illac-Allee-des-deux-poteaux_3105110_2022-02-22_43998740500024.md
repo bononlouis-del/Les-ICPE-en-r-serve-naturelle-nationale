@@ -10,8 +10,8 @@ identifiant_fichier: "Va7x7ahPs0zts0atC6GIUna3iUdAL8ib"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Va7x7ahPs0zts0atC6GIUna3iUdAL8ib"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EHTP-Saint-Jean-d-Illac-Allee-des-deux-poteaux_3105110_2022-02-22_43998740500024.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EHTP Allée des deux poteaux Allée Courbet 33127 ST JEAN D ILLAC Affaire suivie par : ROBET Christophe Téléphone : 05 56 24 83 53 Courriel : christophe.robet@developpement-durable.gouv.fr

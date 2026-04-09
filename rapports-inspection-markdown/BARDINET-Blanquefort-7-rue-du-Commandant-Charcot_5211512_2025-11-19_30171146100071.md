@@ -10,8 +10,8 @@ identifiant_fichier: "WjY8s2nwe3wmPCEB5tIA5KFZCoIVKPBh"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/WjY8s2nwe3wmPCEB5tIA5KFZCoIVKPBh"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BARDINET-Blanquefort-7-rue-du-Commandant-Charcot_5211512_2025-11-19_30171146100071.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BARDINET Domaine de Fleurenne BP 513 33290 Blanquefort

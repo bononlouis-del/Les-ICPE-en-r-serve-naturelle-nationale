@@ -9,9 +9,9 @@ date_inspection: "2024-04-30"
 identifiant_fichier: "iX146acMLnFVEloYVbn8jf91PHNNqaPc"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/iX146acMLnFVEloYVbn8jf91PHNNqaPc"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ARIANEGROUP-SAS-Saint-Medard-en-Jalles_5201261_2024-04-30_51903224700032.pdf"
-extraction_method: "ocr_then_dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_method: "dreal_parser"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — (établissement inconnu)

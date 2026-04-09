@@ -10,8 +10,8 @@ identifiant_fichier: "9BUKxlXshdOsoYtXWyq8VDTHnv0TNQUA"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/9BUKxlXshdOsoYtXWyq8VDTHnv0TNQUA"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/NUNEZ-HERNANDEZ-ex-FRANCE-AUTO-PIECES_5207522_2024-02-20_38253391700029.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — NUNEZ HERNANDEZ (ex FRANCE AUTO PIECES) 18 E lieu-dit Miquelet 18 E Chemin de la Gilletterie 33230 Coutras

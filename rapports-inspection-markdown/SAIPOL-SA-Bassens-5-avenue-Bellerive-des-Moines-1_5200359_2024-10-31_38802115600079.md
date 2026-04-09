@@ -10,8 +10,8 @@ identifiant_fichier: "BxhcJ4AnaI3HYuaWwXBrQpsfWgkHjo3g"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/BxhcJ4AnaI3HYuaWwXBrQpsfWgkHjo3g"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SAIPOL-SA-Bassens-5-avenue-Bellerive-des-Moines-1_5200359_2024-10-31_38802115600079.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SAIPOL SA 11 rue de Monceau 75008 Paris

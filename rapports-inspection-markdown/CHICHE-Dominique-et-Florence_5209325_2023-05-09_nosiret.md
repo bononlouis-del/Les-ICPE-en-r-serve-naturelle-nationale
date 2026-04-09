@@ -10,8 +10,8 @@ identifiant_fichier: "u7FaPsEka0ggHyDdFWmFYOabFg7iOQAa"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/u7FaPsEka0ggHyDdFWmFYOabFg7iOQAa"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CHICHE-Dominique-et-Florence_5209325_2023-05-09_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CHICHE Dominique 151 route de coudreau 33910 Saint-Denis-de-Pile CHICHE Florence Lieu dit Les Renardières 33860 DONNEZAC

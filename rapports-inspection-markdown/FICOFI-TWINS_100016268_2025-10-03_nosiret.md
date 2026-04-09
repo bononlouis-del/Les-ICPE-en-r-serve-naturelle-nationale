@@ -10,8 +10,8 @@ identifiant_fichier: "abRj31IfN6n3T1A0EkX0F2syegLWchMP"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/abRj31IfN6n3T1A0EkX0F2syegLWchMP"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/FICOFI-TWINS_100016268_2025-10-03_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — FICOFI / TWINS Chemin de Bâche de l'eau 33700 Mérignac

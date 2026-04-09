@@ -10,8 +10,8 @@ identifiant_fichier: "JyGWrtCUPLT9Qv44j1rH28jiIAztoXqc"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/JyGWrtCUPLT9Qv44j1rH28jiIAztoXqc"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CAVE-DE-SAUVETERRE-BLASIMON-ESPIET-SAUVETERRE-DE-GUYENNE_5205929_2024-02-16_78201165400012.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 ## **Direction départementale de la protection des populations** 

@@ -10,8 +10,8 @@ identifiant_fichier: "OPzDTJTaRgceoVZCozYWq9PHaroCaqBJ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/OPzDTJTaRgceoVZCozYWq9PHaroCaqBJ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DISTILLERIES-VINICOLES-DU-BLAYAIS_5200936_2023-04-06_58702006600011.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — DISTILLERIES VINICOLES DU BLAYAIS Lieu-dit Roque de thau 33710 Villeneuve

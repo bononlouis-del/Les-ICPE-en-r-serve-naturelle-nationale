@@ -10,8 +10,8 @@ identifiant_fichier: "kfOJIAo9We7a1d09agn1VLHXbtudoDQj"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/kfOJIAo9We7a1d09agn1VLHXbtudoDQj"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/LISI-AEROSPACE-ADDITIVE-MANUFACTURING_3101974_2026-01-13_81840391700029.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LISI AEROSPACE ADDITIVE MANUFACTURING 46-52 Quai de la Rapée 75012 Paris

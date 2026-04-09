@@ -10,8 +10,8 @@ identifiant_fichier: "Z1FjVTTTkuVUVrFVaULIU6o4SE8txuvT"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Z1FjVTTTkuVUVrFVaULIU6o4SE8txuvT"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/GRAND-PARC-ENERGIES-exENGIE-COFELY_5200564_2025-06-10_91076742500010.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — GRAND PARC ENERGIES (exENGIE COFELY) 31 avenue Gustave Eiffel 33600 Pessac

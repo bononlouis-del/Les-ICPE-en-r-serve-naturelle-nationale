@@ -10,8 +10,8 @@ identifiant_fichier: "0O1D6U42UhlpWCsoeJ4f6WTayUnDTg10"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/0O1D6U42UhlpWCsoeJ4f6WTayUnDTg10"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BCE-BETON-CONTROLE-ESTUAIRE-ex-LANDES-DE-CRIMEE_5205429_2024-07-09_39502621400027.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BCE (BETON CONTROLE ESTUAIRE)ex.LANDES DE CRIMEE 5 rue des Ficaires 33990 Hourtin

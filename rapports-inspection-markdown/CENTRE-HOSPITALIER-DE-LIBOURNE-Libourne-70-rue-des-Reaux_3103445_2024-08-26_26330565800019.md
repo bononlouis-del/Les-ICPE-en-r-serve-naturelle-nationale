@@ -10,8 +10,8 @@ identifiant_fichier: "MmtpQMFQvMcRgSgRT4k2qxyA2nabjMGv"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/MmtpQMFQvMcRgSgRT4k2qxyA2nabjMGv"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/CENTRE-HOSPITALIER-DE-LIBOURNE-Libourne-70-rue-des-Reaux_3103445_2024-08-26_26330565800019.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CENTRE HOSPITALIER DE LIBOURNE Pôle Administratif - Fondation Sabatié 112 rue de la Marne 33500 Libourne

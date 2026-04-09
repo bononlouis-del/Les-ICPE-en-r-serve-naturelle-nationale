@@ -10,8 +10,8 @@ identifiant_fichier: "uEH6m3llIJw1PHAfqaAGEnKPuhjrMb49"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/uEH6m3llIJw1PHAfqaAGEnKPuhjrMb49"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SOC-COOP-VINICOLE-ALLIANCE-BOURG-Tauriac_5205182_2023-05-10_78202284200010.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 ## **Direction départementale de la protection des populations** 

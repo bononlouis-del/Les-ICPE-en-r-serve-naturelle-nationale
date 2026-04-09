@@ -10,8 +10,8 @@ identifiant_fichier: "K7i3mwP2dXyPaDMY1wnNaKf85auabjJF"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/K7i3mwP2dXyPaDMY1wnNaKf85auabjJF"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/LAFARGE-GRANULATS-LG-Cabanac-et-Villagrains_5209791_2025-12-11_56211088202235.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — LAFARGE GRANULATS (LG) Allée de Castillon Bât. SGE 33370 Artigues-Près-Bordeaux

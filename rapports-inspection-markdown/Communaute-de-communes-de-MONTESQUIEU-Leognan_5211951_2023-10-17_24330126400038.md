@@ -10,8 +10,8 @@ identifiant_fichier: "hCB13uzaELgauSsEvWN3WHDSypOaVbnS"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/hCB13uzaELgauSsEvWN3WHDSypOaVbnS"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Communaute-de-communes-de-MONTESQUIEU-Leognan_5211951_2023-10-17_24330126400038.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 - 

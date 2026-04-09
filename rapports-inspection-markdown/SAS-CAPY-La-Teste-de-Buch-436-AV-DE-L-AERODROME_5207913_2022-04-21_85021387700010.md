@@ -10,8 +10,8 @@ identifiant_fichier: "Tg6GbS2J0djcvHRYovZNvrdUTU93V6TT"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Tg6GbS2J0djcvHRYovZNvrdUTU93V6TT"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SAS-CAPY-La-Teste-de-Buch-436-AV-DE-L-AERODROME_5207913_2022-04-21_85021387700010.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — CAPY SAS 436 Avenue de l'Aérodrome 33260 LA TESTE DE BUCH

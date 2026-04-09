@@ -10,8 +10,8 @@ identifiant_fichier: "GSTHCbaaxH8fLdBnLv7OeDEN6Kyhjy02"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/GSTHCbaaxH8fLdBnLv7OeDEN6Kyhjy02"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/COBAN-Dechetterie-Andernos-les-Bains_5211854_2023-08-03_24330150400052.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — COBAN - Déchetterie 46 Avenue des Colonies 33510 Andernos-les-Bains

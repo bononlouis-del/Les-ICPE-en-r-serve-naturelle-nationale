@@ -10,8 +10,8 @@ identifiant_fichier: "BSG4T2ChwWoEJaL44TdLgsPsCIX1SaIN"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/BSG4T2ChwWoEJaL44TdLgsPsCIX1SaIN"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SEA-INVEST-BORDEAUX-Terminal-Agroalimentaire_5200332_2024-06-20_33089594700167.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SEA INVEST BORDEAUX (Terminal Agroalimentaire) 1 rue Richelieu 33530 Bassens

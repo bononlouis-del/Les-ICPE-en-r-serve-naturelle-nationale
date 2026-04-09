@@ -10,8 +10,8 @@ identifiant_fichier: "54mzCWc5Lnu9GD6T7mBsH8UVFlejPPH0"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/54mzCWc5Lnu9GD6T7mBsH8UVFlejPPH0"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/HEIDELBERG-MATERIALS-ex-GSM-Blanquefort_5203529_2022-09-08_57216565200577.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — GSM - Blanquefort (Marais Vigney,Gds Ma) Service Foncier et Environnement 162 avenue du Haut Lévêque 33600 Pessac

@@ -10,8 +10,8 @@ identifiant_fichier: "FrKtRqu8u70eo4oKBRaCgyeJgUz36RGA"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/FrKtRqu8u70eo4oKBRaCgyeJgUz36RGA"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DOMOFRANCE-Pessac-Residence-Macedo_5211684_2022-08-05_45820496300029.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — DOMOFRANCE 110 Avenue de la Jallère Quartier du Lac 33000 Bordeaux

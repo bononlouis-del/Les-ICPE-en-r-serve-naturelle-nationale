@@ -10,8 +10,8 @@ identifiant_fichier: "sisQj0Zpv5lWRTvP9ANhwCiLQlalsmSv"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/sisQj0Zpv5lWRTvP9ANhwCiLQlalsmSv"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Espace-aquatique-de-Saint-Medard-en-Jalles_100125272_2025-09-30_45153593400025.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Espace aquatique de Saint-Médard-en-Jalles Service des Sports - Espace aquatique Place de l'Hôtel-de-Ville - CS60022 33167 Saint-Médard-en-Jalles cedex 33160 Saint-Médard-En-Jalles

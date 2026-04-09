@@ -10,8 +10,8 @@ identifiant_fichier: "bOaxiaFO0DkyniL8rpcal9T3a33vQH2v"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/bOaxiaFO0DkyniL8rpcal9T3a33vQH2v"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/BORDEAUX-METROPOLE-Bordeaux-Boulevard-Alfred-Daney_5200472_2025-04-17_43458223500017.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — BORDEAUX METROPOLE 12 bd Antoine Gautier Immeuble Porte de Bordeaux 33082 Bordeaux cedex 33000 Bordeaux

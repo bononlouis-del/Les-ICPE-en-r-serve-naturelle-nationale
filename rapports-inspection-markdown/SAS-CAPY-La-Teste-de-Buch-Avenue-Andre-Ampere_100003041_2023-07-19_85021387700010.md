@@ -10,8 +10,8 @@ identifiant_fichier: "PgjJ357mabZifMqPWj7o32s6rHyHXwJj"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/PgjJ357mabZifMqPWj7o32s6rHyHXwJj"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SAS-CAPY-La-Teste-de-Buch-Avenue-Andre-Ampere_100003041_2023-07-19_85021387700010.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SAS CAPY 436 Avenue de l'Aérodrome 33260 La Teste-de-Buch

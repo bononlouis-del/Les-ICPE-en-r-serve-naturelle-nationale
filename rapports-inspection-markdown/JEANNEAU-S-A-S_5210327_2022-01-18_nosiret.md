@@ -10,8 +10,8 @@ identifiant_fichier: "lm8x2xDTCUh3ZLQ4Up7sPSMIqOVttgtD"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/lm8x2xDTCUh3ZLQ4Up7sPSMIqOVttgtD"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/JEANNEAU-S-A-S_5210327_2022-01-18_nosiret.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 A l'issue de la visite d'inspection du 18/01/2022 de l'établissement JEANNEAU S.A.S. implanté 35 Rue Maurice Lévy 33689 MERIGNAC, les constats établis et explicités dans la partie "contexte et constats" du rapport amènent l’ inspection des installations classées à formuler à Madame la Préfète les propositions suivantes: 

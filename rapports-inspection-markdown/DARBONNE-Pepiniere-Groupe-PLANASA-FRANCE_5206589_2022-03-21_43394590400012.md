@@ -10,8 +10,8 @@ identifiant_fichier: "zukOaLawsb2V0jbWgcamb9Map0FKKj4D"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/zukOaLawsb2V0jbWgcamb9Map0FKKj4D"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DARBONNE-Pepiniere-Groupe-PLANASA-FRANCE_5206589_2022-03-21_43394590400012.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — PLANASA FRANCE 8229 AV DES PYRENEES DOMINE ST JACQUES 33114 LE BARP

@@ -10,8 +10,8 @@ identifiant_fichier: "LYFq6ZSux7vf1HxHnNn8SceDC7eGxTDC"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/LYFq6ZSux7vf1HxHnNn8SceDC7eGxTDC"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Mairie-d-Eysines-Chaufferie-RCU-Moussa_100301307_2025-10-17_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Mairie d'Eysines - Chaufferie RCU Moussa rue Jean Zay Parking Moussa 33320 Eysines

@@ -10,8 +10,8 @@ identifiant_fichier: "jlm8oUkOz9vAr4wEOdZZ8Fur2i5oaQED"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/jlm8oUkOz9vAr4wEOdZZ8Fur2i5oaQED"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/EHTP-Saint-Jean-d-Illac-Lieu-dit-Les-Cantines_5213861_2022-01-18_43998740500131.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — EHTP Lieu-dit Les Cantines 33127 ST JEAN D ILLAC Affaire suivie par : ROBET Christophe Téléphone : 05 56 24 83 53 Courriel : christophe.robet@developpement-durable.gouv.fr

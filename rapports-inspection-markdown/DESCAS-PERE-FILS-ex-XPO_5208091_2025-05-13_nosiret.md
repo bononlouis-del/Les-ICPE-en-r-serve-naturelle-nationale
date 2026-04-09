@@ -10,8 +10,8 @@ identifiant_fichier: "sRFKTaAyi62SfGu9tz5c6j1VZOccXPBt"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/sRFKTaAyi62SfGu9tz5c6j1VZOccXPBt"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/DESCAS-PERE-FILS-ex-XPO_5208091_2025-05-13_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — DESCAS PERE & FILS (ex XPO) ZI n° 3 de la Châtaigneraie Chemin de la Garenne 33210 Langon

@@ -10,8 +10,8 @@ identifiant_fichier: "1bX3nnD6faPBAhsJ4xc28zHzLQeV9myQ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/1bX3nnD6faPBAhsJ4xc28zHzLQeV9myQ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/VEOLIA-PROPRETE-AQUITAINE-Pompignac_5201095_2024-07-02_46420237300104.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — VEOLIA PROPRETE AQUITAINE 19 avenue du Périgord RN 89 - BP 69 33370 Pompignac

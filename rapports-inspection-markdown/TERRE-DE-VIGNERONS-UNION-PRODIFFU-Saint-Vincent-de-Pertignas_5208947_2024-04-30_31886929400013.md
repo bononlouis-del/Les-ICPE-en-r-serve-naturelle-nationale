@@ -10,8 +10,8 @@ identifiant_fichier: "HN3Diu4Getaf0Pqo8aapH4Ux5levddp4"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/HN3Diu4Getaf0Pqo8aapH4Ux5levddp4"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/TERRE-DE-VIGNERONS-UNION-PRODIFFU-Saint-Vincent-de-Pertignas_5208947_2024-04-30_31886929400013.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 ## **Direction départementale de la protection des populations** 

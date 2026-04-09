@@ -10,8 +10,8 @@ identifiant_fichier: "YBSNR7hiafUU5LrOJupTC6eZ9r5ekMQA"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/YBSNR7hiafUU5LrOJupTC6eZ9r5ekMQA"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SARL-LES-PIERRES-DE-FRONTENAC-Frontenac-Bignon_5209590_2023-11-16_45070130500036.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SARL LES PIERRES DE FRONTENAC Lieu-dit Piquepoche 4 route du Moulin à vent 33760 Frontenac

@@ -10,8 +10,8 @@ identifiant_fichier: "adCHUaQnqt4NiuaqVuvuddfspTjoPTIE"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/adCHUaQnqt4NiuaqVuvuddfspTjoPTIE"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/A-M-F-QUALITE-SECURITE-ENVIRONNEMENT-ex-LOGISUN_3103781_2024-08-01_44846491700047.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:06"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — A.M.F. QUALITE SECURITE ENVIRONNEMENT (ex LOGISUN) 14 ALLEE DU PIOT ZAC Pôle Actif 30660 Gallargues-Le-Montueux

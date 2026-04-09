@@ -9,9 +9,9 @@ date_inspection: "2022-02-16"
 identifiant_fichier: "vnztKQYXPeuFyLIZnWGN1Oq91vIQC4iR"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/vnztKQYXPeuFyLIZnWGN1Oq91vIQC4iR"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Societe-BORDELAISE-VALORISATION-MATERIAUX_5213882_2022-02-16_42234525600016.pdf"
-extraction_method: "ocr_then_dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_method: "dreal_parser"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — GE@®)RISQUES SBVM Sé Bordelaise de Valo Matériaux Lieu dit Hestigeac Est 193 Avenue Marcel Dassault 33700 MERIGNAC

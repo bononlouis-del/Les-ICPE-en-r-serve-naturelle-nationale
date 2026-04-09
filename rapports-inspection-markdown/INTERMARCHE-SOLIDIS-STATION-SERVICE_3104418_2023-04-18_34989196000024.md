@@ -10,8 +10,8 @@ identifiant_fichier: "1uPRYvNhXu9KX9rq4vGiVacZYYxWjwas"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/1uPRYvNhXu9KX9rq4vGiVacZYYxWjwas"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/INTERMARCHE-SOLIDIS-STATION-SERVICE_3104418_2023-04-18_34989196000024.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — INTERMARCHE SOLIDIS STATION-SERVICE 11 RUE PIERRE BENOIT 33500 Libourne Code AIOT : 0003104418 1) Contexte Le présent rapport rend compte de l’inspection réalisée le 18/04/2023 dans l'établissement INTERMARCHE SOLIDIS STATION-SERVICE implanté 11 RUE PIERRE BENOIT 33500 Libourne. L'inspection a été annoncée le 23/03/2023.Cette partie H Contexte et constats I est publiée sur le site Géorisques (https://www.georisques.gouv.fr/ ). Les informations relatives à l'établissement sont les suivantes :  INTERMARCHE SOLIDIS STATION-SERVICE  11 RUE PIERRE BENOIT 33500 Libourne  Code AIOT : 0003104418  Régime : Déclaration avec controle  Statut Seveso : Non Seveso  IED : Non Intermaché Libourne est une installation classée exerçant les activités de station service et de 4

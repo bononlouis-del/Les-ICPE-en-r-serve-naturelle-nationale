@@ -10,8 +10,8 @@ identifiant_fichier: "fWugvPaCagH8k3yLEGKjdCcmAh8sqtqD"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/fWugvPaCagH8k3yLEGKjdCcmAh8sqtqD"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/TOTALENERGIES-PROXI-SUD-OUEST-BORDEAUX_100038024_2024-01-29_32495819802616.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — TOTALENERGIES PROXI SUD OUEST 477 BD ALFRED DANEY 33028 BORDEAUX CEDEX 33300 BORDEAUX

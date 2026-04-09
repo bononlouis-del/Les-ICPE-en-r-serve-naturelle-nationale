@@ -10,8 +10,8 @@ identifiant_fichier: "FQvPpRNvMeaVkanGZEXSC71WmllizutJ"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/FQvPpRNvMeaVkanGZEXSC71WmllizutJ"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/SICTOM-Sud-Gironde-ex-USSGETOM_5206068_2024-02-15_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — SICTOM Sud Gironde (ex USSGETOM) 5 rue Marcel Paul Zone artisanale de Dumès 33210 Langon

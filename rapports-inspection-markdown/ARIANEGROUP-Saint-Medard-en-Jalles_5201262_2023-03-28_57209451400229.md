@@ -10,8 +10,8 @@ identifiant_fichier: "nxdDa2fATzw6mwygKvy0ytAELS2XaRaL"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/nxdDa2fATzw6mwygKvy0ytAELS2XaRaL"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ARIANEGROUP-Saint-Medard-en-Jalles_5201262_2023-03-28_57209451400229.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — ARIANEGROUP Rue du Général Niox B.P. 30056 33160 Saint-Médard-en-Jalles

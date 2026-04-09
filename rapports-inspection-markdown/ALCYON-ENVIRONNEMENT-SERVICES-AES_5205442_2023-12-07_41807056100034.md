@@ -10,8 +10,8 @@ identifiant_fichier: "Wug5ebYPrbaA7l91VQyw7KbcHyjWZhaa"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/Wug5ebYPrbaA7l91VQyw7KbcHyjWZhaa"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/ALCYON-ENVIRONNEMENT-SERVICES-AES_5205442_2023-12-07_41807056100034.pdf"
 extraction_method: "pymupdf4llm_generic"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 Es PREFET DE LA GIRONDE He 

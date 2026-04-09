@@ -10,8 +10,8 @@ identifiant_fichier: "LrahEoIs03298J5WJXchvAUqKa2JknDj"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/LrahEoIs03298J5WJXchvAUqKa2JknDj"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Les-Docks-Petroliers-d-Ambes-DPA-Bassens_5205150_2022-09-21_58542007800040.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Les Docks Pétroliers d'Ambès (DPA) Avenue des Guerlandes 33530 Bassens

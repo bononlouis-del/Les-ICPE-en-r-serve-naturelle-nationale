@@ -10,8 +10,8 @@ identifiant_fichier: "GJnJFvwkcTDXPIo7mQLu6wQIXZTa7Tqy"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/GJnJFvwkcTDXPIo7mQLu6wQIXZTa7Tqy"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Societe-Petroliere-du-Bec-d-Ambes-SPBA_5200264_2023-02-21_30435072100052.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Société Pétrolière du Bec d'Ambès (SPBA) Avenue des Guerlandes 33530 Bassens

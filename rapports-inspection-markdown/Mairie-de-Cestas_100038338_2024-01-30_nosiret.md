@@ -10,8 +10,8 @@ identifiant_fichier: "gttm8k7WJDPDoLZ98Gj8ZdWcHN9Bvh2Z"
 url_source_georisques: "https://www.georisques.gouv.fr/webappReport/ws/installations/inspection/gttm8k7WJDPDoLZ98Gj8ZdWcHN9Bvh2Z"
 url_pages: "https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports-inspection/Mairie-de-Cestas_100038338_2024-01-30_nosiret.pdf"
 extraction_method: "dreal_parser"
-extraction_version: "0.1.0"
-extracted_at: "2026-04-08T20:08:28"
+extraction_version: "0.2.0"
+extracted_at: "2026-04-09T09:39:06"
 ---
 
 # Rapport d'inspection — Mairie de Cestas 2 avenue du Baron Haussmann 33610 Cestas
