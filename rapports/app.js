@@ -82,38 +82,82 @@ if (window.matchMedia('(max-width: 719px)').matches) {
 const initProgress = document.getElementById('init-progress');
 const initStep = document.getElementById('init-step');
 
-function setProgress(step, total, label) {
+function setProgress(pct, label) {
   initStatus.textContent = label;
-  initStep.textContent = `${step} / ${total}`;
-  initProgress.style.width = `${Math.round((step / total) * 100)}%`;
+  initStep.textContent = `${pct}%`;
+  initProgress.style.width = `${pct}%`;
+}
+
+/**
+ * Fetch a URL with real download progress via ReadableStream.
+ * Falls back to a plain fetch if Content-Length is missing.
+ */
+async function fetchWithProgress(url, onProgress) {
+  const resp = await fetch(url);
+  const total = +resp.headers.get('Content-Length');
+  if (!total || !resp.body) {
+    // No Content-Length or no ReadableStream — can't track progress
+    return new Uint8Array(await resp.arrayBuffer());
+  }
+  const reader = resp.body.getReader();
+  const chunks = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress(received, total);
+  }
+  const result = new Uint8Array(received);
+  let pos = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, pos);
+    pos += chunk.length;
+  }
+  return result;
 }
 
 async function init() {
-  const STEPS = 3;
   try {
-    setProgress(1, STEPS, 'Téléchargement du moteur de recherche…');
+    // Phase 1: import DuckDB JS module (~5% of total time)
+    setProgress(0, 'Chargement du module…');
     const duckdb = await import(DUCKDB_CDN);
+    setProgress(5, 'Préparation du moteur…');
 
-    setProgress(2, STEPS, 'Initialisation du moteur…');
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
-    // Cross-origin Workers are blocked by browsers. Fetch the worker
-    // script as a blob and construct the Worker from that blob URL.
+
+    // Phase 2: download WASM binary with real progress (~85% of total time)
+    // Fetch it ourselves so we can track bytes downloaded. Then pass
+    // a blob URL to DuckDB instead of the remote URL.
+    const wasmBytes = await fetchWithProgress(bundle.mainModule, (received, total) => {
+      // Map WASM download progress to 5%–85% range
+      const pct = 5 + Math.round((received / total) * 80);
+      const mb = (received / 1024 / 1024).toFixed(1);
+      const totalMb = (total / 1024 / 1024).toFixed(0);
+      setProgress(pct, `Téléchargement du moteur… ${mb} / ${totalMb} Mo`);
+    });
+    const wasmBlob = new Blob([wasmBytes], { type: 'application/wasm' });
+    const wasmUrl = URL.createObjectURL(wasmBlob);
+
+    // Phase 3: Instantiate DuckDB + connect (~10% of total time)
+    setProgress(86, 'Compilation du moteur…');
     const workerScript = await fetch(bundle.mainWorker);
     const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
-    const workerUrl = URL.createObjectURL(workerBlob);
-    const worker = new Worker(workerUrl);
+    const worker = new Worker(URL.createObjectURL(workerBlob));
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
-    // Single-threaded only: skip pthreadWorker because GitHub Pages
-    // does not serve COOP/COEP headers required for SharedArrayBuffer.
-    await db.instantiate(bundle.mainModule);
+    await db.instantiate(wasmUrl);
+    URL.revokeObjectURL(wasmUrl);
     con = await db.connect();
 
-    setProgress(3, STEPS, 'Connexion aux données…');
+    // Phase 4: connect to parquet data
+    setProgress(95, 'Connexion aux données…');
     await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
     const countResult = await con.query("SELECT COUNT(*) AS n FROM 'fiches.parquet'");
     const count = countResult.toArray()[0].n;
+    setProgress(100, 'Prêt');
 
     // Show interface immediately — filters and results load in background
     initLoading.hidden = true;
