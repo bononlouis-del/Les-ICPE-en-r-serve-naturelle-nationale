@@ -45,6 +45,7 @@ const searchHint = document.getElementById('search-hint');
 const resultsEl = document.getElementById('results');
 const resultsEmpty = document.getElementById('results-empty');
 const detailEl = document.getElementById('detail');
+const layoutEl = document.querySelector('.layout');
 const detailEmpty = document.getElementById('detail-empty');
 
 // --- Init ----------------------------------------------------------------
@@ -246,6 +247,21 @@ async function loadFiche(ficheId) {
 function renderDetail(row) {
   detailEl.innerHTML = '';
 
+  // Mobile: switch to detail view
+  layoutEl.classList.add('layout--detail');
+
+  // Back button (visible only on mobile via CSS)
+  const backBtn = document.createElement('button');
+  backBtn.className = 'detail__back';
+  backBtn.textContent = '← résultats';
+  backBtn.addEventListener('click', () => {
+    layoutEl.classList.remove('layout--detail');
+    detailEl.innerHTML = '';
+    currentFicheId = null;
+    history.replaceState(null, '', location.pathname + location.search);
+  });
+  detailEl.appendChild(backBtn);
+
   // Header
   const header = document.createElement('div');
   header.className = 'detail__header';
@@ -342,12 +358,10 @@ function renderDetail(row) {
 
     const canvas = document.createElement('canvas');
     canvas.className = 'snippet__canvas';
-    // HiDPI: scale internal canvas for sharp rendering on Retina displays
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = CANVAS_WIDTH * dpr;
-    canvas.height = CANVAS_HEIGHT * dpr;
+    // Dimensions set later by renderSnippet after we know the content aspect ratio.
+    // Start with placeholder size; renderSnippet will resize.
     canvas.style.width = CANVAS_WIDTH + 'px';
-    canvas.style.height = CANVAS_HEIGHT + 'px';
+    canvas.style.maxHeight = '600px';
     canvas.title = 'Cliquer pour ouvrir le PDF complet';
     canvas.addEventListener('click', () => {
       window.open(buildPdfUrl(pdfUrl, page), '_blank', 'noopener');
@@ -409,26 +423,37 @@ async function loadPdfJs() {
   return mod;
 }
 
+function sizeCanvas(canvas, contentWidth, contentHeight) {
+  /** Resize the canvas to fit CANVAS_WIDTH CSS px wide, preserving aspect ratio. */
+  const dpr = window.devicePixelRatio || 1;
+  const aspect = contentHeight / contentWidth;
+  const cssW = CANVAS_WIDTH;
+  const cssH = Math.round(Math.min(cssW * aspect, 600)); // cap at 600 CSS px
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+}
+
 async function renderSnippet(canvas, pdfUrl, region) {
+  // Placeholder while loading
+  sizeCanvas(canvas, 3, 4); // default A4-ish ratio
   const ctx = canvas.getContext('2d');
-  // Background while loading
   ctx.fillStyle = '#f5f3ed';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#999';
-  ctx.font = '13px sans-serif';
+  ctx.font = `${14 * (window.devicePixelRatio || 1)}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillText('Chargement du PDF…', canvas.width / 2, canvas.height / 2);
 
   try {
     const lib = await loadPdfJs();
-    // Cache PDF document per URL
     if (!pdfDocCache[pdfUrl]) {
       pdfDocCache[pdfUrl] = await lib.getDocument(pdfUrl).promise;
     }
     const doc = pdfDocCache[pdfUrl];
     const pageNum = region ? region.page : 1;
     const page = await doc.getPage(pageNum);
-    // Scale up rendering for HiDPI — at least 2x, more on 3x displays
     const renderScale = Math.max(2, window.devicePixelRatio || 1);
     const viewport = page.getViewport({ scale: renderScale });
 
@@ -439,45 +464,48 @@ async function renderSnippet(canvas, pdfUrl, region) {
     const offCtx = offscreen.getContext('2d');
     await page.render({ canvasContext: offCtx, viewport }).promise;
 
+    const pagePts = { width: page.view[2], height: page.view[3] };
+
     // Crop to bbox if available
     if (region && region.bbox && region.bbox.length === 4) {
-      const pagePts = { width: page.view[2], height: page.view[3] };
-      const coords = canvasCoordinatesFromBbox(
-        region.bbox, pagePts,
-        { width: canvas.width, height: canvas.height },
-        BBOX_PADDING,
+      const [x0, y0, x1, y1] = region.bbox;
+      const bw = x1 - x0;
+      const bh = y1 - y0;
+      const padX = bw * BBOX_PADDING;
+      const padY = bh * BBOX_PADDING;
+      const sx = Math.max(0, x0 - padX);
+      const sy = Math.max(0, y0 - padY);
+      const sw = Math.min(pagePts.width - sx, bw + 2 * padX);
+      const sh = Math.min(pagePts.height - sy, bh + 2 * padY);
+
+      // Size canvas to match the crop's aspect ratio
+      sizeCanvas(canvas, sw, sh);
+      const ctx2 = canvas.getContext('2d');
+      ctx2.fillStyle = '#fdfbf4';
+      ctx2.fillRect(0, 0, canvas.width, canvas.height);
+      ctx2.drawImage(
+        offscreen,
+        sx * renderScale, sy * renderScale, sw * renderScale, sh * renderScale,
+        0, 0, canvas.width, canvas.height,
       );
-      if (coords) {
-        const scale = viewport.scale;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fdfbf4';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(
-          offscreen,
-          coords.sx * scale, coords.sy * scale, coords.sw * scale, coords.sh * scale,
-          coords.dx, coords.dy, coords.dw, coords.dh,
-        );
-        return;
-      }
+      return;
     }
 
-    // Fallback: render full page scaled to fit
-    const fitScale = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
-    const dw = viewport.width * fitScale;
-    const dh = viewport.height * fitScale;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fdfbf4';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(offscreen, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+    // Fallback: render full page, sized to page aspect ratio
+    sizeCanvas(canvas, pagePts.width, pagePts.height);
+    const ctx2 = canvas.getContext('2d');
+    ctx2.fillStyle = '#fdfbf4';
+    ctx2.fillRect(0, 0, canvas.width, canvas.height);
+    ctx2.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
   } catch (err) {
     console.warn('PDF render failed:', err);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#f5f3ed';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#999';
-    ctx.font = '13px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('PDF indisponible', canvas.width / 2, canvas.height / 2);
+    const ctx2 = canvas.getContext('2d');
+    ctx2.fillStyle = '#f5f3ed';
+    ctx2.fillRect(0, 0, canvas.width, canvas.height);
+    ctx2.fillStyle = '#999';
+    ctx2.font = `${14 * (window.devicePixelRatio || 1)}px sans-serif`;
+    ctx2.textAlign = 'center';
+    ctx2.fillText('PDF indisponible', canvas.width / 2, canvas.height / 2);
   }
 }
 

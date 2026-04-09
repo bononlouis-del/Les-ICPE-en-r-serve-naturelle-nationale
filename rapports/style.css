@@ -227,7 +227,7 @@
   display: block;
   width: 100%;
   max-width: 500px;
-  height: 380px;
+  /* Height set dynamically by JS to match content aspect ratio */
   cursor: pointer;
 }
 .snippet__caption {
@@ -305,23 +305,62 @@
 
 /* --- Mobile ------------------------------------------------------------- */
 
+/* --- Mobile: list → detail navigation ----------------------------------- */
+
 @media (max-width: 719px) {
   .layout {
     grid-template-columns: 1fr;
+    /* One panel visible at a time. Default: results visible. */
   }
   .results {
     border-right: none;
     border-bottom: 1px solid var(--rule-soft);
-    max-height: 40vh;
+    max-height: calc(100vh - 140px);
   }
+  /* Detail panel hidden on mobile until a fiche is selected */
   .detail {
+    display: none;
     max-height: none;
     padding: 20px 16px;
+  }
+  /* When a fiche is selected, JS adds .layout--detail to .layout */
+  .layout--detail .results {
+    display: none;
+  }
+  .layout--detail .detail {
+    display: block;
   }
   .detail__fields {
     grid-template-columns: 1fr;
   }
   .snippet__canvas { display: none; }
-  .search-bar { padding: 12px 16px; }
+  .search-bar {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .search-bar__input { min-width: 0; }
   .masthead { padding: 16px; }
+  .masthead__nav { gap: 12px; }
+
+  /* Back button — only visible on mobile when detail is open */
+  .detail__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--moss);
+    background: none;
+    border: 1px solid var(--moss);
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .detail__back:hover { background: rgba(74, 107, 58, 0.08); }
+}
+
+/* Desktop: back button hidden */
+@media (min-width: 720px) {
+  .detail__back { display: none; }
 }

@@ -471,14 +471,18 @@ def write_parquet(rows: list[FicheRow], path: Path) -> str:
 
     con = duckdb.connect(":memory:")
 
-    # Colonnes dans l'ordre souhaité (sans regions_json qui est intermédiaire)
-    columns = [k for k in FicheRow.__annotations__ if k != "regions"]
+    # Colonnes du parquet final = toutes les clés du TypedDict.
+    # regions est stockée comme JSON (via une colonne intermédiaire
+    # regions_json en VARCHAR, castée à l'export).
+    columns = list(FicheRow.__annotations__)
     col_defs = []
     for col in columns:
         if col == "body_chars":
             col_defs.append(f"{col} INTEGER")
         elif col == "regions":
-            col_defs.append("regions JSON")
+            # Pas de colonne "regions" dans la table intermédiaire :
+            # on insère regions_json (VARCHAR) et on cast à l'export.
+            continue
         else:
             col_defs.append(f"{col} VARCHAR")
     col_defs.append("regions_json VARCHAR")
@@ -486,15 +490,16 @@ def write_parquet(rows: list[FicheRow], path: Path) -> str:
     # Créer la table
     con.execute(f"CREATE TABLE fiches ({', '.join(col_defs)})")
 
-    # Insérer les données via executemany
-    placeholders = ", ".join(["?"] * len(col_defs))
+    # Insérer les données via executemany (toutes les colonnes SAUF
+    # regions, remplacée par regions_json)
     insert_cols = [c for c in columns if c != "regions"] + ["regions_json"]
+    placeholders = ", ".join(["?"] * len(insert_cols))
     con.executemany(
         f"INSERT INTO fiches ({', '.join(insert_cols)}) VALUES ({placeholders})",
         [[r.get(c) for c in insert_cols] for r in rows_for_db],
     )
 
-    # Écrire le parquet avec la colonne regions parsée depuis le JSON
+    # Écrire le parquet avec regions_json casté en JSON nommé "regions"
     tmp_path = path.with_suffix(".parquet.tmp")
     select_cols = []
     for col in columns:
