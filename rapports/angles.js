@@ -27,7 +27,8 @@ async function init() {
     const worker = new Worker(bundle.mainWorker);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    // Single-threaded only: GitHub Pages lacks COOP/COEP headers for SharedArrayBuffer.
+    await db.instantiate(bundle.mainModule);
     con = await db.connect();
     await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
     loadingEl.hidden = true;

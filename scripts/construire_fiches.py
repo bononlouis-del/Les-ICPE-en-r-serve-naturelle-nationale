@@ -505,7 +505,7 @@ def write_parquet(rows: list[FicheRow], path: Path) -> str:
 
     con.execute(
         f"COPY (SELECT {', '.join(select_cols)} FROM fiches ORDER BY fiche_id) "
-        f"TO '{tmp_path}' (FORMAT PARQUET, COMPRESSION SNAPPY)"
+        f"TO '{tmp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
     )
     con.close()
 

@@ -51,12 +51,15 @@ async function init() {
   try {
     searchHint.textContent = 'Chargement DuckDB…';
     const duckdb = await import(DUCKDB_CDN);
+    searchHint.textContent = 'Initialisation…';
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
     const worker = new Worker(bundle.mainWorker);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    // Single-threaded only: skip pthreadWorker because GitHub Pages
+    // does not serve COOP/COEP headers required for SharedArrayBuffer.
+    await db.instantiate(bundle.mainModule);
     con = await db.connect();
 
     // Register parquet
@@ -102,17 +105,28 @@ async function runSearch() {
   }
 
   const pattern = buildSqlLikePattern(term);
+  const fullText = document.getElementById('fulltext-toggle')?.checked ?? false;
   try {
+    // Default: search on lightweight columns only (~0.5 MB via HTTP range).
+    // Full-text: adds body column (~13 MB on first use, cached after).
+    const bodyClause = fullText
+      ? "OR LOWER(body) LIKE LOWER(?) ESCAPE '\\\\'"
+      : '';
+    const params = fullText
+      ? [pattern, pattern, pattern, pattern, pattern, pattern, MAX_RESULTS]
+      : [pattern, pattern, pattern, pattern, MAX_RESULTS];
     const result = await con.query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
       FROM 'fiches.parquet'
-      WHERE LOWER(body) LIKE LOWER(?) ESCAPE '\\'
-         OR LOWER(COALESCE(titre, '')) LIKE LOWER(?) ESCAPE '\\'
+      WHERE LOWER(COALESCE(titre, '')) LIKE LOWER(?) ESCAPE '\\'
          OR LOWER(nom_complet) LIKE LOWER(?) ESCAPE '\\'
          OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER(?) ESCAPE '\\'
+         OR LOWER(COALESCE(theme, '')) LIKE LOWER(?) ESCAPE '\\'
+         ${bodyClause}
+         ${fullText ? "OR LOWER(COALESCE(constats_body, '')) LIKE LOWER(?) ESCAPE '\\\\'" : ''}
       LIMIT ?
-    `, [pattern, pattern, pattern, pattern, MAX_RESULTS]);
+    `, params);
 
     const rows = result.toArray();
     renderResults(rows);

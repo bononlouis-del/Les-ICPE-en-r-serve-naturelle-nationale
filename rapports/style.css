@@ -78,6 +78,15 @@
   border-color: var(--moss);
   box-shadow: 0 0 0 2px rgba(74, 107, 58, 0.15);
 }
+.search-bar__toggle {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.search-bar__toggle input { margin-right: 4px; vertical-align: middle; }
 .search-bar__hint {
   font-family: var(--font-data);
   font-size: 11px;
