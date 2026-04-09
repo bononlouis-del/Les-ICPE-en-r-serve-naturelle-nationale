@@ -5,16 +5,17 @@ Protection de l'Environnement** (ICPE) en Gironde :
 **carte interactive**, **audit des coordonnées**,
 **catalogue des données**, et **rapports d'inspection**.
 
-**Page d'accueil :** <https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/>
+Le site est déployé sur **GitHub Pages** — tous les outils sont
+utilisables directement dans le navigateur, sans installation :
 
-- **Carte interactive** → `/carte/` — explorer les ICPE et les
-  réserves naturelles
-- **Audit des coordonnées** → `/audit/` — vérifier les écarts entre
-  adresses et coordonnées via une revue collaborative bucket par bucket
-- **Catalogue des données** → `/donnees/` — comprendre les fichiers
-  et les colonnes (sample values inclus)
-- **Rapports d'inspection** → `/rapports/` — rechercher, vérifier et
-  analyser les 10 599 fiches de constat extraites de 1 782 rapports PDF
+| Outil | URL | Description |
+|---|---|---|
+| **Accueil** | [bononlouis-del.github.io/…/](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/) | Page d'entrée avec les 4 cartes |
+| **Carte interactive** | [/carte/](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/carte/) | 2 890 ICPE filtrables, réserves naturelles, ortho-photo IGN |
+| **Audit des coordonnées** | [/audit/](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/audit/) | Revue collaborative par bucket — mini-carte, verdicts, export JSON |
+| **Tableau des décisions** | [/audit/table.html](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/audit/table.html) | Vue tabulaire de toutes les décisions — filtres, tri, export CSV |
+| **Catalogue des données** | [/donnees/](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/donnees/) | Dictionnaire des colonnes avec échantillons cliquables |
+| **Rapports d'inspection** | [/rapports/](https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/rapports/) | 10 599 fiches de constat — recherche plein texte, analyse par angle |
 
 ## Ce que la carte permet
 
