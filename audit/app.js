@@ -948,6 +948,11 @@
       exitToEmpty();
       return;
     }
+    // On mobile, auto-close the sidebar when a bucket is selected
+    // so the review panel is visible.
+    if (window.matchMedia('(max-width: 719px)').matches) {
+      document.body.classList.add('sidebar-collapsed');
+    }
     if (state.currentItemIndex < 0) state.currentItemIndex = 0;
     if (state.currentItemIndex >= bucket.items.length) state.currentItemIndex = bucket.items.length - 1;
 

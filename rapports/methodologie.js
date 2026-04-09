@@ -1,8 +1,8 @@
 /**
  * methodologie.js — Fetch and render two methodology docs via marked.js CDN.
  *
- * 1. rapports/methodologie.md    — pipeline d'extraction des rapports
- * 2. docs/methodo-carte.md       — pipeline carte + audit des coordonnées
+ * 1. docs/methodo-carte.md       — pipeline carte + audit des coordonnées
+ * 2. rapports/methodologie.md    — pipeline d'extraction des rapports
  */
 
 const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked@14.1.3/+esm';
@@ -36,4 +36,18 @@ async function init() {
   }
 }
 
+// --- Back to top button ---
+
+function setupBackToTop() {
+  const btn = document.getElementById('back-to-top');
+  if (!btn) return;
+  window.addEventListener('scroll', () => {
+    btn.hidden = window.scrollY < 400;
+  }, { passive: true });
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+
 init();
+setupBackToTop();

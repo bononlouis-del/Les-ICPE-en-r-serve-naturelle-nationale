@@ -23,8 +23,9 @@
   .md-content code { font-family: var(--font-data); font-size: 13px; background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
   .md-content pre { font-family: var(--font-data); font-size: 12px; background: var(--paper-2); padding: 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
   .md-content pre code { background: none; padding: 0; }
-  .md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; }
-  .md-content th { text-align: left; font-family: var(--font-data); padding: 6px 10px; border-bottom: 2px solid var(--rule); color: var(--ink-soft); }
+  /* Tables: scrollable horizontally on mobile */
+  .md-content table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .md-content th { text-align: left; font-family: var(--font-data); padding: 6px 10px; border-bottom: 2px solid var(--rule); color: var(--ink-soft); white-space: nowrap; }
   .md-content td { padding: 5px 10px; border-bottom: 1px solid var(--rule-soft); }
   .md-content ol, .md-content ul { padding-left: 24px; }
   .md-content li { margin-bottom: 4px; }
@@ -33,6 +34,30 @@
   .md-content a:hover { text-decoration: underline; }
   .md-content hr { border: none; border-top: 1px solid var(--rule-soft); margin: 32px 0; }
   .md-content blockquote { border-left: 3px solid var(--moss); margin: 12px 0; padding: 8px 16px; color: var(--ink-soft); }
+
+  /* Sticky nav on scroll */
+  .masthead { position: sticky; top: 0; z-index: 10; background: var(--paper); }
+
+  /* Back to top button */
+  .back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .back-to-top:hover { background: var(--paper-2); }
 </style>
 </head>
 <body>
@@ -58,6 +83,8 @@
     <span>Chargement…</span>
   </div>
 </div>
+
+<button class="back-to-top" id="back-to-top" hidden aria-label="Retour en haut">↑</button>
 
 <script type="module" src="methodologie.js?v=11"></script>
 </body>

@@ -38,6 +38,7 @@ let pdfjsLib = null;
 let pdfDocCache = {};  // url → PDFDocumentProxy
 let debounceTimer = null;
 let currentFicheId = null;
+let loadFicheSeq = 0; // concurrency guard — ignore stale async responses
 
 // --- DOM refs ------------------------------------------------------------
 
@@ -46,16 +47,19 @@ const searchHint = document.getElementById('search-hint');
 const resultsEl = document.getElementById('results');
 const resultsEmpty = document.getElementById('results-empty');
 const detailEl = document.getElementById('detail');
-const layoutEl = document.querySelector('.layout');
+const layoutEl = document.getElementById('layout');
 const detailEmpty = document.getElementById('detail-empty');
+const initLoading = document.getElementById('init-loading');
+const initStatus = document.getElementById('init-status');
 
 // --- Init ----------------------------------------------------------------
 
 async function init() {
   try {
-    searchHint.textContent = 'Chargement DuckDB…';
+    initStatus.textContent = 'Téléchargement du moteur…';
     const duckdb = await import(DUCKDB_CDN);
-    searchHint.textContent = 'Initialisation…';
+
+    initStatus.textContent = 'Initialisation…';
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
     // Cross-origin Workers are blocked by browsers. Fetch the worker
@@ -71,12 +75,15 @@ async function init() {
     await db.instantiate(bundle.mainModule);
     con = await db.connect();
 
-    // Register parquet
+    initStatus.textContent = 'Chargement des données…';
     await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
-    // Warm up — count rows
     const countResult = await con.query("SELECT COUNT(*) AS n FROM 'fiches.parquet'");
     const count = countResult.toArray()[0].n;
-    searchHint.textContent = count.toLocaleString('fr-FR') + ' fiches indexées';
+
+    // Hide spinner, show interface
+    initLoading.hidden = true;
+    layoutEl.hidden = false;
+    searchHint.textContent = count.toLocaleString('fr-FR') + ' fiches';
     searchInput.disabled = false;
     searchInput.focus();
 
@@ -85,11 +92,10 @@ async function init() {
     if (hashId) {
       await loadFiche(hashId);
     } else {
-      // Show the 50 most recent fiches as a starting point
       await loadRecentFiches();
     }
   } catch (err) {
-    searchHint.textContent = 'Erreur de chargement — rechargez la page';
+    initStatus.textContent = 'Erreur de chargement — rechargez la page';
     console.error('DuckDB init failed:', err);
   }
 }
@@ -205,8 +211,12 @@ function renderResults(rows) {
       item.appendChild(b);
     }
 
-    item.addEventListener('click', () => {
-      location.hash = '#' + row.fiche_id;
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Call loadFiche directly instead of going through hashchange
+      // (eliminates the 300ms mobile tap delay + async hop)
+      history.replaceState(null, '', '#' + row.fiche_id);
+      loadFiche(row.fiche_id);
     });
     resultsEl.appendChild(item);
   }
@@ -221,18 +231,25 @@ window.addEventListener('hashchange', () => {
 
 async function loadFiche(ficheId) {
   if (!con) return;
+  const seq = ++loadFicheSeq; // concurrency guard
   currentFicheId = ficheId;
 
-  // Highlight in results
+  // Highlight in results immediately (no async wait)
   document.querySelectorAll('.result-item').forEach((el) => {
     el.classList.toggle('active', el.dataset.ficheId === ficheId);
   });
+
+  // Show loading indicator in detail panel
+  detailEl.innerHTML = '<div class="loading"><div class="loading__spinner"></div><span>Chargement…</span></div>';
+  layoutEl.classList.add('layout--detail');
 
   try {
     const safeId = ficheId.replace(/'/g, "''");
     const result = await con.query(`
       SELECT * FROM 'fiches.parquet' WHERE fiche_id = '${safeId}'
     `);
+    // Ignore if a newer request was made while we were waiting
+    if (seq !== loadFicheSeq) return;
     const rows = result.toArray();
     if (rows.length === 0) {
       detailEl.innerHTML = '<p class="detail__empty">Fiche introuvable.</p>';

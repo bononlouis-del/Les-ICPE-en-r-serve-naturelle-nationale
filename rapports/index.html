@@ -38,7 +38,12 @@
   <span class="search-bar__hint" id="search-hint">Chargement…</span>
 </div>
 
-<div class="layout">
+<div id="init-loading" class="loading">
+  <div class="loading__spinner"></div>
+  <span id="init-status">Chargement du moteur de recherche…</span>
+</div>
+
+<div class="layout" id="layout" hidden>
   <aside class="results" id="results">
     <p class="results__empty" id="results-empty">
       Tapez un mot-clé pour rechercher parmi les fiches de constat.
@@ -50,7 +55,7 @@
       Sélectionnez une fiche dans les résultats pour voir son détail et la source PDF.
     </p>
   </main>
-</div>
+</div> <!-- .layout -->
 
 <script type="module" src="app.js?v=11"></script>
 </body>
