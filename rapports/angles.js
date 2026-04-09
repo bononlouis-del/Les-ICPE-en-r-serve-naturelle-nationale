@@ -189,7 +189,11 @@ async function runPreview(sql, previewEl) {
     }
     previewEl.innerHTML = renderTable(rows);
   } catch (err) {
-    previewEl.innerHTML = '<p style="color:var(--rust);font-size:13px;">Erreur SQL : ' + err.message + '</p>';
+    const errP = document.createElement('p');
+    errP.style.cssText = 'color:var(--rust);font-size:13px;';
+    errP.textContent = 'Erreur SQL : ' + err.message;
+    previewEl.innerHTML = '';
+    previewEl.appendChild(errP);
   }
 }
 

@@ -118,11 +118,20 @@
 }
 .result-item {
   display: block;
+  width: 100%;
   padding: 12px 24px;
+  border: none;
   border-bottom: 1px solid var(--rule-soft);
+  background: none;
   cursor: pointer;
   text-decoration: none;
+  text-align: left;
   color: inherit;
+  font: inherit;
+}
+.result-item:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: -2px;
 }
 .result-item:hover { background: var(--paper-2); }
 .result-item.active { background: var(--paper-3); border-left: 3px solid var(--moss); }

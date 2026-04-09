@@ -448,8 +448,20 @@ def is_dreal_template(text: str) -> bool:
     Tous-ou-rien plutôt que score : un gabarit partiel est trop fragile
     pour que le parser structuré donne un résultat fiable — on le
     route vers ``pymupdf4llm_generic`` qui fait un rendu neutre.
+
+    Les marqueurs "1) Contexte" et "2) Constats" sont testés en début
+    de ligne (BOL) comme dans ``_split_contexte_constats``, pour
+    éviter de classifier un PDF comme DREAL alors que le parser
+    structuré ne trouverait pas ses marqueurs BOL et produirait
+    un body vide.
     """
-    return all(marker in text for marker in DREAL_MARKERS)
+    # Les 2 premiers marqueurs sont testés en substring simple
+    # (pas de risque BOL car ils n'ont pas d'ancrage dans le parser).
+    if not all(marker in text for marker in DREAL_MARKERS[:1] + DREAL_MARKERS[3:]):
+        return False
+    # Les marqueurs de section doivent être en début de ligne,
+    # exactement comme les regex du parser les cherche.
+    return bool(_RE_MARKER_CONTEXTE.search(text) and _RE_MARKER_CONSTATS.search(text))
 
 
 def classify_text(text: str) -> ExtractionMethod:

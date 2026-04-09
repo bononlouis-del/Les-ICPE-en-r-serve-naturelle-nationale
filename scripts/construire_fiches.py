@@ -161,20 +161,27 @@ class FicheRow(TypedDict, total=False):
 def parse_fiche_labeled_fields(body: str) -> dict[str, str]:
     """Parse les champs labélisés d'un body de fiche DREAL.
 
-    Cherche chaque label dans l'ordre du gabarit. Le contenu d'un
-    label va jusqu'au prochain label ou jusqu'à la fin du body.
-    Les champs absents retournent une chaîne vide.
+    Cherche chaque label **séquentiellement** dans l'ordre du gabarit,
+    chaque recherche commençant après la fin du match précédent. Cela
+    évite qu'un mot-clé apparaissant dans le contenu d'un champ
+    antérieur (ex. "Constats :" dans la prescription) ne vole la
+    frontière du vrai label plus loin dans le texte.
+
+    Le contenu d'un label va jusqu'au prochain label trouvé ou
+    jusqu'à la fin du body. Les champs absents retournent une chaîne
+    vide.
     """
     result: dict[str, str] = {}
-    # Trouver la position de chaque label match
+    # Chercher les labels dans l'ordre du gabarit, chaque recherche
+    # démarrant après le match précédent pour respecter l'ordre
+    # documentaire et éviter les faux positifs.
     matches: list[tuple[str, int, int]] = []  # (name, match_start, content_start)
+    search_start = 0
     for name, pattern in _LABEL_PATTERNS:
-        m = pattern.search(body)
+        m = pattern.search(body, search_start)
         if m:
             matches.append((name, m.start(), m.end()))
-
-    # Trier par position dans le texte
-    matches.sort(key=lambda t: t[1])
+            search_start = m.end()
 
     for i, (name, _start, content_start) in enumerate(matches):
         if i + 1 < len(matches):

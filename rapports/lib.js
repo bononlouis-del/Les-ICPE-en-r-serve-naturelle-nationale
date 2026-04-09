@@ -63,8 +63,8 @@ export function canvasCoordinatesFromBbox(bbox, pagePts, canvasPx, padding) {
   const [x0, y0, x1, y1] = bbox;
   const bw = x1 - x0;
   const bh = y1 - y0;
-  const padX = bw * (padding || 0.15);
-  const padY = bh * (padding || 0.15);
+  const padX = bw * (padding ?? 0.15);
+  const padY = bh * (padding ?? 0.15);
 
   // Source region in page points (clamped to page bounds)
   const sx = Math.max(0, x0 - padX);

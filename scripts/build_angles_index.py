@@ -73,7 +73,9 @@ def main() -> int:
         return 1
     entries = build_index()
     content = json.dumps(entries, ensure_ascii=False, indent=2)
-    INDEX_PATH.write_text(content + "\n", encoding="utf-8")
+    tmp_path = INDEX_PATH.with_suffix(".json.tmp")
+    tmp_path.write_text(content + "\n", encoding="utf-8")
+    tmp_path.replace(INDEX_PATH)
     print(f"[build] {len(entries)} angles → {INDEX_PATH}")
     return 0
 

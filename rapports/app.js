@@ -10,7 +10,6 @@ import {
   parseFicheIdFromHash,
   buildPdfUrl,
   buildSqlLikePattern,
-  canvasCoordinatesFromBbox,
   formatSearchResult,
   isMobileViewport,
   reflowText,
@@ -36,6 +35,7 @@ let db = null;
 let con = null;
 let pdfjsLib = null;
 let pdfDocCache = {};  // url → PDFDocumentProxy
+const PDF_CACHE_MAX = 5;
 let debounceTimer = null;
 let currentFicheId = null;
 let loadFicheSeq = 0; // concurrency guard — ignore stale async responses
@@ -185,9 +185,11 @@ function renderResults(rows) {
     resultsEl.appendChild(p);
     return;
   }
+  const frag = document.createDocumentFragment();
   for (const row of rows) {
     const { title, subtitle, badge } = formatSearchResult(row);
-    const item = document.createElement('div');
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'result-item' + (row.fiche_id === currentFicheId ? ' active' : '');
     item.dataset.ficheId = row.fiche_id;
 
@@ -213,13 +215,12 @@ function renderResults(rows) {
 
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      // Call loadFiche directly instead of going through hashchange
-      // (eliminates the 300ms mobile tap delay + async hop)
       history.replaceState(null, '', '#' + row.fiche_id);
       loadFiche(row.fiche_id);
     });
-    resultsEl.appendChild(item);
+    frag.appendChild(item);
   }
+  resultsEl.appendChild(frag);
 }
 
 // --- Detail panel --------------------------------------------------------
@@ -389,7 +390,13 @@ function renderDetail(row) {
 
     const caption = document.createElement('div');
     caption.className = 'snippet__caption';
-    caption.innerHTML = `Page ${page} du rapport · <a href="${buildPdfUrl(pdfUrl, page)}" target="_blank" rel="noopener">ouvrir le PDF complet →</a>`;
+    caption.append(`Page ${page} du rapport · `);
+    const captionLink = document.createElement('a');
+    captionLink.href = buildPdfUrl(pdfUrl, page);
+    captionLink.target = '_blank';
+    captionLink.rel = 'noopener';
+    captionLink.textContent = 'ouvrir le PDF complet →';
+    caption.appendChild(captionLink);
     snippet.appendChild(caption);
     detailEl.appendChild(snippet);
 
@@ -417,7 +424,10 @@ function renderDetail(row) {
   for (const [label, value] of contextItems) {
     if (!value) continue;
     const s = document.createElement('span');
-    s.innerHTML = `<strong>${label}</strong> : ${value}`;
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    s.appendChild(strong);
+    s.append(` : ${value}`);
     grid.appendChild(s);
   }
   context.appendChild(grid);
@@ -426,7 +436,13 @@ function renderDetail(row) {
   if (row.url_markdown) {
     const mdLink = document.createElement('div');
     mdLink.style.marginTop = '12px';
-    mdLink.innerHTML = `<a href="${row.url_markdown}" target="_blank" rel="noopener" style="color:var(--moss);font-size:13px;font-family:var(--font-body)">voir le markdown complet →</a>`;
+    const mdA = document.createElement('a');
+    mdA.href = row.url_markdown;
+    mdA.target = '_blank';
+    mdA.rel = 'noopener';
+    mdA.style.cssText = 'color:var(--moss);font-size:13px;font-family:var(--font-body)';
+    mdA.textContent = 'voir le markdown complet →';
+    mdLink.appendChild(mdA);
     context.appendChild(mdLink);
   }
   detailEl.appendChild(context);
@@ -468,6 +484,13 @@ async function renderSnippet(canvas, pdfUrl, region) {
   try {
     const lib = await loadPdfJs();
     if (!pdfDocCache[pdfUrl]) {
+      // Evict oldest entry if cache is full
+      const keys = Object.keys(pdfDocCache);
+      if (keys.length >= PDF_CACHE_MAX) {
+        const evict = keys[0];
+        pdfDocCache[evict].destroy();
+        delete pdfDocCache[evict];
+      }
       pdfDocCache[pdfUrl] = await lib.getDocument(pdfUrl).promise;
     }
     const doc = pdfDocCache[pdfUrl];
