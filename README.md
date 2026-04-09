@@ -19,19 +19,13 @@ utilisables directement dans le navigateur, sans installation :
 
 ## Ce que la carte permet
 
-- Visualiser 2 890 installations classées en Gironde (alimentée
-  directement par l'export bulk Géorisques depuis Scope Y' ; +EUROVIA
-  et trois nouvelles installations Non ICPE par rapport au snapshot
-  data.gouv.fr de février 2025 ; SEMOCTOM radiée et PESA filtrée des
-  exports disparaissent), colorées selon le régime, le niveau Seveso,
-  la priorité nationale, l'IED ou le secteur.
-- Filtrer par combinaison de critères (recherche, régime, Seveso, priorité,
-  IED, secteur) avec recalcul instantané.
+- Visualiser 2 890 installations classées en Gironde, colorées selon
+  le régime, le niveau Seveso, la priorité nationale, l'IED ou le
+  secteur.
+- Filtrer par combinaison de critères (recherche, régime, Seveso,
+  priorité, IED, secteur) avec recalcul instantané.
 - Parcourir un instantané temporel mensuel via un curseur : voir quels
-  dossiers ICPE étaient actifs à une date donnée. Le `cdate` est
-  left-joint depuis le snapshot manuel data.gouv.fr (2 886 lignes
-  overlap), les 4 lignes nouvelles côté bulk passent toujours le filtre
-  temporel.
+  dossiers ICPE étaient actifs à une date donnée.
 - Basculer l'affichage du contour du département, des communes, des
   Réserves Naturelles Nationales et Régionales.
 - Ouvrir directement la fiche Géorisques de chaque site.
@@ -142,9 +136,8 @@ python3 scripts/build_angles_index.py
 Deux sources ICPE coexistent :
 
 - `carte/liste-icpe-gironde.csv` (2 888 lignes) — snapshot historique
-  data.gouv.fr (février 2025), conservé pour le left-join `cdate` que
-  fait `enrichir_libelles.py`. Les coordonnées et `Geo Point` /
-  `Geo Shape` ne sont plus la source de vérité depuis Scope Y'.
+  data.gouv.fr (février 2025), conservé pour récupérer les dates de
+  création absentes de l'export officiel.
 - `données-georisques/` — export bulk officiel de l'API Géorisques V1
   pour le département 33, canonique. ZIP archivé horodaté dans
   `raw/` (sha256 dans `PROVENANCE.txt`), éclaté en cinq CSV normalisés
@@ -152,18 +145,14 @@ Deux sources ICPE coexistent :
   d'inspection, documents hors inspection (arrêtés, rapports publics,
   mises en demeure), rubriques ICPE.
 
-Depuis avril 2026, `scripts/enrichir_libelles.py` est **bulk-canonical**
-(Scope Y') : il drive depuis les 2 890 lignes de l'export bulk Géorisques,
-calcule les colonnes désambiguïsées (`structure`, `etablissement`,
-`nom_complet`), normalise les valeurs catégorielles (`regimeVigueur`,
-`statutSeveso`) et booléennes (`bovins`, `porcs`, …) au format de la
-carte, synthétise la géométrie GeoJSON depuis `longitude`/`latitude`,
-puis **left-joint `cdate` et `gid` depuis le manuel** via
-`normalize_aiot(codeAiot) ↔ normalize_aiot(ident)`. Les 4 lignes
-nouvelles côté bulk reçoivent `cdate=""` ; les 2 lignes manuel-only
-(SEMOCTOM radiée, PESA filtrée) disparaissent automatiquement. Le
-fichier produit `carte/data/liste-icpe-gironde_enrichi.csv` (2 890 lignes)
-est ce que la carte charge.
+Depuis avril 2026, `scripts/enrichir_libelles.py` part de l'**export
+officiel** (2 890 lignes) comme source de référence. Il désambiguïse les
+noms en doublon (`structure`, `etablissement`, `nom_complet`), standardise
+les catégories (régime ICPE, Seveso, booléens), génère les coordonnées
+GeoJSON, et récupère les dates de création depuis le snapshot historique
+quand elles existent. Le fichier produit
+`carte/data/liste-icpe-gironde_enrichi.csv` (2 890 lignes) est ce que
+la carte charge.
 
 Par-dessus, `scripts/telecharger_rapports_inspection.py` télécharge les
 rapports d'inspection publiables depuis Géorisques (1 784 PDFs), les
@@ -208,13 +197,12 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 ## Structure du dépôt
 
 ```
-├── index.html                     # point d'entrée (racine, servi par Pages)
 ├── README.md
 ├── scripts/                       # pipeline Géorisques + audit + extraction markdown
 │   ├── _paths.py                           # constantes de chemin partagées (single source of truth)
 │   ├── _metadonnees_util.py                # helper partagé pour le dictionnaire multi-fichiers
 │   ├── fetch_georisques.py                 # téléchargement + extraction bulk officiel
-│   ├── enrichir_libelles.py                # enrichissement bulk + projection vers la carte (Scope Y')
+│   ├── enrichir_libelles.py                # enrichissement + projection vers la carte
 │   ├── telecharger_rapports_inspection.py  # téléchargement des PDFs d'inspection
 │   ├── extract_rapports_markdown.py        # extraction markdown des PDFs (pymupdf + ocrmypdf)
 │   ├── audit_coordinates.py                # audit des écarts coords/adresses (BAN+OpenCage+Nominatim cascade)
@@ -264,7 +252,7 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 │   ├── style.css                  # styles spécifiques à la carte
 │   ├── liste-icpe-gironde.csv     # snapshot historique data.gouv.fr (cdate)
 │   ├── data/
-│   │   ├── liste-icpe-gironde_enrichi.csv  # consommé par la carte (2 890 lignes, bulk-canonical)
+│   │   ├── liste-icpe-gironde_enrichi.csv  # consommé par la carte (2 890 lignes)
 │   │   ├── rapports-inspection.csv         # 1 ligne par rapport, URL Pages + statut téléchargement
 │   │   ├── metadonnees_colonnes.csv        # dictionnaire multi-fichiers (fichier, nom_original, alias, definition)
 │   │   ├── metadonnees_samples.json        # sidecar d'échantillons pour /donnees/
@@ -305,12 +293,11 @@ bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 
 ## Rafraîchir les données
 
-Les scripts 1 à 3 ne dépendent que de la stdlib Python 3.13+. Le script
-4 a des dépendances tierces déclarées inline via PEP 723 (`pymupdf`,
-`pymupdf4llm`, `jsonschema`) résolues automatiquement par `uv run`, plus
-`ocrmypdf` invoqué via `uvx` pour les scans. Sur macOS :
-`brew install tesseract tesseract-lang` une fois pour disposer du pack
-français.
+Les scripts 1 à 3 ne dépendent que de la stdlib Python 3.11+. Les
+scripts 4, 5 et 8 ont des dépendances tierces déclarées dans chaque
+fichier et résolues automatiquement par `uv run`. Pour l'OCR des scans,
+installer Tesseract une fois : `brew install tesseract tesseract-lang`
+(macOS).
 
 ```bash
 # 1. Télécharge et extrait le bulk officiel, archive le ZIP, écrit le diff
@@ -325,13 +312,19 @@ python3 scripts/telecharger_rapports_inspection.py
 # 4. Convertit les PDFs d'inspection en markdown avec front matter YAML
 uv run scripts/extract_rapports_markdown.py
 
-# 5. Audit des écarts coords ↔ adresses (BAN + OpenCage + Nominatim cascade)
+# 5. Construit le tableau de fiches (fiches.parquet) depuis les sidecars
+uv run scripts/construire_fiches.py
+
+# 6. Reconstruit l'index des angles d'analyse (si ajout/édition d'un angle .md)
+python3 scripts/build_angles_index.py
+
+# 7. Audit des écarts coordonnées ↔ adresses (BAN + OpenCage + Nominatim)
 OPENCAGE_API_KEY=... uv run scripts/audit_coordinates.py
 
-# 6. Régénère le sidecar d'échantillons pour /donnees/
+# 8. Régénère le sidecar d'échantillons pour /donnees/
 python3 scripts/build_metadata_samples.py
 
-# 7. Compile les décisions de revue et applique les corrections à la carte
+# 9. Compile les décisions de revue et applique les corrections à la carte
 python3 scripts/apply_corrections.py
 # Le script écrit coordonnees-corrections.csv puis relance automatiquement
 # enrichir_libelles.py pour mettre à jour le CSV de la carte.
@@ -367,14 +360,10 @@ transitoires (5xx, réseau, timeout) le seront au prochain run.
 `extract_rapports_markdown.py` est **idempotent** grâce au manifeste
 append-only `rapports-inspection-markdown/_manifest.jsonl` : un PDF
 déjà extrait au bon `source_sha256` et à la bonne `extraction_version`
-est skippé. L'OCR est fait en place sur les scans (`rapports-inspection/`
-est modifié), toujours atomiquement via tmp + `os.replace`. Le run
-complet sur 1 782 PDFs écrit 1 780 markdowns exploitables (≈ 88 %
-`dreal_parser`, ≈ 9 % `pymupdf4llm_generic`, ≈ 3 % avec OCR préalable)
-et 2 markdowns `failed` pour des PDFs source effectivement vides (1 KB
-et 3 KB). Les 2 cibles `failed` contiennent tout de même un front matter
-complet et une raison lisible, et ont un `url_markdown` valide pour
-garder la cohérence 1 PDF = 1 .md.
+est skippé. Les scans sans texte sont OCRisés en place une seule fois.
+Le run complet sur 1 782 PDFs écrit 1 780 markdowns exploitables
+(91 % gabarit DREAL structuré, 9 % autre format) et 2 markdowns
+`failed` pour des PDFs source effectivement vides.
 
 Les tests :
 
@@ -383,7 +372,7 @@ Les tests :
 python3 -m unittest discover scripts/tests
 
 # Suite complète (intégration + schema, requiert uv)
-uv run --with jsonschema --with pymupdf --with pymupdf4llm \
+uv run --with jsonschema --with pymupdf --with pymupdf4llm --with duckdb \
     -m unittest discover scripts/tests
 ```
 
