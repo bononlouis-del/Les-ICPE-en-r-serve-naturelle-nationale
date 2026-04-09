@@ -17,7 +17,9 @@ import {
 
 // --- Configuration -------------------------------------------------------
 
-const PARQUET_URL = '../carte/data/fiches.parquet';
+// DuckDB WASM registerFileURL needs an absolute URL — relative paths
+// cause "Invalid URL" in the internal XMLHttpRequest.
+const PARQUET_URL = new URL('../carte/data/fiches.parquet', import.meta.url).href;
 const DUCKDB_CDN = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const PDFJS_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.min.mjs';
 const PDFJS_WORKER_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs';

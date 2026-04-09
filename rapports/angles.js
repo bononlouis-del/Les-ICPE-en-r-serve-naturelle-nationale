@@ -6,7 +6,7 @@
  * in-browser and triggers a file download.
  */
 
-const PARQUET_URL = '../carte/data/fiches.parquet';
+const PARQUET_URL = new URL('../carte/data/fiches.parquet', import.meta.url).href;
 const DUCKDB_CDN = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const INDEX_URL = 'angles/index.json';
 
