@@ -1,7 +1,7 @@
 /**
  * app.js — Verification page for /rapports/.
  *
- * Uses DuckDB WASM for SQL search on fiches.parquet.
+ * Uses sql.js (SQLite WASM, ~1 MB) for SQL search on fiches.sqlite.
  * Uses PDF.js (desktop only) for cropped snippet rendering.
  * Mobile falls back to a link that opens the PDF at the right page.
  */
@@ -17,10 +17,9 @@ import {
 
 // --- Configuration -------------------------------------------------------
 
-// DuckDB WASM registerFileURL needs an absolute URL — relative paths
-// cause "Invalid URL" in the internal XMLHttpRequest.
-const PARQUET_URL = new URL('../carte/data/fiches.parquet', import.meta.url).href;
-const DUCKDB_CDN = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
+const SQLITE_URL = new URL('../carte/data/fiches.sqlite', import.meta.url).href;
+const SQLJS_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-wasm.js';
+const SQLJS_WASM = 'https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-wasm.wasm';
 const PDFJS_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.min.mjs';
 const PDFJS_WORKER_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs';
 const SEARCH_DEBOUNCE_MS = 300;
@@ -31,14 +30,12 @@ const BBOX_PADDING = 0.15;
 
 // --- State ---------------------------------------------------------------
 
-let db = null;
-let con = null;
+let db = null; // sql.js Database instance
 let pdfjsLib = null;
 let pdfDocCache = {};  // url → PDFDocumentProxy
 const PDF_CACHE_MAX = 5;
 let debounceTimer = null;
 let currentFicheId = null;
-let loadFicheSeq = 0; // concurrency guard — ignore stale async responses
 
 // --- DOM refs ------------------------------------------------------------
 
@@ -95,10 +92,7 @@ function setProgress(pct, label) {
 async function fetchWithProgress(url, onProgress) {
   const resp = await fetch(url);
   const total = +resp.headers.get('Content-Length');
-  if (!total || !resp.body) {
-    // No Content-Length or no ReadableStream — can't track progress
-    return new Uint8Array(await resp.arrayBuffer());
-  }
+  if (!total || !resp.body) return new Uint8Array(await resp.arrayBuffer());
   const reader = resp.body.getReader();
   const chunks = [];
   let received = 0;
@@ -111,90 +105,94 @@ async function fetchWithProgress(url, onProgress) {
   }
   const result = new Uint8Array(received);
   let pos = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, pos);
-    pos += chunk.length;
-  }
+  for (const chunk of chunks) { result.set(chunk, pos); pos += chunk.length; }
   return result;
+}
+
+/**
+ * Run a SQL query on the sql.js database. Returns an array of objects.
+ * sql.js returns {columns: [...], values: [[...], ...]}, we convert
+ * to [{col: val, ...}, ...] for compatibility with the render code.
+ */
+function query(sql) {
+  const results = db.exec(sql);
+  if (results.length === 0) return [];
+  const { columns, values } = results[0];
+  return values.map((row) => {
+    const obj = {};
+    for (let i = 0; i < columns.length; i++) obj[columns[i]] = row[i];
+    return obj;
+  });
 }
 
 async function init() {
   try {
-    // Phase 1: import DuckDB JS module (~5% of total time)
-    setProgress(0, 'Chargement du module…');
-    const duckdb = await import(DUCKDB_CDN);
-    setProgress(5, 'Préparation du moteur…');
+    // Phase 1: load sql.js module (~1 MB WASM vs ~7 MB for DuckDB)
+    setProgress(10, 'Chargement du moteur SQL…');
+    // sql.js is a UMD module — load via script tag, then call initSqlJs
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = SQLJS_CDN;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    const SQL = await initSqlJs({ locateFile: () => SQLJS_WASM });
 
-    const bundles = duckdb.getJsDelivrBundles();
-    const bundle = await duckdb.selectBundle(bundles);
-
-    // Phase 2: download WASM binary with real progress (~85% of total time)
-    // Fetch it ourselves so we can track bytes downloaded. Then pass
-    // a blob URL to DuckDB instead of the remote URL.
-    const wasmBytes = await fetchWithProgress(bundle.mainModule, (received, total) => {
-      // Map WASM download progress to 5%–85% range
-      const pct = 5 + Math.round((received / total) * 80);
+    // Phase 2: download the SQLite database with progress
+    setProgress(30, 'Téléchargement des données…');
+    const dbBytes = await fetchWithProgress(SQLITE_URL, (received, total) => {
+      const pct = 30 + Math.round((received / total) * 60);
       const mb = (received / 1024 / 1024).toFixed(1);
       const totalMb = (total / 1024 / 1024).toFixed(0);
-      setProgress(pct, `Téléchargement du moteur… ${mb} / ${totalMb} Mo`);
+      setProgress(pct, `Téléchargement des données… ${mb} / ${totalMb} Mo`);
     });
-    const wasmBlob = new Blob([wasmBytes], { type: 'application/wasm' });
-    const wasmUrl = URL.createObjectURL(wasmBlob);
 
-    // Phase 3: Instantiate DuckDB + connect (~10% of total time)
-    setProgress(86, 'Compilation du moteur…');
-    const workerScript = await fetch(bundle.mainWorker);
-    const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(workerBlob));
-    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
-    db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(wasmUrl);
-    URL.revokeObjectURL(wasmUrl);
-    con = await db.connect();
+    // Phase 3: open database
+    setProgress(95, 'Ouverture de la base…');
+    db = new SQL.Database(dbBytes);
 
-    // Phase 4: connect to parquet data
-    setProgress(95, 'Connexion aux données…');
-    await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
-    const countResult = await con.query("SELECT COUNT(*) AS n FROM 'fiches.parquet'");
-    const count = countResult.toArray()[0].n;
+    const count = query("SELECT COUNT(*) AS n FROM fiches")[0].n;
     setProgress(100, 'Prêt');
 
-    // Show interface immediately — filters and results load in background
+    // Show interface
     initLoading.hidden = true;
     layoutEl.hidden = false;
-    searchHint.textContent = count.toLocaleString('fr-FR') + ' fiches';
+    searchHint.textContent = Number(count).toLocaleString('fr-FR') + ' fiches';
     searchInput.disabled = false;
     searchInput.focus();
 
-    // Non-blocking: populate filters and load initial results in parallel
+    // Populate filters and initial results
+    populateFilters();
     const hashId = parseFicheIdFromHash(location.hash);
-    await Promise.all([
-      populateFilters(),
-      hashId ? loadFiche(hashId) : loadRecentFiches(),
-    ]);
+    if (hashId) {
+      loadFiche(hashId);
+    } else {
+      loadRecentFiches();
+    }
   } catch (err) {
     initStatus.textContent = 'Erreur de chargement — rechargez la page';
     initStep.textContent = '';
     initProgress.style.width = '0%';
-    console.error('DuckDB init failed:', err);
+    console.error('SQL init failed:', err);
   }
 }
 
 // --- Filters -------------------------------------------------------------
 
-async function populateFilters() {
-  if (!con) return;
+function populateFilters() {
+  if (!db) return;
   const queries = [
-    { el: filterSuite, sql: "SELECT DISTINCT type_suite AS v FROM 'fiches.parquet' WHERE type_suite IS NOT NULL ORDER BY v" },
-    { el: filterCommune, sql: "SELECT DISTINCT nom_commune AS v FROM 'fiches.parquet' WHERE nom_commune IS NOT NULL ORDER BY v" },
-    { el: filterRegime, sql: "SELECT DISTINCT regime_icpe AS v FROM 'fiches.parquet' WHERE regime_icpe IS NOT NULL ORDER BY v" },
-    { el: filterSeveso, sql: "SELECT DISTINCT categorie_seveso AS v FROM 'fiches.parquet' WHERE categorie_seveso IS NOT NULL ORDER BY v" },
-    { el: filterAnnee, sql: "SELECT DISTINCT CAST(YEAR(CAST(date_inspection AS DATE)) AS VARCHAR) AS v FROM 'fiches.parquet' WHERE date_inspection IS NOT NULL AND date_inspection != '' ORDER BY v DESC" },
+    { el: filterSuite, sql: "SELECT DISTINCT type_suite AS v FROM fiches WHERE type_suite IS NOT NULL ORDER BY v" },
+    { el: filterCommune, sql: "SELECT DISTINCT nom_commune AS v FROM fiches WHERE nom_commune IS NOT NULL ORDER BY v" },
+    { el: filterRegime, sql: "SELECT DISTINCT regime_icpe AS v FROM fiches WHERE regime_icpe IS NOT NULL ORDER BY v" },
+    { el: filterSeveso, sql: "SELECT DISTINCT categorie_seveso AS v FROM fiches WHERE categorie_seveso IS NOT NULL ORDER BY v" },
+    // SQLite: extract year with substr (no YEAR() function)
+    { el: filterAnnee, sql: "SELECT DISTINCT SUBSTR(date_inspection, 1, 4) AS v FROM fiches WHERE date_inspection IS NOT NULL AND date_inspection != '' ORDER BY v DESC" },
   ];
-  await Promise.all(queries.map(async ({ el, sql }) => {
+  for (const { el, sql } of queries) {
     try {
-      const result = await con.query(sql);
-      for (const row of result.toArray()) {
+      for (const row of query(sql)) {
         if (!row.v) continue;
         const opt = document.createElement('option');
         opt.value = row.v;
@@ -205,7 +203,7 @@ async function populateFilters() {
     } catch (err) {
       console.warn('Filter populate error:', err);
     }
-  }));
+  }
   // Wire change events
   for (const sel of FILTER_SELECTS) {
     sel.addEventListener('change', () => {
@@ -238,22 +236,21 @@ function buildFilterWhere() {
 
 // --- Initial load --------------------------------------------------------
 
-async function loadRecentFiches() {
-  if (!con) return;
+function loadRecentFiches() {
+  if (!db) return;
   try {
     const filterWhere = buildFilterWhere();
     const where = filterWhere
       ? `WHERE fiche_num IS NOT NULL AND ${filterWhere}`
       : 'WHERE fiche_num IS NOT NULL';
-    const result = await con.query(`
+    const rows = query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
-      FROM 'fiches.parquet'
+      FROM fiches
       ${where}
       ORDER BY date_inspection DESC
       LIMIT 50
     `);
-    const rows = result.toArray();
     renderResults(rows);
     const filterActive = FILTER_SELECTS.some(s => s.value !== '');
     searchHint.textContent = filterActive
@@ -278,51 +275,47 @@ searchInput.addEventListener('keydown', (e) => {
   }
 });
 
-async function runSearch() {
+function runSearch() {
   const term = searchInput.value.trim();
   const filterWhere = buildFilterWhere();
 
-  // If no search term and no filters, show recent fiches
   if (!term && !filterWhere) {
-    await loadRecentFiches();
+    loadRecentFiches();
     return;
   }
-  if (!con) return;
+  if (!db) return;
 
   try {
     let whereClauses = [];
 
-    // Text search clause
     if (term) {
       const safeTerm = term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
       const pattern = `%${safeTerm}%`;
       const fullText = document.getElementById('fulltext-toggle')?.checked ?? false;
       const bodyParts = fullText
-        ? `OR LOWER(body) LIKE LOWER('${pattern}') ESCAPE '\\'
-           OR LOWER(COALESCE(constats_body, '')) LIKE LOWER('${pattern}') ESCAPE '\\'`
+        ? `OR LOWER(body) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'
+           OR LOWER(COALESCE(constats_body, '')) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'`
         : '';
-      whereClauses.push(`(LOWER(COALESCE(titre, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(nom_complet) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(COALESCE(theme, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+      whereClauses.push(`(LOWER(COALESCE(titre, '')) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'
+         OR LOWER(nom_complet) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'
+         OR LOWER(COALESCE(nom_commune, '')) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'
+         OR LOWER(COALESCE(theme, '')) LIKE '${pattern.toLowerCase()}' ESCAPE '\\'
          ${bodyParts})`);
     }
 
-    // Filter clauses
     if (filterWhere) {
       whereClauses.push(filterWhere);
     }
 
     const where = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
-    const result = await con.query(`
+    const rows = query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
-      FROM 'fiches.parquet'
+      FROM fiches
       ${where}
       LIMIT ${MAX_RESULTS}
     `);
 
-    const rows = result.toArray();
     renderResults(rows);
     searchHint.textContent = rows.length >= MAX_RESULTS
       ? MAX_RESULTS + '+ résultats'
@@ -387,28 +380,19 @@ window.addEventListener('hashchange', () => {
   if (id) loadFiche(id);
 });
 
-async function loadFiche(ficheId) {
-  if (!con) return;
-  const seq = ++loadFicheSeq; // concurrency guard
+function loadFiche(ficheId) {
+  if (!db) return;
   currentFicheId = ficheId;
 
-  // Highlight in results immediately (no async wait)
   document.querySelectorAll('.result-item').forEach((el) => {
     el.classList.toggle('active', el.dataset.ficheId === ficheId);
   });
 
-  // Show loading indicator in detail panel
-  detailEl.innerHTML = '<div class="loading"><div class="loading__spinner"></div><span>Chargement…</span></div>';
   layoutEl.classList.add('layout--detail');
 
   try {
     const safeId = ficheId.replace(/'/g, "''");
-    const result = await con.query(`
-      SELECT * FROM 'fiches.parquet' WHERE fiche_id = '${safeId}'
-    `);
-    // Ignore if a newer request was made while we were waiting
-    if (seq !== loadFicheSeq) return;
-    const rows = result.toArray();
+    const rows = query(`SELECT * FROM fiches WHERE fiche_id = '${safeId}'`);
     if (rows.length === 0) {
       detailEl.innerHTML = '<p class="detail__empty">Fiche introuvable.</p>';
       return;

@@ -1,90 +1,39 @@
 /**
- * angles.js — Recipe book: run SQL angles on fiches.parquet via DuckDB WASM.
+ * angles.js — Recipe book: pre-computed SQL angles from static JSON.
  *
- * Loads angles from angles/index.json, fetches each .md for its SQL block,
- * and provides a "Download CSV" button per angle that executes the query
- * in-browser and triggers a file download.
+ * Loads angles from angles/index.json, fetches each .md for SQL + explanation,
+ * and the pre-computed .json for results. No DuckDB WASM needed — results are
+ * generated at build time by the pipeline.
  */
 
-const PARQUET_URL = new URL('../carte/data/fiches.parquet', import.meta.url).href;
-const DUCKDB_CDN = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const INDEX_URL = 'angles/index.json';
-
-let db = null;
-let con = null;
 
 // --- Init ----------------------------------------------------------------
 
-/**
- * Fetch a URL with real download progress via ReadableStream.
- */
-async function fetchWithProgress(url, onProgress) {
-  const resp = await fetch(url);
-  const total = +resp.headers.get('Content-Length');
-  if (!total || !resp.body) return new Uint8Array(await resp.arrayBuffer());
-  const reader = resp.body.getReader();
-  const chunks = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    onProgress(received, total);
-  }
-  const result = new Uint8Array(received);
-  let pos = 0;
-  for (const chunk of chunks) { result.set(chunk, pos); pos += chunk.length; }
-  return result;
-}
-
 async function init() {
   const loadingEl = document.getElementById('loading');
-  const loadingText = loadingEl.querySelector('span');
   const container = document.getElementById('angles-container');
 
   try {
-    loadingText.textContent = 'Chargement du module…';
-    const duckdb = await import(DUCKDB_CDN);
-    const bundles = duckdb.getJsDelivrBundles();
-    const bundle = await duckdb.selectBundle(bundles);
-
-    // Fetch WASM with progress
-    const wasmBytes = await fetchWithProgress(bundle.mainModule, (received, total) => {
-      const mb = (received / 1024 / 1024).toFixed(1);
-      const totalMb = (total / 1024 / 1024).toFixed(0);
-      loadingText.textContent = `Téléchargement du moteur… ${mb} / ${totalMb} Mo`;
-    });
-    const wasmBlob = new Blob([wasmBytes], { type: 'application/wasm' });
-    const wasmUrl = URL.createObjectURL(wasmBlob);
-
-    loadingText.textContent = 'Compilation du moteur…';
-    const workerScript = await fetch(bundle.mainWorker);
-    const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(workerBlob));
-    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
-    db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(wasmUrl);
-    URL.revokeObjectURL(wasmUrl);
-    con = await db.connect();
-    await db.registerFileURL('fiches.parquet', PARQUET_URL, 4 /* HTTP */, false);
-    loadingEl.hidden = true;
-
-    // Load index
     const indexResp = await fetch(INDEX_URL);
     if (!indexResp.ok) throw new Error('Failed to fetch angles index');
     const angles = await indexResp.json();
 
     // Load and render each angle
     for (const angle of angles) {
-      const mdResp = await fetch('angles/' + angle.file);
+      const [mdResp, jsonResp] = await Promise.all([
+        fetch('angles/' + angle.file),
+        fetch('angles/' + angle.file.replace('.md', '.json')),
+      ]);
       if (!mdResp.ok) continue;
       const mdText = await mdResp.text();
       const sql = extractSqlFromMarkdown(mdText);
       const explanation = extractExplanation(mdText);
+      const rows = jsonResp.ok ? await jsonResp.json() : [];
       if (!sql) continue;
-      renderAngle(container, angle, sql, explanation);
+      renderAngle(container, angle, sql, explanation, rows);
     }
+    loadingEl.hidden = true;
   } catch (err) {
     loadingEl.innerHTML = '<span style="color:var(--rust)">Erreur de chargement. Rechargez la page.</span>';
     console.error('Angles init error:', err);
@@ -99,23 +48,20 @@ function extractSqlFromMarkdown(md) {
 }
 
 function extractExplanation(md) {
-  // Everything after the closing ``` of the SQL block
   const idx = md.indexOf('```sql');
   if (idx < 0) return '';
   const afterSql = md.indexOf('```', idx + 6);
   if (afterSql < 0) return '';
   const rest = md.slice(afterSql + 3).trim();
-  // Strip the ## heading and return the paragraph
   return rest.replace(/^##[^\n]+\n+/, '').trim();
 }
 
 // --- Rendering -----------------------------------------------------------
 
-function renderAngle(container, angle, sql, explanation) {
+function renderAngle(container, angle, sql, explanation, rows) {
   const section = document.createElement('section');
   section.style.cssText = 'margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid var(--rule-soft);';
 
-  // Title + question
   const h2 = document.createElement('h2');
   h2.style.cssText = 'font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--ink);margin:0 0 4px;';
   h2.textContent = angle.title;
@@ -126,11 +72,10 @@ function renderAngle(container, angle, sql, explanation) {
   question.textContent = angle.question;
   section.appendChild(question);
 
-  // Caveat
   if (angle.caveat) {
     const caveat = document.createElement('p');
     caveat.style.cssText = 'font-family:var(--font-data);font-size:11px;color:var(--lead);background:var(--paper-2);padding:8px 12px;border-radius:4px;margin:0 0 12px;';
-    caveat.textContent = '⚠ ' + angle.caveat;
+    caveat.textContent = '\u26a0 ' + angle.caveat;
     section.appendChild(caveat);
   }
 
@@ -147,13 +92,18 @@ function renderAngle(container, angle, sql, explanation) {
   details.appendChild(pre);
   section.appendChild(details);
 
-  // Explanation
   if (explanation) {
     const p = document.createElement('p');
     p.style.cssText = 'font-family:var(--font-body);font-size:13px;color:var(--ink);line-height:1.5;margin:0 0 12px;';
     p.textContent = explanation;
     section.appendChild(p);
   }
+
+  // Result count
+  const count = document.createElement('p');
+  count.style.cssText = 'font-family:var(--font-data);font-size:12px;color:var(--ink-soft);margin:0 0 8px;';
+  count.textContent = `${rows.length} résultat${rows.length > 1 ? 's' : ''}`;
+  section.appendChild(count);
 
   // Button bar
   const bar = document.createElement('div');
@@ -162,74 +112,31 @@ function renderAngle(container, angle, sql, explanation) {
   const btn = document.createElement('button');
   btn.style.cssText = 'font-family:var(--font-body);font-size:13px;padding:8px 16px;border:1px solid var(--moss);background:transparent;color:var(--moss);border-radius:4px;cursor:pointer;';
   btn.textContent = 'Télécharger CSV';
-  btn.addEventListener('click', () => runAngle(sql, angle.file, btn, previewEl));
+  btn.addEventListener('click', () => {
+    downloadCsv(toCsv(rows), angle.file.replace('.md', '.csv'));
+    btn.textContent = rows.length + ' lignes exportées';
+    setTimeout(() => { btn.textContent = 'Télécharger CSV'; }, 2000);
+  });
   bar.appendChild(btn);
 
   const previewBtn = document.createElement('button');
   previewBtn.style.cssText = 'font-family:var(--font-body);font-size:13px;padding:8px 16px;border:1px solid var(--rule);background:transparent;color:var(--ink-soft);border-radius:4px;cursor:pointer;';
-  previewBtn.textContent = 'Aperçu (10 lignes)';
-  previewBtn.addEventListener('click', () => runPreview(sql, previewEl, previewBtn));
+  const previewCount = Math.min(rows.length, 10);
+  previewBtn.textContent = `Aperçu (${previewCount} ligne${previewCount > 1 ? 's' : ''})`;
+  previewBtn.addEventListener('click', () => {
+    previewEl.innerHTML = rows.length === 0
+      ? '<p style="font-size:13px;color:var(--ink-soft)">Aucun résultat.</p>'
+      : renderTable(rows.slice(0, 10));
+  });
   bar.appendChild(previewBtn);
 
   section.appendChild(bar);
 
-  // Preview area
   const previewEl = document.createElement('div');
   previewEl.style.cssText = 'margin-top:12px;overflow-x:auto;';
   section.appendChild(previewEl);
 
   container.appendChild(section);
-}
-
-// --- Query execution -----------------------------------------------------
-
-async function runAngle(sql, filename, btn, previewEl) {
-  if (!con) return;
-  btn.disabled = true;
-  btn.textContent = 'Exécution…';
-  try {
-    const result = await con.query(sql);
-    const rows = result.toArray();
-    if (rows.length === 0) {
-      btn.textContent = 'Aucun résultat';
-      setTimeout(() => { btn.textContent = 'Télécharger CSV'; btn.disabled = false; }, 2000);
-      return;
-    }
-    const csvContent = toCsv(rows);
-    downloadCsv(csvContent, filename.replace('.md', '.csv'));
-    btn.textContent = rows.length + ' lignes exportées';
-    setTimeout(() => { btn.textContent = 'Télécharger CSV'; btn.disabled = false; }, 2000);
-  } catch (err) {
-    console.error('Angle query error:', err);
-    btn.textContent = 'Erreur SQL';
-    btn.disabled = false;
-  }
-}
-
-async function runPreview(sql, previewEl, previewBtn) {
-  if (!con) return;
-  try {
-    // Add LIMIT 10 if not already present
-    let previewSql = sql;
-    if (!/LIMIT\s+\d+\s*$/i.test(previewSql.trim())) {
-      previewSql = previewSql.replace(/;\s*$/, '') + ' LIMIT 10';
-    }
-    const result = await con.query(previewSql);
-    const rows = result.toArray();
-    if (rows.length === 0) {
-      previewEl.innerHTML = '<p style="font-size:13px;color:var(--ink-soft)">Aucun résultat.</p>';
-      if (previewBtn) previewBtn.textContent = 'Aucun résultat';
-      return;
-    }
-    if (previewBtn) previewBtn.textContent = `Aperçu (${rows.length} ligne${rows.length > 1 ? 's' : ''})`;
-    previewEl.innerHTML = renderTable(rows);
-  } catch (err) {
-    const errP = document.createElement('p');
-    errP.style.cssText = 'color:var(--rust);font-size:13px;';
-    errP.textContent = 'Erreur SQL : ' + err.message;
-    previewEl.innerHTML = '';
-    previewEl.appendChild(errP);
-  }
 }
 
 // --- CSV generation ------------------------------------------------------
@@ -279,7 +186,7 @@ function renderTable(rows) {
     for (const k of keys) {
       const v = row[k];
       const display = v == null ? '' : String(v);
-      const truncated = display.length > 80 ? display.slice(0, 77) + '…' : display;
+      const truncated = display.length > 80 ? display.slice(0, 77) + '\u2026' : display;
       html += '<td style="padding:4px 10px;border-bottom:1px solid var(--rule-soft);white-space:nowrap;">' + escapeHtml(truncated) + '</td>';
     }
     html += '</tr>';
