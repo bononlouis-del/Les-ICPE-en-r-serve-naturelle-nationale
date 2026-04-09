@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Catalogue des données — ICPE en Gironde</title>
-<meta name="description" content="Catalogue des fichiers et colonnes utilisés par les outils du cahier d'enquête ICPE en Gironde.">
+<title>Documentation — ICPE en Gironde</title>
+<meta name="description" content="Méthodologie et catalogue des données du cahier d'enquête ICPE en Gironde.">
 
-<!-- CSP — local-only fetches, no third-party connect targets. -->
+<!-- CSP — local + jsdelivr for marked.js (methodology rendering). -->
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none';
-               script-src 'self';
+               script-src 'self' https://cdn.jsdelivr.net;
                style-src 'self' 'unsafe-inline';
                img-src 'self' data:;
                connect-src 'self';
@@ -22,23 +22,38 @@
 
 <header class="masthead">
   <div class="masthead__label">Cahier d'enquête</div>
-  <h1 class="masthead__title">Catalogue des données</h1>
+  <h1 class="masthead__title">Documentation</h1>
   <p class="masthead__meta">
     <span><a href="../">← retour à l'accueil</a></span>
     <span class="meta-sep">·</span>
     <span id="header-stats">…</span>
   </p>
+  <nav class="tab-nav" id="tab-nav">
+    <button class="tab-nav__btn active" data-tab="methodo" type="button">Méthodologie</button>
+    <button class="tab-nav__btn" data-tab="catalogue" type="button">Catalogue des colonnes</button>
+  </nav>
 </header>
 
-<div class="page">
-  <aside class="sidebar" aria-label="Navigation des fichiers">
-    <h2 class="sidebar__title">Fichiers</h2>
-    <nav id="sidebar-nav"></nav>
-  </aside>
+<!-- Tab: Méthodologie -->
+<div class="tab-panel" id="panel-methodo">
+  <div class="md-content" id="methodo-content">
+    <div class="loading"><div class="loading__spinner"></div><span>Chargement…</span></div>
+  </div>
+  <button class="back-to-top" id="back-to-top" hidden aria-label="Retour en haut">↑</button>
+</div>
 
-  <main class="content" id="content">
-    <p class="loading">Chargement du catalogue…</p>
-  </main>
+<!-- Tab: Catalogue des colonnes -->
+<div class="tab-panel" id="panel-catalogue" hidden>
+  <div class="page">
+    <aside class="sidebar" aria-label="Navigation des fichiers">
+      <h2 class="sidebar__title">Fichiers</h2>
+      <nav id="sidebar-nav"></nav>
+    </aside>
+
+    <main class="content" id="content">
+      <p class="loading">Chargement du catalogue…</p>
+    </main>
+  </div>
 </div>
 
 <footer class="footer">
@@ -51,6 +66,7 @@
 </footer>
 
 <script src="../shared/util.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
+<script type="module" src="methodo.js?v=12"></script>
 </body>
 </html>
