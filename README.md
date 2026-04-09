@@ -1,22 +1,95 @@
 # ICPE en Gironde — cahier d'enquête
 
-Carte d'exploration interactive des **Installations Classées pour la
-Protection de l'Environnement** (ICPE) en Gironde, avec superposition des
-réserves naturelles nationales et régionales.
+Trois outils d'enquête sur les **Installations Classées pour la
+Protection de l'Environnement** (ICPE) en Gironde :
+**carte interactive**, **audit des coordonnées**, et
+**catalogue des données**.
 
-**Carte en ligne :** <https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/>
+**Page d'accueil :** <https://bononlouis-del.github.io/Les-ICPE-en-r-serve-naturelle-nationale/>
+
+- **Carte interactive** → `/carte/` — explorer les ICPE et les
+  réserves naturelles
+- **Audit des coordonnées** → `/audit/` — vérifier les écarts entre
+  adresses et coordonnées via une revue collaborative bucket par bucket
+- **Catalogue des données** → `/donnees/` — comprendre les fichiers
+  et les colonnes (sample values inclus)
 
 ## Ce que la carte permet
 
-- Visualiser 2 888 installations classées en Gironde, colorées selon le
-  régime, le niveau Seveso, la priorité nationale, l'IED ou le secteur.
+- Visualiser 2 890 installations classées en Gironde (alimentée
+  directement par l'export bulk Géorisques depuis Scope Y' ; +EUROVIA
+  et trois nouvelles installations Non ICPE par rapport au snapshot
+  data.gouv.fr de février 2025 ; SEMOCTOM radiée et PESA filtrée des
+  exports disparaissent), colorées selon le régime, le niveau Seveso,
+  la priorité nationale, l'IED ou le secteur.
 - Filtrer par combinaison de critères (recherche, régime, Seveso, priorité,
   IED, secteur) avec recalcul instantané.
 - Parcourir un instantané temporel mensuel via un curseur : voir quels
-  dossiers ICPE étaient actifs à une date donnée.
+  dossiers ICPE étaient actifs à une date donnée. Le `cdate` est
+  left-joint depuis le snapshot manuel data.gouv.fr (2 886 lignes
+  overlap), les 4 lignes nouvelles côté bulk passent toujours le filtre
+  temporel.
 - Basculer l'affichage du contour du département, des communes, des
   Réserves Naturelles Nationales et Régionales.
 - Ouvrir directement la fiche Géorisques de chaque site.
+
+## Audit des coordonnées
+
+L'outil `/audit/` permet de revoir tous les ICPE où les coordonnées
+enregistrées et l'adresse postale ne sont pas d'accord. Le but est
+d'identifier les sites où le désaccord change la réponse à
+*« ce site est-il dans une réserve naturelle ? »* — la question
+centrale du projet (cf. ALMA SCI / Marais de Bruges).
+
+`scripts/audit_coordinates.py` exécute 5 passes de signaux par site :
+
+1. **Sentinelles offline** — null_island, outside_gironde,
+   commune_centroid, duplicate_coords
+2. **Point-in-polygon commune** — vérification tristate contre
+   `carte/data/gironde-communes.geojson`
+3. **Géocodage forward en cascade** — BAN (3 stratégies adresse1 /
+   adresse2 / combinées) → OpenCage (couvre les lieux-dits / châteaux
+   que BAN n'indexe pas) → Nominatim (dernier recours pour ce qu'OpenCage
+   a dégradé en commune-level)
+4. **Géocodage reverse** — adresse au point enregistré, sert à détecter
+   wrong_commune et à confirmer la commune pour les address_unresolvable
+5. **Appartenance aux réserves** — point-in-polygon RNN/RNR + distance
+   à la limite, calcule `reserve_ambiguous`
+
+Les sites flagués sont triés en 3 groupes pour la revue :
+**reserves** (cas critiques pour les réserves), **grand** (≥500m,
+commune incorrecte, ou structurel), **petit** (25-500m).
+
+L'outil de revue `/audit/` charge `flagged.json`, présente une mini-carte
+par site (CartoDB Voyager + IGN ortho-photo en option), et permet à
+chaque revieweur d'enregistrer un verdict (`garder_stored`,
+`utiliser_geocoded`, `placer_manuellement`, `terrain`) puis d'exporter
+le bucket en JSON. Les revues commitées dans
+`données-georisques/audit/coordonnees-audit-reviews/` sont découvertes
+automatiquement via la GitHub Contents API.
+
+```bash
+# Lancer l'audit (avec ou sans clé OpenCage)
+OPENCAGE_API_KEY=... uv run scripts/audit_coordinates.py
+# Sans la clé, OpenCage est silencieusement skipé.
+```
+
+Cache des géocodeurs : `données-georisques/audit/.cache/` (gitignored).
+Re-runs incrémentaux — seules les nouvelles lignes hitent les API.
+
+## Catalogue des données
+
+L'outil `/donnees/` rend `metadonnees_colonnes.csv` lisible par un
+humain : une section par fichier, table de colonnes avec définition,
+type inféré, et jusqu'à 5 valeurs d'échantillon cliquables-pour-copier.
+
+`scripts/build_metadata_samples.py` (stdlib only) régénère le sidecar
+`carte/data/metadonnees_samples.json` après chaque mise à jour des
+données :
+
+```bash
+python3 scripts/build_metadata_samples.py
+```
 
 ## Sources de données
 
@@ -31,9 +104,10 @@ réserves naturelles nationales et régionales.
 
 Deux sources ICPE coexistent :
 
-- `carte-interactive/liste-icpe-gironde.csv` (2 888 lignes) — export
-  historique depuis data.gouv.fr, contient les géométries pré-formatées
-  (`Geo Point`, `Geo Shape`) que la carte consomme directement.
+- `carte/liste-icpe-gironde.csv` (2 888 lignes) — snapshot historique
+  data.gouv.fr (février 2025), conservé pour le left-join `cdate` que
+  fait `enrichir_libelles.py`. Les coordonnées et `Geo Point` /
+  `Geo Shape` ne sont plus la source de vérité depuis Scope Y'.
 - `données-georisques/` — export bulk officiel de l'API Géorisques V1
   pour le département 33, canonique. ZIP archivé horodaté dans
   `raw/` (sha256 dans `PROVENANCE.txt`), éclaté en cinq CSV normalisés
@@ -41,18 +115,24 @@ Deux sources ICPE coexistent :
   d'inspection, documents hors inspection (arrêtés, rapports publics,
   mises en demeure), rubriques ICPE.
 
-Les deux sources sont croisées par `scripts/enrichir_libelles.py` qui
-calcule trois colonnes (`structure`, `etablissement`, `nom_complet`)
-pour désambiguïser les libellés en doublon (ex. les 22 entrées
-`BORDEAUX METROPOLE`) et produit
-`carte-interactive/data/liste-icpe-gironde_enrichi.csv` — c'est le
-fichier que la carte charge.
+Depuis avril 2026, `scripts/enrichir_libelles.py` est **bulk-canonical**
+(Scope Y') : il drive depuis les 2 890 lignes de l'export bulk Géorisques,
+calcule les colonnes désambiguïsées (`structure`, `etablissement`,
+`nom_complet`), normalise les valeurs catégorielles (`regimeVigueur`,
+`statutSeveso`) et booléennes (`bovins`, `porcs`, …) au format de la
+carte, synthétise la géométrie GeoJSON depuis `longitude`/`latitude`,
+puis **left-joint `cdate` et `gid` depuis le manuel** via
+`normalize_aiot(codeAiot) ↔ normalize_aiot(ident)`. Les 4 lignes
+nouvelles côté bulk reçoivent `cdate=""` ; les 2 lignes manuel-only
+(SEMOCTOM radiée, PESA filtrée) disparaissent automatiquement. Le
+fichier produit `carte/data/liste-icpe-gironde_enrichi.csv` (2 890 lignes)
+est ce que la carte charge.
 
 Par-dessus, `scripts/telecharger_rapports_inspection.py` télécharge les
 rapports d'inspection publiables depuis Géorisques (1 784 PDFs), les
 renomme de façon déterministe à partir du libellé désambiguïsé, les
 stocke dans `rapports-inspection/` et produit
-`carte-interactive/data/rapports-inspection.csv` avec une URL GitHub
+`carte/data/rapports-inspection.csv` avec une URL GitHub
 Pages pour chaque rapport. Le fichier enrichi reçoit une colonne
 supplémentaire `nb_rapports_inspection` comptant les rapports
 disponibles par installation.
@@ -80,25 +160,28 @@ version markdown GitHub Pages.
 
 Le dictionnaire des colonnes (schéma multi-fichiers : `fichier`,
 `nom_original`, `alias`, `definition`) est dans
-`carte-interactive/data/metadonnees_colonnes.csv`. Il décrit les
+`carte/data/metadonnees_colonnes.csv`. Il décrit les
 colonnes de `liste-icpe-gironde_enrichi.csv` **et** celles de
 `rapports-inspection.csv`, chaque script du pipeline possédant ses
 propres lignes via le helper partagé `scripts/_metadonnees_util.py`.
 
 Les données des réserves naturelles sont pré-traitées (filtre
-bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
+bounding-box Gironde) par `carte/scripts/prep_reserves.py`.
 
 ## Structure du dépôt
 
 ```
 ├── index.html                     # point d'entrée (racine, servi par Pages)
 ├── README.md
-├── scripts/                       # pipeline Géorisques + extraction markdown
+├── scripts/                       # pipeline Géorisques + audit + extraction markdown
+│   ├── _paths.py                           # constantes de chemin partagées (single source of truth)
+│   ├── _metadonnees_util.py                # helper partagé pour le dictionnaire multi-fichiers
 │   ├── fetch_georisques.py                 # téléchargement + extraction bulk officiel
-│   ├── enrichir_libelles.py                # enrichissement des libellés ICPE
+│   ├── enrichir_libelles.py                # enrichissement bulk + projection vers la carte (Scope Y')
 │   ├── telecharger_rapports_inspection.py  # téléchargement des PDFs d'inspection
 │   ├── extract_rapports_markdown.py        # extraction markdown des PDFs (pymupdf + ocrmypdf)
-│   ├── _metadonnees_util.py                # helper partagé pour le dictionnaire multi-fichiers
+│   ├── audit_coordinates.py                # audit des écarts coords/adresses (BAN+OpenCage+Nominatim cascade)
+│   ├── build_metadata_samples.py           # sidecar d'échantillons pour /donnees/
 │   ├── schemas/
 │   │   └── markdown_frontmatter.json       # JSON Schema draft-07 du front matter YAML
 │   └── tests/                              # tests stdlib + uv (unittest discover)
@@ -112,7 +195,13 @@ bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
 │   ├── rubriqueIC.csv             # rubriques ICPE classées
 │   ├── PROVENANCE.txt             # URL + sha256 du ZIP source
 │   ├── diff_report.txt            # diff bulk ↔ CSV manuel (automatique)
-│   └── diff_analysis.md           # investigation humaine des écarts
+│   ├── diff_analysis.md           # investigation humaine des écarts
+│   └── audit/                     # produits de l'audit des coordonnées
+│       ├── coordonnees-audit-full.csv      # toutes les installations + colonnes audit
+│       ├── coordonnees-audit-summary.md    # bilan lisible (histogrammes, top offenders)
+│       ├── coordonnees-audit-flagged.json  # consommé par /audit/
+│       ├── coordonnees-audit-reviews/      # revues commitées par les enquêteurs
+│       └── .cache/                         # caches des géocodeurs (gitignored)
 ├── rapports-inspection/           # PDFs d'inspection téléchargés depuis Géorisques
 │   ├── *.pdf                      # nommés {slug}_{id_icpe}_{date}_{siret}.pdf
 │   ├── _404.txt                   # mémoire des identifiants définitivement 404
@@ -121,18 +210,34 @@ bounding-box Gironde) par `carte-interactive/scripts/prep_reserves.py`.
 │   ├── *.md                       # front matter YAML + corps sémantique
 │   ├── _manifest.jsonl            # provenance append-only (sha256, version, timestamp)
 │   └── _erreurs.log               # rapport des extractions failed du dernier run
-└── carte-interactive/
-    ├── app.js                     # logique de la carte
-    ├── style.css                  # design « cahier d'enquête »
-    ├── liste-icpe-gironde.csv     # source manuelle (export data.gouv.fr)
-    ├── data/
-    │   ├── liste-icpe-gironde_enrichi.csv  # consommé par la carte (colonnes aliasées + nb_rapports_inspection)
-    │   ├── rapports-inspection.csv         # 1 ligne par rapport, URL Pages + statut téléchargement
-    │   ├── metadonnees_colonnes.csv        # dictionnaire multi-fichiers (fichier, nom_original, alias, definition)
-    │   ├── reserves-naturelles-nationales.geojson
-    │   └── reserves-naturelles-regionales.geojson
-    ├── fonts/                     # Fraunces + IBM Plex (WOFF2)
-    └── scripts/                   # prep_reserves.py, fetch_fonts.sh
+├── index.html                     # page d'accueil — 3 cards
+├── style.css                      # styles de la page d'accueil
+├── shared/                        # design system partagé
+│   ├── tokens.css                 # @font-face + design tokens (palette, typographie)
+│   └── fonts/                     # Fraunces + IBM Plex (WOFF2)
+├── carte/                         # outil 1 : carte interactive
+│   ├── index.html
+│   ├── app.js                     # logique de la carte
+│   ├── style.css                  # styles spécifiques à la carte
+│   ├── liste-icpe-gironde.csv     # snapshot historique data.gouv.fr (cdate)
+│   ├── data/
+│   │   ├── liste-icpe-gironde_enrichi.csv  # consommé par la carte (2 890 lignes, bulk-canonical)
+│   │   ├── rapports-inspection.csv         # 1 ligne par rapport, URL Pages + statut téléchargement
+│   │   ├── metadonnees_colonnes.csv        # dictionnaire multi-fichiers (fichier, nom_original, alias, definition)
+│   │   ├── metadonnees_samples.json        # sidecar d'échantillons pour /donnees/
+│   │   ├── reserves-naturelles-nationales.geojson
+│   │   └── reserves-naturelles-regionales.geojson
+│   └── scripts/                   # prep_reserves.py, build_epci_outlines.py, fetch_fonts.sh
+├── audit/                         # outil 2 : revue d'audit des coordonnées
+│   ├── index.html
+│   ├── app.js                     # state machine + Contents API + mini-map
+│   ├── lib.js                     # fonctions pures (testées dans test.html)
+│   ├── style.css
+│   └── test.html                  # tests JS dans le navigateur (~30 console.assert)
+└── donnees/                       # outil 3 : catalogue des données
+    ├── index.html
+    ├── app.js
+    └── style.css
 ```
 
 ## Rafraîchir les données
@@ -156,6 +261,12 @@ python3 scripts/telecharger_rapports_inspection.py
 
 # 4. Convertit les PDFs d'inspection en markdown avec front matter YAML
 uv run scripts/extract_rapports_markdown.py
+
+# 5. Audit des écarts coords ↔ adresses (BAN + OpenCage + Nominatim cascade)
+OPENCAGE_API_KEY=... uv run scripts/audit_coordinates.py
+
+# 6. Régénère le sidecar d'échantillons pour /donnees/
+python3 scripts/build_metadata_samples.py
 
 # Flags utiles du script 3 :
 #   --limit 5   : test progressif sur 5 PDFs
@@ -206,8 +317,8 @@ uv run --with jsonschema --with pymupdf --with pymupdf4llm \
     -m unittest discover scripts/tests
 ```
 
-- **Réserves naturelles** : `uv run carte-interactive/scripts/prep_reserves.py`
-- **Polices** : `bash carte-interactive/scripts/fetch_fonts.sh`
+- **Réserves naturelles** : `uv run carte/scripts/prep_reserves.py`
+- **Polices** : `bash carte/scripts/fetch_fonts.sh`
 
 ## Pile technique
 
