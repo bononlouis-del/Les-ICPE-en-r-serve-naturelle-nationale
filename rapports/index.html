@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rapports d'inspection ICPE — cahier d'enquête</title>
 <meta name="description" content="Rechercher et vérifier les fiches de constat d'inspection ICPE en Gironde, avec snippet PDF à la bonne page.">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -38,6 +38,27 @@
   <span class="search-bar__hint" id="search-hint">Chargement…</span>
 </div>
 
+<div class="filter-bar" id="filter-bar">
+  <button class="filter-bar__toggle" id="filter-toggle" type="button" hidden>Filtres ▾</button>
+  <div class="filter-bar__fields" id="filter-fields">
+    <select id="filter-suite" class="filter-bar__select" disabled>
+      <option value="">Type de suites</option>
+    </select>
+    <select id="filter-commune" class="filter-bar__select" disabled>
+      <option value="">Commune</option>
+    </select>
+    <select id="filter-regime" class="filter-bar__select" disabled>
+      <option value="">Régime</option>
+    </select>
+    <select id="filter-seveso" class="filter-bar__select" disabled>
+      <option value="">Seveso</option>
+    </select>
+    <select id="filter-annee" class="filter-bar__select" disabled>
+      <option value="">Année</option>
+    </select>
+  </div>
+</div>
+
 <div id="init-loading" class="loading">
   <div class="loading__spinner"></div>
   <span id="init-status">Chargement du moteur de recherche…</span>
@@ -57,6 +78,6 @@
   </main>
 </div> <!-- .layout -->
 
-<script type="module" src="app.js?v=11"></script>
+<script type="module" src="app.js?v=12"></script>
 </body>
 </html>

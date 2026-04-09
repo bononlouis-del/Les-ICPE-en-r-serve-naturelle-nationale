@@ -52,6 +52,31 @@ const detailEmpty = document.getElementById('detail-empty');
 const initLoading = document.getElementById('init-loading');
 const initStatus = document.getElementById('init-status');
 
+// Filters
+const filterBar = document.getElementById('filter-bar');
+const filterToggle = document.getElementById('filter-toggle');
+const filterFields = document.getElementById('filter-fields');
+const filterSuite = document.getElementById('filter-suite');
+const filterCommune = document.getElementById('filter-commune');
+const filterRegime = document.getElementById('filter-regime');
+const filterSeveso = document.getElementById('filter-seveso');
+const filterAnnee = document.getElementById('filter-annee');
+
+const FILTER_SELECTS = [filterSuite, filterCommune, filterRegime, filterSeveso, filterAnnee];
+
+// --- Filters (mobile toggle) ---------------------------------------------
+
+filterToggle.addEventListener('click', () => {
+  filterBar.classList.toggle('filter-bar--open');
+  filterToggle.textContent = filterBar.classList.contains('filter-bar--open')
+    ? 'Filtres ▴' : 'Filtres ▾';
+});
+
+// Show toggle only on mobile
+if (window.matchMedia('(max-width: 719px)').matches) {
+  filterToggle.hidden = false;
+}
+
 // --- Init ----------------------------------------------------------------
 
 async function init() {
@@ -80,6 +105,9 @@ async function init() {
     const countResult = await con.query("SELECT COUNT(*) AS n FROM 'fiches.parquet'");
     const count = countResult.toArray()[0].n;
 
+    // Populate filters (lightweight DISTINCT queries, all metadata columns)
+    await populateFilters();
+
     // Hide spinner, show interface
     initLoading.hidden = true;
     layoutEl.hidden = false;
@@ -100,21 +128,85 @@ async function init() {
   }
 }
 
+// --- Filters -------------------------------------------------------------
+
+async function populateFilters() {
+  if (!con) return;
+  const queries = [
+    { el: filterSuite, sql: "SELECT DISTINCT type_suite AS v FROM 'fiches.parquet' WHERE type_suite IS NOT NULL ORDER BY v" },
+    { el: filterCommune, sql: "SELECT DISTINCT nom_commune AS v FROM 'fiches.parquet' WHERE nom_commune IS NOT NULL ORDER BY v" },
+    { el: filterRegime, sql: "SELECT DISTINCT regime_icpe AS v FROM 'fiches.parquet' WHERE regime_icpe IS NOT NULL ORDER BY v" },
+    { el: filterSeveso, sql: "SELECT DISTINCT categorie_seveso AS v FROM 'fiches.parquet' WHERE categorie_seveso IS NOT NULL ORDER BY v" },
+    { el: filterAnnee, sql: "SELECT DISTINCT CAST(YEAR(CAST(date_inspection AS DATE)) AS VARCHAR) AS v FROM 'fiches.parquet' WHERE date_inspection IS NOT NULL AND date_inspection != '' ORDER BY v DESC" },
+  ];
+  await Promise.all(queries.map(async ({ el, sql }) => {
+    try {
+      const result = await con.query(sql);
+      for (const row of result.toArray()) {
+        if (!row.v) continue;
+        const opt = document.createElement('option');
+        opt.value = row.v;
+        opt.textContent = row.v;
+        el.appendChild(opt);
+      }
+      el.disabled = false;
+    } catch (err) {
+      console.warn('Filter populate error:', err);
+    }
+  }));
+  // Wire change events
+  for (const sel of FILTER_SELECTS) {
+    sel.addEventListener('change', () => {
+      sel.classList.toggle('filter-bar__select--active', sel.value !== '');
+      clearTimeout(debounceTimer);
+      runSearch();
+    });
+  }
+}
+
+function buildFilterWhere() {
+  const clauses = [];
+  if (filterSuite.value) {
+    clauses.push(`type_suite = '${filterSuite.value.replace(/'/g, "''")}'`);
+  }
+  if (filterCommune.value) {
+    clauses.push(`nom_commune = '${filterCommune.value.replace(/'/g, "''")}'`);
+  }
+  if (filterRegime.value) {
+    clauses.push(`regime_icpe = '${filterRegime.value.replace(/'/g, "''")}'`);
+  }
+  if (filterSeveso.value) {
+    clauses.push(`categorie_seveso = '${filterSeveso.value.replace(/'/g, "''")}'`);
+  }
+  if (filterAnnee.value) {
+    clauses.push(`date_inspection LIKE '${filterAnnee.value}%'`);
+  }
+  return clauses.length > 0 ? clauses.join(' AND ') : '';
+}
+
 // --- Initial load --------------------------------------------------------
 
 async function loadRecentFiches() {
   if (!con) return;
   try {
+    const filterWhere = buildFilterWhere();
+    const where = filterWhere
+      ? `WHERE fiche_num IS NOT NULL AND ${filterWhere}`
+      : 'WHERE fiche_num IS NOT NULL';
     const result = await con.query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
       FROM 'fiches.parquet'
-      WHERE fiche_num IS NOT NULL
+      ${where}
       ORDER BY date_inspection DESC
       LIMIT 50
     `);
-    renderResults(result.toArray());
-    searchHint.textContent += ' · 50 plus récentes';
+    const rows = result.toArray();
+    renderResults(rows);
+    const filterActive = FILTER_SELECTS.some(s => s.value !== '');
+    searchHint.textContent = filterActive
+      ? rows.length + ' résultat' + (rows.length > 1 ? 's' : '') + ' (filtrés)'
+      : rows.length + ' plus récentes';
   } catch (err) {
     console.warn('Recent fiches load failed:', err);
   }
@@ -136,32 +228,45 @@ searchInput.addEventListener('keydown', (e) => {
 
 async function runSearch() {
   const term = searchInput.value.trim();
-  if (!term || !con) {
-    resultsEl.innerHTML = '';
-    resultsEl.appendChild(resultsEmpty);
+  const filterWhere = buildFilterWhere();
+
+  // If no search term and no filters, show recent fiches
+  if (!term && !filterWhere) {
+    await loadRecentFiches();
     return;
   }
+  if (!con) return;
 
-  // Escape single quotes for safe SQL interpolation, then wrap in %...%
-  const safeTerm = term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
-  const pattern = `%${safeTerm}%`;
-  const fullText = document.getElementById('fulltext-toggle')?.checked ?? false;
   try {
-    // Default: search on lightweight columns only (~0.5 MB via HTTP range).
-    // Full-text: adds body + constats_body (~18 MB on first use, cached).
-    const bodyWhere = fullText
-      ? `OR LOWER(body) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(COALESCE(constats_body, '')) LIKE LOWER('${pattern}') ESCAPE '\\'`
-      : '';
+    let whereClauses = [];
+
+    // Text search clause
+    if (term) {
+      const safeTerm = term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
+      const pattern = `%${safeTerm}%`;
+      const fullText = document.getElementById('fulltext-toggle')?.checked ?? false;
+      const bodyParts = fullText
+        ? `OR LOWER(body) LIKE LOWER('${pattern}') ESCAPE '\\'
+           OR LOWER(COALESCE(constats_body, '')) LIKE LOWER('${pattern}') ESCAPE '\\'`
+        : '';
+      whereClauses.push(`(LOWER(COALESCE(titre, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(nom_complet) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         OR LOWER(COALESCE(theme, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
+         ${bodyParts})`);
+    }
+
+    // Filter clauses
+    if (filterWhere) {
+      whereClauses.push(filterWhere);
+    }
+
+    const where = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
     const result = await con.query(`
       SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
              type_suite, extraction_method, fiche_num
       FROM 'fiches.parquet'
-      WHERE LOWER(COALESCE(titre, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(nom_complet) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(COALESCE(nom_commune, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
-         OR LOWER(COALESCE(theme, '')) LIKE LOWER('${pattern}') ESCAPE '\\'
-         ${bodyWhere}
+      ${where}
       LIMIT ${MAX_RESULTS}
     `);
 
