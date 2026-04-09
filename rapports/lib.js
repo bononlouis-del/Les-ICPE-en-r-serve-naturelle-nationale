@@ -90,12 +90,19 @@ export function canvasCoordinatesFromBbox(bbox, pagePts, canvasPx, padding) {
  * @returns {{title: string, subtitle: string, badge: string}}
  */
 export function formatSearchResult(row) {
+  const nom = row.nom_complet || '';
   const titre = row.titre || '(rapport complet)';
   const commune = row.nom_commune || '';
   const date = row.date_inspection || '';
   const suite = row.type_suite || '';
-  const subtitle = [commune, date].filter(Boolean).join(' · ');
-  return { title: titre, subtitle, badge: suite };
+  // Title = installation name, subtitle = fiche titre + commune + date
+  const title = nom || titre;
+  const parts = [];
+  if (nom && titre !== '(rapport complet)') parts.push(titre);
+  if (commune) parts.push(commune);
+  if (date) parts.push(date);
+  const subtitle = parts.join(' · ');
+  return { title, subtitle, badge: suite };
 }
 
 /**

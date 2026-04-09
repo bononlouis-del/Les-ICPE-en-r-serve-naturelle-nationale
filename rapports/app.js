@@ -82,10 +82,33 @@ async function init() {
     const hashId = parseFicheIdFromHash(location.hash);
     if (hashId) {
       await loadFiche(hashId);
+    } else {
+      // Show the 50 most recent fiches as a starting point
+      await loadRecentFiches();
     }
   } catch (err) {
     searchHint.textContent = 'Erreur de chargement — rechargez la page';
     console.error('DuckDB init failed:', err);
+  }
+}
+
+// --- Initial load --------------------------------------------------------
+
+async function loadRecentFiches() {
+  if (!con) return;
+  try {
+    const result = await con.query(`
+      SELECT fiche_id, titre, nom_complet, nom_commune, date_inspection,
+             type_suite, extraction_method, fiche_num
+      FROM 'fiches.parquet'
+      WHERE fiche_num IS NOT NULL
+      ORDER BY date_inspection DESC
+      LIMIT 50
+    `);
+    renderResults(result.toArray());
+    searchHint.textContent += ' · 50 plus récentes';
+  } catch (err) {
+    console.warn('Recent fiches load failed:', err);
   }
 }
 
@@ -319,8 +342,12 @@ function renderDetail(row) {
 
     const canvas = document.createElement('canvas');
     canvas.className = 'snippet__canvas';
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+    // HiDPI: scale internal canvas for sharp rendering on Retina displays
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = CANVAS_WIDTH * dpr;
+    canvas.height = CANVAS_HEIGHT * dpr;
+    canvas.style.width = CANVAS_WIDTH + 'px';
+    canvas.style.height = CANVAS_HEIGHT + 'px';
     canvas.title = 'Cliquer pour ouvrir le PDF complet';
     canvas.addEventListener('click', () => {
       window.open(buildPdfUrl(pdfUrl, page), '_blank', 'noopener');
@@ -401,7 +428,9 @@ async function renderSnippet(canvas, pdfUrl, region) {
     const doc = pdfDocCache[pdfUrl];
     const pageNum = region ? region.page : 1;
     const page = await doc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 });
+    // Scale up rendering for HiDPI — at least 2x, more on 3x displays
+    const renderScale = Math.max(2, window.devicePixelRatio || 1);
+    const viewport = page.getViewport({ scale: renderScale });
 
     // Render full page to offscreen canvas
     const offscreen = document.createElement('canvas');
