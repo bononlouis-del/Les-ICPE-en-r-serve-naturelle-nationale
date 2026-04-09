@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapports d'inspection ICPE — cahier d'enquête</title>
+<meta name="description" content="Rechercher et vérifier les fiches de constat d'inspection ICPE en Gironde, avec snippet PDF à la bonne page.">
+<link rel="stylesheet" href="style.css?v=10">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__topline">
+    <div>
+      <div class="masthead__label">Cahier d'enquête</div>
+      <h1 class="masthead__title">Rapports d'inspection</h1>
+    </div>
+    <a class="masthead__home" href="../">← retour à l'accueil</a>
+  </div>
+  <nav class="masthead__nav">
+    <a href="./" class="active">Vérifier</a>
+    <a href="angles.html">Analyser par angle</a>
+    <a href="methodologie.html">Méthodologie</a>
+  </nav>
+</header>
+
+<div class="search-bar">
+  <input
+    class="search-bar__input"
+    id="search-input"
+    type="search"
+    placeholder="Rechercher : mot-clé, nom, commune, SIRET…"
+    autocomplete="off"
+  >
+  <span class="search-bar__hint" id="search-hint">Chargement…</span>
+</div>
+
+<div class="layout">
+  <aside class="results" id="results">
+    <p class="results__empty" id="results-empty">
+      Tapez un mot-clé pour rechercher parmi les fiches de constat.
+    </p>
+  </aside>
+
+  <main class="detail" id="detail">
+    <p class="detail__empty" id="detail-empty">
+      Sélectionnez une fiche dans les résultats pour voir son détail et la source PDF.
+    </p>
+  </main>
+</div>
+
+<script type="module" src="app.js?v=10"></script>
+</body>
+</html>
