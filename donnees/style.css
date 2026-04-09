@@ -32,8 +32,7 @@ code {
 
 /* ---------- masthead ---------- */
 .masthead {
-  padding: 28px 48px 20px;
-  border-bottom: 1px solid var(--rule);
+  padding: 28px 48px 0;
 }
 .masthead__label {
   font-family: var(--font-data);
