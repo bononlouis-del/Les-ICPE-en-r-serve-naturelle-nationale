@@ -54,7 +54,12 @@ async function init() {
     searchHint.textContent = 'Initialisation…';
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
-    const worker = new Worker(bundle.mainWorker);
+    // Cross-origin Workers are blocked by browsers. Fetch the worker
+    // script as a blob and construct the Worker from that blob URL.
+    const workerScript = await fetch(bundle.mainWorker);
+    const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+    const worker = new Worker(workerUrl);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
     // Single-threaded only: skip pthreadWorker because GitHub Pages

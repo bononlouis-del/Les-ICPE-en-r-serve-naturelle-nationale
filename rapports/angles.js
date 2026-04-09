@@ -24,7 +24,11 @@ async function init() {
     const duckdb = await import(DUCKDB_CDN);
     const bundles = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(bundles);
-    const worker = new Worker(bundle.mainWorker);
+    // Cross-origin Workers blocked — fetch as blob.
+    const workerScript = await fetch(bundle.mainWorker);
+    const workerBlob = new Blob([await workerScript.text()], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+    const worker = new Worker(workerUrl);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     db = new duckdb.AsyncDuckDB(logger, worker);
     // Single-threaded only: GitHub Pages lacks COOP/COEP headers for SharedArrayBuffer.
