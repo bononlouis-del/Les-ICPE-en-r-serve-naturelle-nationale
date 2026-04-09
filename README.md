@@ -330,12 +330,12 @@ OPENCAGE_API_KEY=... uv run scripts/audit_coordinates.py
 # 6. Régénère le sidecar d'échantillons pour /donnees/
 python3 scripts/build_metadata_samples.py
 
-# 7. Compile les décisions de revue en un sidecar de corrections
+# 7. Compile les décisions de revue et applique les corrections à la carte
 python3 scripts/apply_corrections.py
+# Le script écrit coordonnees-corrections.csv puis relance automatiquement
+# enrichir_libelles.py pour mettre à jour le CSV de la carte.
 # Prévisualisation sans écriture : python3 scripts/apply_corrections.py --dry-run
-
-# 8. Relance l'enrichisseur pour appliquer les corrections à la carte
-python3 scripts/enrichir_libelles.py
+# Écrire le sidecar sans relancer l'enrichisseur : --no-enrich
 
 # Flags utiles du script 3 :
 #   --limit 5   : test progressif sur 5 PDFs
