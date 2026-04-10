@@ -345,6 +345,15 @@
     if (color && ['regime', 'seveso', 'priority', 'ied', 'secteur'].includes(color)) {
       out.colorDim = color;
     }
+    // Boundary lock — "bounds=south,west,north,east" restricts panning.
+    // Used by embeds that want to lock the view to a specific area.
+    const bounds = p.get('bounds');
+    if (bounds) {
+      const parts = bounds.split(',').map(Number);
+      if (parts.length === 4 && parts.every(Number.isFinite)) {
+        out.bounds = [[parts[0], parts[1]], [parts[2], parts[3]]]; // [[south,west],[north,east]]
+      }
+    }
     // Embed flag is handled separately (it's not a filter)
     return out;
   }
@@ -405,14 +414,30 @@
       state.filters.monthEnabled = true;
     }
     if (parsed.colorDim) state.colorDim = parsed.colorDim;
+    if (parsed.bounds) {
+      // Lock the map to the specified bounding box — user can't pan outside.
+      // Also fit the view to these bounds on load.
+      map.setMaxBounds(parsed.bounds);
+      map.fitBounds(parsed.bounds);
+      state.boundaryLocked = true;
+    }
   }
 
   // Build a shareable URL reflecting the current filter state. Only
   // non-default fields are serialised; the URL stays short for the
   // common "no filters" case.
-  function buildShareableUrl({ embed = false, includeFilters = true, hide = null } = {}) {
+  function buildShareableUrl({ embed = false, includeFilters = true, hide = null, lockBounds = false } = {}) {
     const params = new URLSearchParams();
     if (embed) params.set('embed', '1');
+    if (lockBounds) {
+      const b = map.getBounds();
+      params.set('bounds', [
+        b.getSouth().toFixed(5),
+        b.getWest().toFixed(5),
+        b.getNorth().toFixed(5),
+        b.getEast().toFixed(5),
+      ].join(','));
+    }
     if (hide && hide.size > 0) {
       params.set('hide', [...hide].sort().join(','));
     }
@@ -1553,6 +1578,7 @@
     const closeBtn = document.getElementById('embed-close');
     const includeFiltersCb = document.getElementById('embed-include-filters');
     const compactCb = document.getElementById('embed-compact');
+    const lockBoundsCb = document.getElementById('embed-lock-bounds');
     const urlInput = document.getElementById('embed-url');
     const iframeOut = document.getElementById('embed-iframe-code');
     const heightInput = document.getElementById('embed-height');
@@ -1574,12 +1600,13 @@
     const refresh = () => {
       const includeFilters = includeFiltersCb.checked;
       const compact = compactCb.checked;
+      const lockBounds = lockBoundsCb ? lockBoundsCb.checked : false;
       // Collect hide-feature checkboxes (data-hide="sidebar" etc.)
       const hide = new Set();
       dialog.querySelectorAll('input[type="checkbox"][data-hide]').forEach((cb) => {
         if (cb.checked) hide.add(cb.dataset.hide);
       });
-      const url = buildShareableUrl({ embed: compact, includeFilters, hide });
+      const url = buildShareableUrl({ embed: compact, includeFilters, hide, lockBounds });
       urlInput.value = url;
       const height = Math.max(400, parseInt(heightInput.value, 10) || 780);
       iframeOut.value =
@@ -1621,6 +1648,7 @@
     closeBtn.addEventListener('click', close);
     includeFiltersCb.addEventListener('change', refresh);
     compactCb.addEventListener('change', refresh);
+    if (lockBoundsCb) lockBoundsCb.addEventListener('change', refresh);
     dialog.querySelectorAll('input[type="checkbox"][data-hide]').forEach((cb) => {
       cb.addEventListener('change', refresh);
     });
