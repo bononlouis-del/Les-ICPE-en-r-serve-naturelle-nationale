@@ -1028,13 +1028,18 @@
 
   const cartographicKey = 'carte:show-cartographic';
   const cartographicDummy = L.layerGroup(); // empty — just a toggle handle
+  let cartographicVisible = false;
   function showCartographicControls() {
-    if (!map.hasLayer(scaleControl._map ? scaleControl : null)) scaleControl.addTo(map);
-    try { compassControl.addTo(map); } catch (_) { /* already added */ }
+    if (cartographicVisible) return;
+    scaleControl.addTo(map);
+    compassControl.addTo(map);
+    cartographicVisible = true;
   }
   function hideCartographicControls() {
+    if (!cartographicVisible) return;
     scaleControl.remove();
     compassControl.remove();
+    cartographicVisible = false;
   }
   map.on('overlayadd', function (e) {
     if (e.layer === cartographicDummy) {
