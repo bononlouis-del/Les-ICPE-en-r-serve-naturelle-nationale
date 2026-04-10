@@ -1001,6 +1001,61 @@
   clusterGroup.addTo(map);
 
   // layer control
+  // Scale bar + compass rose — both discreet, toggled via the layer
+  // control as "Échelle & boussole". Uses a dummy LayerGroup: when
+  // the user unchecks it in the COUCHES panel, Leaflet fires
+  // overlayremove and we remove the controls. Persisted in localStorage.
+  const scaleControl = L.control.scale({ metric: true, imperial: false, position: 'bottomleft' });
+  const compassControl = (function () {
+    const Compass = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd: function () {
+        const div = L.DomUtil.create('div', 'compass leaflet-control');
+        div.setAttribute('aria-hidden', 'true');
+        div.title = 'Nord en haut';
+        div.innerHTML = '<span class="compass__n">N</span>' +
+          '<span class="compass__cross">+</span>' +
+          '<span class="compass__labels">' +
+            '<span class="compass__w">O</span>' +
+            '<span class="compass__e">E</span>' +
+          '</span>' +
+          '<span class="compass__s">S</span>';
+        return div;
+      },
+    });
+    return new Compass();
+  })();
+
+  const cartographicKey = 'carte:show-cartographic';
+  const cartographicDummy = L.layerGroup(); // empty — just a toggle handle
+  function showCartographicControls() {
+    if (!map.hasLayer(scaleControl._map ? scaleControl : null)) scaleControl.addTo(map);
+    try { compassControl.addTo(map); } catch (_) { /* already added */ }
+  }
+  function hideCartographicControls() {
+    scaleControl.remove();
+    compassControl.remove();
+  }
+  map.on('overlayadd', function (e) {
+    if (e.layer === cartographicDummy) {
+      showCartographicControls();
+      try { localStorage.setItem(cartographicKey, '1'); } catch (_) {}
+    }
+  });
+  map.on('overlayremove', function (e) {
+    if (e.layer === cartographicDummy) {
+      hideCartographicControls();
+      try { localStorage.setItem(cartographicKey, '0'); } catch (_) {}
+    }
+  });
+
+  // Default: visible. Respect localStorage.
+  const showCarto = (() => { try { return localStorage.getItem(cartographicKey) !== '0'; } catch (_) { return true; } })();
+  if (showCarto) {
+    cartographicDummy.addTo(map);
+    showCartographicControls();
+  }
+
   const overlays = {
     'Contour Gironde': girondeLayer,
     'Contours EPCI': epciOutlineLayer,
@@ -1008,6 +1063,7 @@
     'Réserves Nat. Nationales': rnnLayer,
     'Réserves Nat. Régionales': rnrLayer,
     'ICPE': clusterGroup,
+    'Échelle & boussole': cartographicDummy,
   };
   L.control.layers(baseLayers, overlays, { collapsed: true, position: 'topright' }).addTo(map);
 
