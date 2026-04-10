@@ -798,7 +798,7 @@ input { font: inherit; color: inherit; }
 .legend-toggle {
   position: absolute;
   left: 18px;
-  bottom: 18px;
+  bottom: 42px; /* clear the Leaflet scale bar below */
   background: var(--paper);
   border: 1px solid var(--rule);
   padding: 8px 12px;
